@@ -5,3 +5,4 @@ Pipfile
 Pipfile.lock
 pypi_desc.md
 setup.py
+pypi.info

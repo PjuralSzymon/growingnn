@@ -2,6 +2,13 @@
 
 The growingnn project introduces an innovative algorithm for data-driven neural network model construction. This algorithm comprises two fundamental components: the first component focuses on weight adjustment, while the second component acts as an orchestrator, launching a guided procedure to dynamically change the network architecture. This architectural modification occurs at regular intervals, specifically every $K$ epochs, and is driven by the outcome of a Monte Carlo tree search. The algorithm's core, outlined in the accompanying research paper, leverages the principles of Stochastic Gradient Descent (SGD) without relying on advanced tools commonly used in neural network training.
 
+### [Repozytorium GitHub](https://github.com/PjuralSzymon/growingnn)
+Click the link above to navigate to the GitHub repository, where you can find the source code, issues, and other project details.
+
+### [Dokumentacja](https://pjuralszymon.github.io/growingnn)
+This link will take you to the project documentation. Here you'll find instructions, usage information, and other resources helpful for using the project.
+
+
 ## Algorithm Overview
 
 ### Weight Adjustment Component
@@ -49,11 +56,27 @@ gnn.trainer.train(
 ```
 This code trains a simple network on the MNIST dataset
 
+## Structure
+History of resulting optimal structure created for MNIST dataset:
+
+1. ![Screenshot](./docs/model_arch_1.png)
+
+2. ![Screenshot](./docs/model_arch_2.png)
+
+3. ![Screenshot](./docs/model_arch_3.png)
+
+4. ![Screenshot](./docs/model_arch_4.png)
+
+History of training for mnist and fmnist dataset:
+![Screenshot](./docs/montecarlo_alg.png)
+
+
+
 
 # Credits
 
-Szymon Świderski
-Agnieszka Jastrzębska
+Szymon Swiderski
+Agnieszka Jastrzebska
 
 # Disclosure
 
