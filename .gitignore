@@ -1,0 +1,7 @@
+/growingnn.egg-info
+/build
+/dist
+Pipfile
+Pipfile.lock
+pypi_desc.md
+setup.py
