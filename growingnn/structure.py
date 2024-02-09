@@ -9,6 +9,7 @@ import json
 import imgaug.augmenters as iaa
 from scipy.signal import correlate2d
 from scipy.signal import convolve2d
+from .painter import *
 #from .convolution import * 
 
 #np.random.seed(0)
@@ -469,9 +470,9 @@ class Model:
         for i in range(0, input_paths):
             layer_id = "init_"+str(i)
             self.input_layers.append(Layer(layer_id, self, input_size, hidden_size, self.activation_fun))
-            self.add_connection(layer_id, 1)
+            self.add_connection(layer_id, self.output_layer.id)
         self.output_layer.is_ending = True
-        
+        if input_paths > 1: self.add_sequential_output_Layer()
         # in testing:
         self.convolution = False
         self.input_shape = None
@@ -486,10 +487,12 @@ class Model:
         self.depth = depth # amount of kernels
         for i in range(0, len(self.input_layers)):
             layer_id = "init_"+str(i)
-            self.input_layers[i].disconnect(1)
-            self.output_layer.disconnect(layer_id)
-            self.input_layers[i] = Conv(layer_id, self, self.input_shape, self.kernel_size, self.depth, self.activation_fun)
-            self.add_connection(layer_id, 1)
+            output_layers_ids = self.input_layers[i].output_layers_ids
+            for output_layer_id in output_layers_ids:
+                self.input_layers[i].disconnect(output_layer_id)
+                self.get_layer(output_layer_id).disconnect(self.input_layers[i].id)
+                self.input_layers[i] = Conv(layer_id, self, self.input_shape, self.kernel_size, self.depth, self.activation_fun)
+                self.add_connection(layer_id, output_layer_id)
         #print("self.input_layer: ", self.input_layers[0].output_shape)
         #print("self.input_layer: ", self.input_layers[0].output_flatten)
         #print("hidden_size: ", self.hidden_size)
@@ -513,20 +516,29 @@ class Model:
     def add_norm_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.RANDOM):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
-        #print("layer_from_id: ", layer_from_id)
-        #print("layer_from: ", layer_from)
-        #print("ttt: ", type(layer_from))
         if type(layer_from) == Conv:
             input_size = layer_from.output_flatten
         elif type(layer_from) == Layer:
             input_size = layer_from.neurons
-        #print("3 input_size: ", input_size)
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type)
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
         self.add_connection(new_layer.id, layer_to_id)
         layer_from.disconnect(layer_to_id)
         layer_to.disconnect(layer_from_id)
+        self.avaible_id += 1
+        return new_layer.id
+    
+    def add_sequential_output_Layer(self):
+        new_layer = Layer(self.avaible_id, self, self.output_layer.input_size, self.output_layer.input_size, self.activation_fun, Layer_Type.EYE)
+        self.hidden_layers.append(new_layer)
+        input_layers_ids = self.output_layer.input_layers_ids.copy()
+        for input_layer_id in input_layers_ids:
+            self.add_connection(input_layer_id, new_layer.id)
+            layer_from = self.get_layer(input_layer_id)
+            layer_from.disconnect(self.output_layer.id)
+            self.output_layer.disconnect(layer_from.id)
+        self.add_connection(new_layer.id, self.output_layer.id)
         self.avaible_id += 1
         return new_layer.id
     
