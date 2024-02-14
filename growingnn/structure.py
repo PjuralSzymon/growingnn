@@ -652,7 +652,9 @@ class Model:
             history.append('loss', loss)
             if i % 1 == 0 and quiet==False:
                 print("Epoch: "+ str(i) + " Accuracy: " + str(round(acc,3))+ " loss: " + str(round(loss,3)) + " lr: " + str(round(current_alpha, 3)))
-            if history.learning_capable() == False: break
+            #if history.learning_capable() == False: 
+            #    print("history learning capable break")
+            #    break
         A = self.forward_prop(X)
         return history.get_last('accuracy'), history
     
@@ -742,8 +744,6 @@ class Model:
         for layer in self.hidden_layers:
             result += "layer.id: " + str(layer.id) + " layer outputs: " + str(layer.output_layers_ids) + " summary: " + str(layer.get_weights_summary())
         return result
-
-
 
 class Conv(Layer):
     def __init__(self, _id, _model, input_shape, kernel_size, depth, act_fun):
