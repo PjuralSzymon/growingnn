@@ -1,8 +1,22 @@
-import numpy as np
+#import numpy as np
 from matplotlib import pyplot as plt
 import cv2 as cv
 import json
 import random
+import numpy
+#import cupy as cp
+
+IS_CUPY = False
+LARGE_MAX = 2**128
+
+try:
+    smt =1 / 0 
+    import cupy as np
+    IS_CUPY = True
+except Exception as e:
+    import numpy as np
+    IS_CUPY = False
+    print(f"Unexpected error occured: {e} while loading cupy library, switching to CPU")
 
 class NumpyArrayEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -12,10 +26,27 @@ class NumpyArrayEncoder(json.JSONEncoder):
             return int(obj)
         return json.JSONEncoder.default(self, obj)
     
-LARGE_MAX = 2**128
-
+def get_list_as_numpy_array(X):
+    for i in range(0, len(X)):
+        X[i] = get_numpy_array(X[i])
+    return X
+    
+def get_numpy_array(X):
+    if IS_CUPY == True:
+        if isinstance(X, np.ndarray):
+            return X.get()
+        else:
+            return numpy.array(X)
+    else:
+        return numpy.array(X)
+    
+def convert_to_desired_type(X):
+    if not isinstance(X, np.ndarray):
+        return np.array(X)
+    return X
+    
 def one_hot(Y, Y_max = 0):
-    Y_max = max(Y_max, Y.max() + 1)
+    Y_max = int(max(Y_max, Y.max() + 1))
     one_hot_Y = np.zeros((Y.size, Y_max))
     one_hot_Y[np.arange(Y.size), Y] = 1
     one_hot_Y = one_hot_Y.T
@@ -48,12 +79,12 @@ def delete_repetitions(array):
 
 def eye_stretch(a,b):
     A = np.eye(max(a,b))
-    return np.array(cv.resize(A, (a,b))).T
+    return np.array(cv.resize(get_numpy_array(A), (a,b))).T
 
 def strech(x, shape):
     result = np.zeros((shape[0], shape[1], x.shape[2]))
     for i in range(0, x.shape[2]):
-        result[:,:,i] = cv.resize(x[:,:,i], shape)
+        result[:,:,i] = np.array(cv.resize(get_numpy_array(x[:,:,i]), shape))
     return result
 
 def draw_hist(hist, label, path):
@@ -89,12 +120,12 @@ def protected_sampling(x, y, n):
     for cls in unique_classes:
         class_indices = np.where(y == cls)[0]
         selected_indices.extend(np.random.choice(class_indices, size=min(samples_per_class, len(class_indices))))
-    remaining_samples = n - len(selected_indices)
-    if remaining_samples > 0:
-        all_indices = np.arange(len(x))
-        available_indices = np.setdiff1d(all_indices, selected_indices)
-        additional_indices = np.random.choice(available_indices, size=remaining_samples, replace=False)
-        selected_indices.extend(additional_indices)
+    #remaining_samples = n - len(selected_indices)
+    # if remaining_samples > 0:
+    #     all_indices = np.arange(len(x))
+    #     available_indices = np.setdiff1d(all_indices, selected_indices)
+    #     additional_indices = np.random.choice(available_indices, size=remaining_samples, replace=False)
+    #     selected_indices.extend(additional_indices)
     return select_data_at_indices(x, y, selected_indices)
 
 def select_data_at_indices(x, y, selected_indices):

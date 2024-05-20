@@ -5,9 +5,17 @@ import asyncio
 from .model_storage import *
 from .Simulation import *
 import os
-
+from .helpers import convert_to_desired_type
 
 def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, augmentor = Augmentor(), simulation_score = Simulation_score()):
+    x_train = convert_to_desired_type(x_train)
+    x_test = convert_to_desired_type(x_test)
+    y_train = convert_to_desired_type(y_train)
+    y_test = convert_to_desired_type(y_test)
+    print("x_train: ", type(x_train))
+    print("x_test: ", type(x_test))
+    print("y_train: ", type(y_train))
+    print("y_test: ", type(y_test))
     if not os.path.exists(path):
         os.mkdir(path, 0o777)
     if not os.path.exists(path): os.mkdir(path, 0o777)

@@ -1,4 +1,5 @@
-import numpy as np
+
+
 from .helpers import *
 from .config import *
 import math
@@ -9,7 +10,11 @@ import json
 import imgaug.augmenters as iaa
 from scipy.signal import correlate2d
 from scipy.signal import convolve2d
+from cupyx.scipy.ndimage import correlate
+from cupyx.scipy.ndimage import convolve
+
 from .painter import *
+
 #from .convolution import * 
 
 #np.random.seed(0)
@@ -44,7 +49,7 @@ class Activations:
     class ReLu:
         __name__ = 'ReLu'
         def exe(X):
-            return np.maximum(X,0)
+            return numpy.maximum(X,0)
         def der(X):
             return X > 0
         
@@ -78,6 +83,7 @@ class Augmentor:
     EMPTY = 0
     AUGMENT_IMAGES = 1
     AUGMENT_VECTOR = 2
+    AUGMENT_NOISE = 3
 
     def __init__(self, mode = 0, probability = 0.25):
         if mode == 0:
@@ -92,10 +98,13 @@ class Augmentor:
                 iaa.Sometimes(probability, iaa.ElasticTransformation(alpha=(0.5, 3.0), sigma=0.25)),  # Transformacja elastyczna
             ])
         elif mode == Augmentor.AUGMENT_VECTOR:
-            seq = iaa.Sequential([
+            self.mode = mode
+            self.seq = iaa.Sequential([
                 iaa.Sometimes(probability, iaa.Add((-0.1, 0.1))),  # Dodaj losową wartość z przedziału (-10, 10)
                 iaa.Sometimes(probability, iaa.Multiply((0.9, 1.1))),  # Pomnóż przez losową wartość z przedziału (0.9, 1.1)
             ])
+        elif mode == Augmentor.AUGMENT_NOISE:
+            self.mode = Augmentor.AUGMENT_NOISE
 
     def process(self, X):
         if self.mode == Augmentor.EMPTY:
@@ -104,6 +113,9 @@ class Augmentor:
             return np.array(self.seq(images = X))
         elif self.mode == Augmentor.AUGMENT_VECTOR:
             return np.array(self.seq(data_vectors=X))
+        elif self.mode == Augmentor.AUGMENT_NOISE:
+            if np.random.ranf(1)[0] > 0.5: return X
+            else: return X + 0.1 * (np.random.ranf(X.shape))
         
     def augment_data(self, x_train, y_train, num_augmentations):
         augmented_x_train = []
@@ -156,7 +168,8 @@ class SimulationScheduler:
         prev_acc = 0#hist_detail.Y['iteration_acc_train'][-2]
         if len(hist_detail.Y['iteration_acc_train']) > 0: new_acc = hist_detail.Y['iteration_acc_train'][-1]
         if len(hist_detail.Y['iteration_acc_train']) > 1: prev_acc = hist_detail.Y['iteration_acc_train'][-2]
-
+        new_acc = get_numpy_array(new_acc)
+        prev_acc = get_numpy_array(prev_acc)
         if self.mode == SimulationScheduler.CONSTANT: 
             print("[iteration: "+str(i)+"] Constant frequency od simulaiton acc: " + str(new_acc)+ " starting simulation." )
             return True
@@ -214,7 +227,7 @@ class Simulation_score:
         self.mode = mode
         
     def new_max_loss(self, global_history):
-        self.max_loss = np.max(global_history.Y['loss'])
+        self.max_loss = numpy.max(get_list_as_numpy_array(global_history.Y['loss']))
         
     def grade(self, acc, history):
         if self.mode == Simulation_score.ACCURACY:
@@ -252,10 +265,10 @@ class History:
         return self.Y[key][-1]
     def draw_hist(self, label, path):
         for key in self.Y.keys():
-            #print("len(self.Y[key]): ", len(self.Y[key]))
+            #print("len(self.Y[key]): ", len(self.Y[key]), type(self.Y[key][0]))
             xc = range(0, len(self.Y[key]))
             plt.figure()
-            plt.plot(xc, self.Y[key], label = key)
+            plt.plot(xc, get_list_as_numpy_array(self.Y[key]), label = key)
             plt.legend()
             plt.savefig(path + "/" + label + "_" + key + ".png")
             plt.close()
@@ -263,7 +276,7 @@ class History:
         dict = {}
         dict['keys'] = {}
         for key in self.Y.keys():
-            dict['keys'][key] = np.array(self.Y[key])
+            dict['keys'][key] = np.array(get_list_as_numpy_array(self.Y[key]))
         dict['last_img_id'] = str(self.last_img_id)
         dict['description'] = str(self.description)
         dict['best_train_acc'] = str(self.best_train_acc)
@@ -303,14 +316,14 @@ class Layer:
         self.b_input = [] # backwarding input
         self.reshspers = {}
         if layer_type == Layer_Type.EYE:
-            self.W = eye_stretch(neurons, input_size)
-            self.B = np.zeros((neurons, 1))
+            self.W = np.asarray(eye_stretch(neurons, input_size))
+            self.B = np.asarray(np.zeros((neurons, 1)))
         elif layer_type == Layer_Type.ZERO:
-            self.W = np.zeros((neurons, input_size))
-            self.B = np.zeros((neurons, 1))
+            self.W = np.asarray(np.zeros((neurons, input_size)))
+            self.B = np.asarray(np.zeros((neurons, 1)))
         elif layer_type == Layer_Type.RANDOM:
-            self.W = np.random.randn(neurons, input_size)
-            self.B = np.random.randn(neurons, 1)
+            self.W = np.asarray(np.random.randn(neurons, input_size))
+            self.B = np.asarray(np.random.randn(neurons, 1))
     
     def connect_input(self, layer_id):
         if layer_id == self.id: 
@@ -346,9 +359,15 @@ class Layer:
         self.f_input.append(X)
         if len(self.f_input) < len(self.input_layers_ids): 
             return None
+
         self.I = mean_n(self.f_input)
-        self.Z = self.W @ self.I + self.B
+        # print("self.I: ", type(self.I))
+        # print("self.W: ", type(self.W))
+        # print("self.B: ", type(self.B))
+        self.Z = np.dot(self.W, self.I) + self.B
         self.A = self.act_fun.exe(self.Z)
+        # print("self.Z: ", type(self.Z))
+        # print("self.A: ", type(self.A))
         result = None
         if self.is_ending:
             result = self.A
@@ -370,8 +389,6 @@ class Layer:
         if len(self.b_input) < len(self.output_layers_ids): return None
         self.E =  np.clip(mean_n(self.b_input), -error_clip_range, error_clip_range)
         dZ = self.E * self.act_fun.der(self.Z)
-        #print("dZ: ", dZ.shape)
-        #print("self.I.T: ", self.I.T.shape)
         self.dW = 1 / m * dZ @ self.I.T
         self.dB = 1 / m * np.reshape(np.sum(dZ, 1), self.B.shape)
         self.E = self.W.T @ dZ
@@ -410,8 +427,9 @@ class Layer:
     def Reshape(x, output_size, resharper):
         x_reshaped = np.zeros((output_size, x.shape[1]))
         for i in range(0, x.shape[1]):
-            #print("shape: ", x_reshaped[:, i].shape)
-            x_reshaped[:, i] = x[:, i].dot(resharper)
+    
+            #x_reshaped[:, i] = x[:, i].dot(resharper)
+            x_reshaped[:, i] = np.dot(x[:, i], resharper)
         return x_reshaped
 
     def get_all_childrens_connections(self, deepth = 0):
@@ -613,6 +631,8 @@ class Model:
         return np.sum(predictions == Y) / Y.size
 
     def forward_prop(self, input):
+        if not isinstance(input, np.ndarray):
+            input = np.array(input)
         #print("len(self.input_layers): ", len(self.input_layers))
         if len(self.input_layers) == 1:
             return self.input_layers[0].forward_prop(input, 0)
@@ -622,6 +642,8 @@ class Model:
         return result
     
     def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, augmentor = Augmentor()):
+        if not isinstance(X, np.ndarray): X = np.array(X)
+        if not isinstance(Y, np.ndarray): Y = np.array(Y)
         if one_hot_needed: one_hot_Y = one_hot(Y)
         else: one_hot_Y = Y
         A = []
@@ -651,7 +673,7 @@ class Model:
             history.append('accuracy', acc)
             history.append('loss', loss)
             if i % 1 == 0 and quiet==False:
-                print("Epoch: "+ str(i) + " Accuracy: " + str(round(acc,3))+ " loss: " + str(round(loss,3)) + " lr: " + str(round(current_alpha, 3)))
+                print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)))
             #if history.learning_capable() == False: 
             #    print("history learning capable break")
             #    break
@@ -781,7 +803,11 @@ class Conv(Layer):
         for img_id in range(0, self.I.shape[0]):
             for i in range(self.depth): 
                 for j in range(self.input_depth): 
-                    self.Z[img_id,:,:,i] += correlate2d(self.I[img_id,:,:,j], self.kernels[i,j], "valid") 
+                    if IS_CUPY:
+                        temp1 = correlate(self.I[img_id,:,:,j], self.kernels[i,j])
+                        self.Z[img_id,:,:,i] += np.resize(temp1, self.Z[img_id,:,:,i].shape)
+                    else:
+                        self.Z[img_id,:,:,i] += correlate2d(self.I[img_id,:,:,j], self.kernels[i,j], "valid") 
                 self.Z[img_id,:,:,i] += self.biases[:,:,i]
         self.A = self.act_fun.exe(self.Z)
         result = None
@@ -811,8 +837,14 @@ class Conv(Layer):
         for img_id in range(0, self.I.shape[0]):
             for i in range(self.depth):
                 for j in range(self.input_depth):
-                    self.kernels_gradient[i,j] += correlate2d(self.I[img_id,:,:,j], dZ[img_id,:,:,i], "valid")
-                    self.input_gradient[img_id,:,:,j] += convolve2d(dZ[img_id,:,:,i], self.kernels[i,j], "full")
+                    if IS_CUPY:
+                        temp1 = correlate(self.I[img_id,:,:,j], dZ[img_id,:,:,i])
+                        self.kernels_gradient[i,j] += np.resize(temp1, self.kernels_gradient[i,j].shape)
+                        temp2 = convolve(dZ[img_id, :, :, i], self.kernels[i,j])
+                        self.input_gradient[img_id, :, :, j] += np.resize(temp2, self.input_gradient[img_id, :, :, j].shape)
+                    else:
+                        self.kernels_gradient[i,j] += correlate2d(self.I[img_id,:,:,j], dZ[img_id,:,:,i], "valid")
+                        self.input_gradient[img_id,:,:,j] += convolve2d(dZ[img_id,:,:,i], self.kernels[i,j], "full")
             self.error += dZ[img_id,:,:,:]
         self.kernels_gradient[i,j] /= self.I.shape[0]
         self.input_gradient[img_id,:,:,j] /= self.I.shape[0]

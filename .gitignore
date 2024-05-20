@@ -1,9 +1,11 @@
 /growingnn.egg-info
 /build
 /dist
+/tests
 Pipfile
 Pipfile.lock
 pypi_desc.md
 setup.py
 pypi.info
 test.py
+*html
