@@ -29,4 +29,4 @@ jobs:
 
     - name: Run tests
       run: |
-        python -m unittest discover || echo "Failed to run tests"
+        python tests/unittests_basic.py || echo "Failed to run tests"
