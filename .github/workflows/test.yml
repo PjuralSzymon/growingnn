@@ -21,7 +21,9 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.9.7'  # Aktualizacja wersji Pythona
+        python-version: '3.9.7'
+        architecture: 'x64'  # Wybieramy architekturę x64
+        platform: 'ubuntu-20.04'  # Wybieramy platformę Linux 20.04
 
     - name: Install dependencies
       run: |
