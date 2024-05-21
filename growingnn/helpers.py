@@ -10,9 +10,9 @@ IS_CUPY = False
 LARGE_MAX = 2**128
 
 try:
-    smt =1 / 0 
     import cupy as np
     IS_CUPY = True
+    print(f"Cupy library loaded, GPU enabled: ", np.cuda.is_available())
 except Exception as e:
     import numpy as np
     IS_CUPY = False
@@ -26,6 +26,15 @@ class NumpyArrayEncoder(json.JSONEncoder):
             return int(obj)
         return json.JSONEncoder.default(self, obj)
     
+def clip(X, min, max):
+    return np.array(np.clip(get_numpy_array(X), min, max))
+
+def argmax(X, axis):
+    return np.array(numpy.argmax(get_numpy_array(X), axis))
+
+def randn(shape):
+        return np.array(numpy.random.randn(shape))
+
 def get_list_as_numpy_array(X):
     for i in range(0, len(X)):
         X[i] = get_numpy_array(X[i])
