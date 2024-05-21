@@ -10,7 +10,6 @@ IS_CUPY = False
 LARGE_MAX = 2**128
 
 try:
-    smt =1 / 0 
     import cupy as np
     IS_CUPY = True
 except Exception as e:

@@ -9,3 +9,5 @@ setup.py
 pypi.info
 test.py
 *html
+*.pyc
+*.vscode
