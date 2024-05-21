@@ -1,7 +1,7 @@
 /growingnn.egg-info
 /build
 /dist
-/tests
+/work
 Pipfile
 Pipfile.lock
 pypi_desc.md
