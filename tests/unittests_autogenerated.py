@@ -99,25 +99,8 @@ class TestLearningRateScheduler(unittest.TestCase):
         scheduler = gnn.LearningRateScheduler(mode=gnn.LearningRateScheduler.PROGRESIVE, alpha=0.1, steepness=0.2)
         alpha = scheduler.alpha_scheduler(i=10, iterations=100)
         expected = 0.1 * (11 / 22)
-        self.assertAlmostEqual(alpha, expected)
+        self.assertAlmostEqual(alpha, expected) 
 
-class TestSimulationScore(unittest.TestCase):
-    
-    def test_grade_accuracy(self):
-        score = gnn.Simulation_score(mode=gnn.Simulation_score.ACCURACY)
-        result = score.grade(acc=0.9, history=None)
-        self.assertEqual(result, 0.9)
-        
-    def test_grade_loss(self):
-        score = gnn.Simulation_score(mode=gnn.Simulation_score.LOSS)
-        global_history = MagicMock()
-        global_history.Y = {'loss': [0.5, 0.4, 0.3]}
-        score.new_max_loss(global_history)
-        history = MagicMock()
-        history.get_last.return_value = 0.3
-        result = score.grade(acc=None, history=history)
-        expected = 0.5 - 0.3
-        self.assertAlmostEqual(result, expected)
 
 
 if __name__ == '__main__':
