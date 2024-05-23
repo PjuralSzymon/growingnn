@@ -151,6 +151,7 @@ class Augmentor:
 class LearningRateScheduler:
     CONSTANT = 0
     PROGRESIVE = 1
+    PROGRESIVE_PARABOIDAL = 2
 
     def __init__(self, mode, alpha, steepness = 0.2):
         self.mode = mode
@@ -158,13 +159,20 @@ class LearningRateScheduler:
         self.steepness = steepness
 
     def alpha_scheduler(self, i, iterations):
+        thresh = float(self.steepness * iterations)
+        i = float(i)
+        iterations = float(iterations)
         if self.mode == LearningRateScheduler.CONSTANT:
             return self.alpha
+        elif self.mode == LearningRateScheduler.PROGRESIVE:
+            if i < thresh:
+                return self.alpha * ((i+1) / (thresh + 2))
+            return self.alpha * (1 - (i - thresh) / (iterations - thresh + 2))
         else:
             thresh = self.steepness * iterations
             if i < thresh:
-                return self.alpha * (float(i+1) / float(thresh + 2))
-            return self.alpha * (1 - float(i - thresh) / float(iterations - thresh + 2))
+                return self.alpha * (((i) / (pow(thresh, 2))) * pow((i) - thresh, 2) + 1)
+            return self.alpha * (((i) / (pow(iterations - thresh, 2))) * pow((i) - thresh, 2) + 1)
 
 class SimulationScheduler:
     CONSTANT = 0
