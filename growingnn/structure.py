@@ -171,8 +171,8 @@ class LearningRateScheduler:
         else:
             thresh = self.steepness * iterations
             if i < thresh:
-                return self.alpha * (((i) / (pow(thresh, 2))) * pow((i) - thresh, 2) + 1)
-            return self.alpha * (((i) / (pow(iterations - thresh, 2))) * pow((i) - thresh, 2) + 1)
+                return self.alpha * ( -1 * ((i) / (pow(thresh, 2))) * pow((i) - thresh, 2) + 1)
+            return self.alpha * (-1 * ((i) / (pow(iterations - thresh, 2))) * pow((i) - thresh, 2) + 1)
 
 class SimulationScheduler:
     CONSTANT = 0
