@@ -24,9 +24,9 @@ class Loss:
     
     def getByName(name):
         if name == Loss.MSE.__name__:
-            return Loss.MSE()
+            return Loss.MSE
         elif name == Loss.multiclass_cross_entropy.__name__:
-            return Loss.multiclass_cross_entropy()
+            return Loss.multiclass_cross_entropy
 
     class MSE:
         __name__ = 'MSE'
@@ -56,13 +56,13 @@ class Activations:
 
     def getByName(name):
         if name == Activations.ReLu.__name__:
-            return Activations.ReLu()
+            return Activations.ReLu
         elif name == Activations.leaky_ReLu.__name__:
-            return Activations.leaky_ReLu()
+            return Activations.leaky_ReLu
         elif name == Activations.SoftMax.__name__:
-            return Activations.SoftMax()
+            return Activations.SoftMax
         elif name == Activations.Sigmoid.__name__:
-            return Activations.Sigmoid()
+            return Activations.Sigmoid
     class ReLu:
         __name__ = 'ReLu'
         def exe(X):
@@ -171,8 +171,8 @@ class LearningRateScheduler:
         else:
             thresh = self.steepness * iterations
             if i < thresh:
-                return self.alpha * ( -1 * ((i) / (pow(thresh, 2))) * pow((i) - thresh, 2) + 1)
-            return self.alpha * (-1 * ((i) / (pow(iterations - thresh, 2))) * pow((i) - thresh, 2) + 1)
+                return self.alpha * ( -1 * ((1) / (pow(thresh, 2))) * pow((i) - thresh, 2) + 1)
+            return self.alpha * (-1 * ((1) / (pow(iterations - thresh, 2))) * pow((i) - thresh, 2) + 1)
 
 class SimulationScheduler:
     CONSTANT = 0
@@ -635,11 +635,12 @@ class Model:
         for input_layer in self.input_layers:
             if input_layer.id == id: 
                 return input_layer
-        if self.output_layer.id == id: return self.output_layer
+        if self.output_layer.id == id: 
+            return self.output_layer
         for layer in self.hidden_layers:
             if layer.id == id:
                 return layer
-
+            
     def get_predictions(A2):
         return argmax(A2, 0)
 
@@ -961,7 +962,6 @@ class Storage:
     def loadModel(path):
         with open(path, 'r') as json_file:
             model_dict = json.load(json_file)
-        print("model_dict: ", model_dict)
         return Storage.dictToModel(model_dict)
 
     def saveModel(model, path):
@@ -969,47 +969,6 @@ class Storage:
             json.dump(Storage.modelToDict(model), json_file, indent=4)
         pass
     
-    def dictToModel(dict_main):
-        batch_size = dict_main['settings']['batch_size']
-        loss_function_name = dict_main['settings']['loss_function']
-        output_size = dict_main['settings']['output_size']
-        hidden_size = dict_main['settings']['hidden_size']
-        avaible_id = dict_main['settings']['avaible_id']
-        activation_fun_name = dict_main['settings']['activation_fun']
-        convolution = dict_main['settings']['convolution']
-        input_shape = dict_main['settings']['input_shape']
-        kernel_size = dict_main['settings']['kernel_size']
-        depth = dict_main['settings']['depth']
-        input_size = dict_main['settings']['input_size']
-
-        loss_function = Loss.getByName(loss_function_name)
-        activation_fun = Activations.getByName(activation_fun_name)
-        # pozostałe wartości
-
-        model = Model(input_size, hidden_size, output_size, loss_function, activation_fun, 1)
-
-        model.batch_size = batch_size
-        model.avaible_id = avaible_id
-        model.convolution = convolution
-        model.kernel_size = kernel_size
-        model.depth = depth
-        
-        model.input_layers = []
-        model.hidden_layers = []
-
-        for layer_id, layer_dict in dict_main['input_layers'].items():
-            print("layer_dict: ", layer_dict)
-            layer = Storage.dictToLayer(layer_dict)
-            model.input_layers.append(layer)
-
-        for layer_id, layer_dict in dict_main['hidden_layers'].items():
-            layer = Storage.dictToLayer(layer_dict)
-            model.hidden_layers.append(layer)
-
-        model.output_layer = Storage.dictToLayer(dict_main['output_layer'])
-
-        pass
-
     def modelToDict(model):
         dict_main = {}
         dict_main['settings'] = {}
@@ -1037,24 +996,24 @@ class Storage:
 
     def layerToDict(layer):
         dict_main = {}
-        # Basing layer class
         dict_main['id'] = str(layer.id)
-        dict_main['input_size'] = layer.input_size
-        dict_main['neurons'] = layer.neurons
         dict_main['act_fun'] = str(layer.act_fun.__name__)
         dict_main['is_ending'] = layer.is_ending
-        dict_main['input_layers_ids'] = layer.input_layers_ids
-        dict_main['output_layers_ids'] = layer.output_layers_ids
+        dict_main['input_layers_ids'] = [str(i) for i in layer.input_layers_ids] 
+        dict_main['output_layers_ids'] = [str(i) for i in layer.output_layers_ids]
         dict_reshapers = {}
         for resheper_key in layer.reshspers.keys():
             reshsper_id = str(resheper_key)
             (resheper_from, resharper_to) = resheper_key
+            dict_reshapers[reshsper_id] = {}
             dict_reshapers[reshsper_id]['from'] = resheper_from
             dict_reshapers[reshsper_id]['to'] = resharper_to
             dict_reshapers[reshsper_id]["matrix"] =  get_numpy_array(layer.reshspers[resheper_key]).tolist()
         dict_main['reshapers'] = dict_reshapers
         dict_main['weights'] = {}
         if type(layer) == Layer:
+            dict_main['neurons'] = layer.neurons
+            dict_main['input_size'] = layer.input_size
             dict_main['weights']['W'] = get_numpy_array(layer.W).tolist()
             dict_main['weights']['B'] = get_numpy_array(layer.B).tolist()
         if type(layer) == Conv:
@@ -1073,21 +1032,55 @@ class Storage:
             dict_main['conv']['kernels_shape'] = layer.kernels_shape
         return dict_main
         
-    def dictToLayer(layer_dict):
-        layer_id = layer_dict['id']
-        input_size = layer_dict['input_size']
-        neurons = layer_dict['neurons']
+
+    def dictToModel(dict_main):
+        batch_size = dict_main['settings']['batch_size']
+        loss_function_name = dict_main['settings']['loss_function']
+        output_size = dict_main['settings']['output_size']
+        hidden_size = dict_main['settings']['hidden_size']
+        avaible_id = dict_main['settings']['avaible_id']
+        activation_fun_name = dict_main['settings']['activation_fun']
+        convolution = dict_main['settings']['convolution']
+        input_shape = dict_main['settings']['input_shape']
+        kernel_size = dict_main['settings']['kernel_size']
+        depth = dict_main['settings']['depth']
+        input_size = dict_main['settings']['input_size']
+        loss_function = Loss.getByName(loss_function_name)
+        activation_fun = Activations.getByName(activation_fun_name)
+        model = Model(input_size, hidden_size, output_size, loss_function, activation_fun, 1)
+        model.batch_size = batch_size
+        model.avaible_id = avaible_id
+        model.convolution = convolution
+        model.kernel_size = kernel_size
+        model.depth = depth
+        model.input_layers = []
+        model.hidden_layers = []
+
+        for layer_id, layer_dict in dict_main['input_layers'].items():
+            layer = Storage.dictToLayer(layer_dict, model)
+            model.input_layers.append(layer)
+
+        for layer_id, layer_dict in dict_main['hidden_layers'].items():
+            layer = Storage.dictToLayer(layer_dict, model)
+            model.hidden_layers.append(layer)
+
+        for layer_id, layer_dict in dict_main['output_layer'].items():
+            layer = Storage.dictToLayer(layer_dict, model)
+            model.output_layer = layer
+        return model
+
+
+    def dictToLayer(layer_dict, model):
+        layer_id = str(layer_dict['id'])
         act_fun_name = layer_dict['act_fun']
         is_ending = layer_dict['is_ending']
         input_layers_ids = layer_dict['input_layers_ids']
         output_layers_ids = layer_dict['output_layers_ids']
         reshapers = layer_dict['reshapers']
-
         act_fun = Activations.getByName(act_fun_name)
-
         if 'conv' in layer_dict:
             conv_dict = layer_dict['conv']
-            layer = Conv(layer_id, None, conv_dict['input_shape'], conv_dict['kernel_size'], conv_dict['depth'], act_fun)
+            layer = Conv(layer_id, model, conv_dict['input_shape'], conv_dict['kernel_size'], conv_dict['depth'], act_fun)
             layer.input_height = conv_dict['input_height']
             layer.input_width = conv_dict['input_width']
             layer.input_depth = conv_dict['input_depth']
@@ -1096,12 +1089,13 @@ class Storage:
             layer.output_flatten = conv_dict['output_flatten']
             layer.kernels_shape = conv_dict['kernels_shape']
         else:
-            layer = Layer(layer_id, None, input_size, neurons, act_fun)
+            input_size = layer_dict['input_size']
+            neurons = layer_dict['neurons']
+            layer = Layer(layer_id, model, input_size, neurons, act_fun)
         
         layer.is_ending = is_ending
         layer.input_layers_ids = input_layers_ids
         layer.output_layers_ids = output_layers_ids
-
         reshapers_dict = {}
         for reshaper_id, reshaper_info in reshapers.items():
             reshaper_from = reshaper_info['from']
@@ -1120,5 +1114,4 @@ class Storage:
                 layer.kernels = np.array(weights_dict['kernels'])
             if 'biases' in weights_dict:
                 layer.biases = np.array(weights_dict['biases'])
-
         return layer

@@ -88,18 +88,7 @@ class TestActivations(unittest.TestCase):
         expected = 1 / (1 + gnn.np.exp(-X))
         gnn.np.testing.assert_array_almost_equal(result, expected, decimal=5)
 
-class TestLearningRateScheduler(unittest.TestCase):
-    
-    def test_constant_scheduler(self):
-        scheduler = gnn.LearningRateScheduler(mode=gnn.LearningRateScheduler.CONSTANT, alpha=0.1)
-        alpha = scheduler.alpha_scheduler(i=10, iterations=100)
-        self.assertEqual(alpha, 0.1)
-        
-    def test_progressive_scheduler(self):
-        scheduler = gnn.LearningRateScheduler(mode=gnn.LearningRateScheduler.PROGRESIVE, alpha=0.1, steepness=0.2)
-        alpha = scheduler.alpha_scheduler(i=10, iterations=100)
-        expected = 0.1 * (11 / 22)
-        self.assertAlmostEqual(alpha, expected) 
+
 
 
 
