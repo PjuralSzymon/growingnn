@@ -812,7 +812,7 @@ class Conv(Layer):
         self.input_flatten = int(self.input_height * self.input_width * self.input_depth)
         self.depth = int(depth) 
         self.kernel_size = int(kernel_size)
-        self.output_shape = (int(self.input_height-kernel_size+1),int(self.input_width-kernel_size+1), int(depth))  
+        self.output_shape = (int(self.input_height),int(self.input_width), int(depth))  
         self.output_flatten = int(self.output_shape[0] * self.output_shape[1] * self.output_shape[2])
         self.kernels_shape = (int(self.depth), int(self.input_depth), int(kernel_size), int(kernel_size)) 
         self.reshspers = {}
@@ -834,10 +834,10 @@ class Conv(Layer):
             for i in range(self.depth): 
                 for j in range(self.input_depth): 
                     if IS_CUPY:
-                        temp1 = correlate(self.I[img_id,:,:,j], self.kernels[i,j])
-                        self.Z[img_id,:,:,i] += np.resize(temp1, self.Z[img_id,:,:,i].shape)
+                        self.Z[img_id,:,:,i] += correlate(self.I[img_id,:,:,j], self.kernels[i,j])
                     else:
-                        self.Z[img_id,:,:,i] += correlate2d(self.I[img_id,:,:,j], self.kernels[i,j], "valid") 
+
+                        self.Z[img_id,:,:,i] += correlate2d(self.I[img_id,:,:,j], self.kernels[i,j], "same") 
                 self.Z[img_id,:,:,i] += self.biases[:,:,i]
         self.A = self.act_fun.exe(self.Z)
         result = None
@@ -874,7 +874,7 @@ class Conv(Layer):
                         self.input_gradient[img_id, :, :, j] += np.resize(temp2, self.input_gradient[img_id, :, :, j].shape)
                     else:
                         self.kernels_gradient[i,j] += correlate2d(self.I[img_id,:,:,j], dZ[img_id,:,:,i], "valid")
-                        self.input_gradient[img_id,:,:,j] += convolve2d(dZ[img_id,:,:,i], self.kernels[i,j], "full")
+                        self.input_gradient[img_id,:,:,j] += convolve2d(dZ[img_id,:,:,i], self.kernels[i,j], "same")
             self.error += dZ[img_id,:,:,:]
         self.kernels_gradient[i,j] /= self.I.shape[0]
         self.input_gradient[img_id,:,:,j] /= self.I.shape[0]

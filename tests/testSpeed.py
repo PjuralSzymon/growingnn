@@ -9,9 +9,9 @@ import pandas as pd
 
 shape = 5000
 
-class TestingStorage(unittest.TestCase):
+class TestingSpeed(unittest.TestCase):
 
-    def test_train_save_load(self):
+    def test_speed(self):
         x_train = np.random.randint(0, 256, (20, 32, 32, 3), dtype=np.uint8)
         y_train = np.random.randint(0, 10, (20,), dtype=np.uint8)
         labels = {'frog': 0, 'cat': 1, 'automobile': 2, 'dog': 3, 'truck': 4, 'deer': 5, 'bird': 6, 'ship': 7, 'airplane': 8, 'horse': 9}
@@ -42,11 +42,6 @@ class TestingStorage(unittest.TestCase):
             batch_size = 5 * 128, 
             simulation_set_size = 5,
             simulation_score = gnn.Simulation_score(gnn.Simulation_score.ACCURACY))
-            output1 = M.forward_prop(x_train[:1])
-            gnn.Storage.saveModel(M, "tmp.json")
-            M_loaded = gnn.Storage.loadModel("tmp.json")
-            output2 = M_loaded.forward_prop(x_train[:1])
-            self.assertAlmostEqual(np.sum(output1 - output2), 0)
             end_time = time.time()
             time_stemp = end_time - start_time
             times.append(time_stemp)
