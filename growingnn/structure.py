@@ -30,18 +30,22 @@ class Loss:
 
     class MSE:
         __name__ = 'MSE'
+        @staticmethod
         def exe(Y_true, Y_pred):
             return np.sum((Y_pred - Y_true)**2)/Y_pred.shape[0]
+        @staticmethod
         def der(Y_true, Y_pred):
             return Y_pred - Y_true
     class multiclass_cross_entropy:
         __name__ = 'multiclass_cross_entropy'
+        @staticmethod
         def exe(Y_true, Y_pred):
             error = 0.0
             for i in range(0, Y_true.shape[1]):
                 error -= np.dot(Y_true[:,i].T, np.log(Y_pred[:,i]))
             #print("Y_true.shape: ", Y_true.shape)
             return error / Y_true.shape[1]
+        @staticmethod
         def der(Y_true, Y_pred):
             grad = np.zeros(Y_true.shape)
             for i in range(0, Y_true.shape[1]):
@@ -65,33 +69,41 @@ class Activations:
             return Activations.Sigmoid
     class ReLu:
         __name__ = 'ReLu'
+        @staticmethod
         def exe(X):
             return numpy.maximum(X,0)
+        @staticmethod
         def der(X):
             return X > 0
         
     class leaky_ReLu:
         __name__ = 'leaky_ReLu'
+        @staticmethod
         def exe(X):
             return  np.where(X > 0, X, X * 0.001)
+        @staticmethod
         def der(X):
             return  np.where(X > 0, 1, 0.001)
         
     class SoftMax:
         __name__ = 'SoftMax'
+        @staticmethod
         def exe(X):
             result = np.zeros(X.shape)
             for i in range(0, X.shape[1]):
                 exp = np.exp(X[:, i] - np.nanmax(X[:, i]))
                 result[:, i] = np.nan_to_num(exp / np.sum(exp))
             return clip(result, 0.0001, 0.999)
+        @staticmethod
         def der(X):
             return 1.0
         
     class Sigmoid:
         __name__ = 'Sigmoid'
+        @staticmethod
         def exe(X):
             return  1/(1 + np.exp(-X))
+        @staticmethod
         def der(X):
             sigm = 1/(1 + np.exp(-X))
             return sigm * (1.0 - sigm)
@@ -386,13 +398,8 @@ class Layer:
             return None
 
         self.I = mean_n(self.f_input)
-        # print("self.I: ", type(self.I))
-        # print("self.W: ", type(self.W))
-        # print("self.B: ", type(self.B))
         self.Z = np.dot(self.W, self.I) + self.B
         self.A = self.act_fun.exe(self.Z)
-        # print("self.Z: ", type(self.Z))
-        # print("self.A: ", type(self.A))
         result = None
         if self.is_ending:
             result = self.A
@@ -414,8 +421,8 @@ class Layer:
         if len(self.b_input) < len(self.output_layers_ids): return None
         self.E =  clip(mean_n(self.b_input), -error_clip_range, error_clip_range)
         dZ = self.E * self.act_fun.der(self.Z)
-        self.dW = 1 / m * dZ @ self.I.T
-        self.dB = 1 / m * np.reshape(np.sum(dZ, 1), self.B.shape)
+        self.dW = dZ @ self.I.T / m
+        self.dB = np.reshape(np.sum(dZ, 1), self.B.shape) / m
         self.E = self.W.T @ dZ
         for layer_id in self.input_layers_ids:
             self.model.get_layer(layer_id).back_prop(self.E, m, alpha)
@@ -423,26 +430,23 @@ class Layer:
         self.b_input = []
 
     def update_params(self, alpha):
-        self.W = self.W - alpha * self.dW
-        self.B = self.B - alpha * self.dB
+        self.W -= alpha * self.dW
+        self.B -= alpha * self.dB
         self.W = clip(self.W, -weights_clip_range, weights_clip_range)
         self.B = clip(self.B, -weights_clip_range, weights_clip_range)
-        if np.any(np.isnan(self.W)):
-            self.W = np.nan_to_num(self.W, nan = np.nanmean(self.W))
-            #print(" NAN ")
-        if np.any(np.isnan(self.B)):
-            self.B = np.nan_to_num(self.B, nan = np.nanmean(self.B))
-            #print(" NAN ")
-        if np.any(np.isinf(self.W)):
-            print(self.id, "W inf discovered")
-            self.W[self.W == -np.inf] = -1.0
-            self.W[self.W == np.inf] = 1.0
-            #print(" INF ")
-        if np.any(np.isinf(self.B)):
-            print(self.id, "B inf discovered")
-            self.B[self.B == -np.inf] = -1.0
-            self.B[self.B == np.inf] = 1.0
-            #print(" INF ")
+        # Handle NaNs and Infs in W
+        if np.any(np.isnan(self.W)) or np.any(np.isinf(self.W)):
+            print(f"{self.id} W has NaNs or Infs")
+            self.W = np.nan_to_num(self.W, nan=np.nanmean(self.W))
+            self.W = np.where(self.W == -np.inf, -1.0, self.W)
+            self.W = np.where(self.W == np.inf, 1.0, self.W)
+
+        # Handle NaNs and Infs in B
+        if np.any(np.isnan(self.B)) or np.any(np.isinf(self.B)):
+            print(f"{self.id} B has NaNs or Infs")
+            self.B = np.nan_to_num(self.B, nan=np.nanmean(self.B))
+            self.B = np.where(self.B == -np.inf, -1.0, self.B)
+            self.B = np.where(self.B == np.inf, 1.0, self.B)
 
     def get_reshsper(self, size_from, size_to):
         if not (size_from, size_to) in self.reshspers.keys():
