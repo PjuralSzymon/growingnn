@@ -4,7 +4,6 @@ import cv2 as cv
 import json
 import random
 import numpy
-#import cupy as cp
 
 IS_CUPY = False
 LARGE_MAX = 2**128
@@ -129,12 +128,6 @@ def protected_sampling(x, y, n):
     for cls in unique_classes:
         class_indices = np.where(y == cls)[0]
         selected_indices.extend(np.random.choice(class_indices, size=min(samples_per_class, len(class_indices))))
-    #remaining_samples = n - len(selected_indices)
-    # if remaining_samples > 0:
-    #     all_indices = np.arange(len(x))
-    #     available_indices = np.setdiff1d(all_indices, selected_indices)
-    #     additional_indices = np.random.choice(available_indices, size=remaining_samples, replace=False)
-    #     selected_indices.extend(additional_indices)
     return select_data_at_indices(x, y, selected_indices)
 
 def select_data_at_indices(x, y, selected_indices):
