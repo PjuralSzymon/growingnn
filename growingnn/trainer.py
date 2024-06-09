@@ -2,7 +2,6 @@ from .painter import *
 from .structure import *
 from .action import *
 import asyncio
-from .model_storage import *
 from .Simulation import *
 import os
 from .helpers import convert_to_desired_type
@@ -23,18 +22,10 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
     hist_detail = History(['accuracy', 'loss'])
     model_path = path+model_name
     hist_path = path+model_name+"_hist"
-    if os.path.isfile(hist_path) and False:
-        hist_detail.load(hist_path) 
-        print("hist_detail loaded")
-    if os.path.isfile(model_path) and False:
-        M = model_storage.load_model(model_path)  
-        hist_detail.description += 'Reloading model ... \n'
-        print("Model was loaded from: ", model_path)
-    else:
-        M = Model(input_size, hidden_size, output_size, loss_function, activation_fun, input_paths)
-        if input_shape != None:
-                M.set_convolution_mode(input_shape, kernel_size, deepth)
-        M.batch_size = batch_size
+    M = Model(input_size, hidden_size, output_size, loss_function, activation_fun, input_paths)
+    if input_shape != None:
+            M.set_convolution_mode(input_shape, kernel_size, deepth)
+    M.batch_size = batch_size
     acc = Model.get_accuracy(Model.get_predictions(M.forward_prop(x_test)),y_test)
     print("model is ready, starting accuracy: ", acc)
 
@@ -55,20 +46,16 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
             action_desc = "[iteration: "+str(i)+"] Best action found after simulation: "+ str(action)+ " deepth of tree searched: "+ str(deepth) + " number of rollouts: "+ str(rollouts) + " size_of_changes: " + str(size_of_changes)
             hist_detail.description += action_desc+"\n"
             action.execute(M)
-        #model_storage.save_model(M, model_path)
         hist_detail.save(hist_path)
         draw(M, model_path+'_graph_'+ str(hist_detail.last_img_id)+".html")
         hist_detail.last_img_id += 1
-        #helpers.draw_hist(hist, model_path+"_history_global", ".")
         hist_detail.draw_hist(model_path+"_history_detail", ".")
         if hist_detail.get_last('iteration_acc_train') > hist_detail.best_train_acc:
-            #model_storage.save_model(M, model_path+"_best_train_acc") # TURN OFF FOR LINUX
             hist_detail.description += '[iteration: '+str(i)+'] Rewriting best model for train acc prev: ' + str(hist_detail.best_train_acc) + " new: " + str(hist_detail.get_last('iteration_acc_train')) + "\n"
             hist_detail.best_train_acc = hist_detail.get_last('iteration_acc_train')
             if sample_sub_generator != None:
                 sample_sub_generator(M, model_path+"train_", labels, x_train, y_train, x_test, y_test)
         if hist_detail.get_last('iteration_acc_test') > hist_detail.best_test_acc:
-            #model_storage.save_model(M, model_path+"_best_test_acc") # TURN OFF FOR LINUX
             hist_detail.description += '[iteration: '+str(i)+'] Rewriting best model for test acc prev: ' + str(hist_detail.best_test_acc) + " new: " + str(hist_detail.get_last('iteration_acc_test')) + "\n"
             hist_detail.best_test_acc = hist_detail.get_last('iteration_acc_test')
             if sample_sub_generator != None:
