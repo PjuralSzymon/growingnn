@@ -24,7 +24,7 @@ class NumpyArrayEncoder(json.JSONEncoder):
         if isinstance(obj, np.int32):
             return int(obj)
         return json.JSONEncoder.default(self, obj)
-    
+
 def clip(X, min, max):
     return np.array(np.clip(get_numpy_array(X), min, max))
 

@@ -13,10 +13,10 @@ class TestLoss(unittest.TestCase):
     
     def test_getByName(self):
         mse = gnn.Loss.getByName('MSE')
-        self.assertIsInstance(mse, gnn.Loss.MSE)
+        self.assertEqual(mse, gnn.Loss.MSE)
         
         cross_entropy = gnn.Loss.getByName('multiclass_cross_entropy')
-        self.assertIsInstance(cross_entropy, gnn.Loss.multiclass_cross_entropy)
+        self.assertEqual(cross_entropy, gnn.Loss.multiclass_cross_entropy)
         
     def test_MSE_exe(self):
         Y_true = gnn.np.array([1, 2, 3])
@@ -52,16 +52,16 @@ class TestActivations(unittest.TestCase):
     
     def test_getByName(self):
         relu = gnn.Activations.getByName('ReLu')
-        self.assertIsInstance(relu, gnn.Activations.ReLu)
+        self.assertEqual(relu, gnn.Activations.ReLu)
         
         leaky_relu = gnn.Activations.getByName('leaky_ReLu')
-        self.assertIsInstance(leaky_relu, gnn.Activations.leaky_ReLu)
+        self.assertEqual(leaky_relu, gnn.Activations.leaky_ReLu)
         
         softmax = gnn.Activations.getByName('SoftMax')
-        self.assertIsInstance(softmax, gnn.Activations.SoftMax)
+        self.assertEqual(softmax, gnn.Activations.SoftMax)
         
         sigmoid = gnn.Activations.getByName('Sigmoid')
-        self.assertIsInstance(sigmoid, gnn.Activations.Sigmoid)
+        self.assertEqual(sigmoid, gnn.Activations.Sigmoid)
         
     def test_ReLu_exe(self):
         X = gnn.np.array([-1, 0, 1])
