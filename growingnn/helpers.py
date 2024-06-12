@@ -8,14 +8,14 @@ import numpy
 IS_CUPY = False
 LARGE_MAX = 2**128
 
-try:
-    import cupy as np
-    IS_CUPY = True
-    print(f"Cupy library loaded, GPU enabled: ", np.cuda.is_available())
-except Exception as e:
-    import numpy as np
-    IS_CUPY = False
-    print(f"Unexpected error occured: {e} while loading cupy library, switching to CPU")
+# try:
+#     import cupy as np
+#     IS_CUPY = True
+#     print(f"Cupy library loaded, GPU enabled: ", np.cuda.is_available())
+# except Exception as e:
+#     import numpy as np
+#     IS_CUPY = False
+#     print(f"Unexpected error occured: {e} while loading cupy library, switching to CPU")
 
 class NumpyArrayEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -25,6 +25,22 @@ class NumpyArrayEncoder(json.JSONEncoder):
             return int(obj)
         return json.JSONEncoder.default(self, obj)
 
+def switch_to_gpu():
+    global np, IS_CUPY
+    try:
+        import cupy as np
+        IS_CUPY = True
+        print(f"Cupy library loaded, GPU enabled: ", np.cuda.is_available())
+    except Exception as e:
+        print(f"Unexpected error occurred: {e} while loading cupy library, switching to CPU")
+        switch_to_cpu()  # Fallback to CPU
+
+def switch_to_cpu():
+    global np, IS_CUPY
+    import numpy as np
+    IS_CUPY = False
+    print("Numpy library loaded, CPU enabled.")
+    
 def clip(X, min, max):
     return np.array(np.clip(get_numpy_array(X), min, max))
 
@@ -160,3 +176,5 @@ def limit_classes(x_train, y_train, x_test, y_test, num_classes=5):
 def set_seed(new_seed):
     np.random.seed(new_seed)
     random.seed(new_seed)
+
+switch_to_gpu()
