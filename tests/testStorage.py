@@ -11,6 +11,13 @@ shape = 5000
 
 class TestingStorage(unittest.TestCase):
 
+    def setUp(self):
+        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        if mode == 'cpu':
+            gnn.switch_to_cpu()
+        elif mode == 'gpu':
+            gnn.switch_to_gpu()
+            
     def test_base_save_load(self):
         M = gnn.structure.Model(3, 3, 1, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
         x = np.random.rand(3, 3)

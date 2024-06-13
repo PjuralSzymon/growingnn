@@ -13,6 +13,13 @@ epochs = 5
 
 class TestingTrain(unittest.TestCase):
 
+    def setUp(self):
+        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        if mode == 'cpu':
+            gnn.switch_to_cpu()
+        elif mode == 'gpu':
+            gnn.switch_to_gpu()
+            
     def test_drawing_graphs(self):
         success = False
         try:

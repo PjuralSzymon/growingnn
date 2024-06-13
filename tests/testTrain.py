@@ -9,6 +9,12 @@ from growingnn.structure import SimulationScheduler
 class TestModelTraining(unittest.TestCase):
 
     def setUp(self):
+        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        if mode == 'cpu':
+            gnn.switch_to_cpu()
+        elif mode == 'gpu':
+            gnn.switch_to_gpu()
+            
         self.datasize = 20
         self.datadimensionality = 10
         self.classes = 3

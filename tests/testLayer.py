@@ -11,6 +11,11 @@ from unittest.mock import MagicMock
 class TestLayer(unittest.TestCase):
 
     def setUp(self):
+        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        if mode == 'cpu':
+            gnn.switch_to_cpu()
+        elif mode == 'gpu':
+            gnn.switch_to_gpu()
         self.layer = gnn.Layer(1, None, 10, 5, None)
         self.layer.act_fun = gnn.structure.Activations.ReLu
         self.layer.is_ending = True

@@ -11,6 +11,11 @@ from unittest.mock import MagicMock
 class TestHistory(unittest.TestCase):
 
     def setUp(self):
+        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        if mode == 'cpu':
+            gnn.switch_to_cpu()
+        elif mode == 'gpu':
+            gnn.switch_to_gpu()
         self.keys = ['loss', 'accuracy']
         self.history = gnn.History(self.keys)
 

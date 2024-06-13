@@ -11,6 +11,13 @@ from unittest.mock import MagicMock
 
 class TestLoss(unittest.TestCase):
     
+    def setUp(self):
+        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        if mode == 'cpu':
+            gnn.switch_to_cpu()
+        elif mode == 'gpu':
+            gnn.switch_to_gpu()
+            
     def test_getByName(self):
         mse = gnn.Loss.getByName('MSE')
         self.assertEqual(mse, gnn.Loss.MSE)
