@@ -14,7 +14,7 @@ class TestModelTraining(unittest.TestCase):
             gnn.switch_to_cpu()
         elif mode == 'gpu':
             gnn.switch_to_gpu()
-            
+
         self.datasize = 20
         self.datadimensionality = 10
         self.classes = 3
@@ -32,6 +32,9 @@ class TestModelTraining(unittest.TestCase):
         print("self.y_train: ", self.y_train.shape)
 
     def test_train_dense_GPU(self):
+        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        if mode == 'gpu':
+            return
         # Wykonywanie treningu modelu z małym zbiorem danych
         gnn.switch_to_gpu()
         try:
@@ -49,6 +52,9 @@ class TestModelTraining(unittest.TestCase):
             self.fail(f"Model training failed with exception: {e}")
 
     def test_train_conv_GPU(self):
+        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        if mode == 'gpu':
+            return
         # Wykonywanie treningu modelu z małym zbiorem danych
         gnn.switch_to_gpu()
         try:

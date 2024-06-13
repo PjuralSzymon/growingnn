@@ -1,5 +1,6 @@
 import unittest
 import argparse
+import sys
 
 # Define the test file names
 test_files = [
@@ -35,12 +36,15 @@ for test_file in test_files:
         if hasattr(test, 'mode'):
             test.mode = args.mode  # Set mode parameter to each test
     
-
     suite.addTests(discovered_tests)
 
 # Create a test runner that will output the results to the console
 runner = unittest.TextTestRunner()
 
-# Run the test suite
+# Run the test suite and exit with appropriate exit code
 if __name__ == '__main__':
-    runner.run(suite)
+    result = runner.run(suite)
+    if result.wasSuccessful():
+        sys.exit(0)  # Exit with code 0 if all tests passed successfully
+    else:
+        sys.exit(1)  # Exit with code 1 if there were failures or errors in tests

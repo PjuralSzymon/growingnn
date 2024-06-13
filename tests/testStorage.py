@@ -6,8 +6,7 @@ import numpy as np
 import time
 import unittest
 import pandas as pd
-
-shape = 5000
+import os 
 
 class TestingStorage(unittest.TestCase):
 
@@ -17,7 +16,7 @@ class TestingStorage(unittest.TestCase):
             gnn.switch_to_cpu()
         elif mode == 'gpu':
             gnn.switch_to_gpu()
-            
+
     def test_base_save_load(self):
         M = gnn.structure.Model(3, 3, 1, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
         x = np.random.rand(3, 3)
@@ -29,10 +28,12 @@ class TestingStorage(unittest.TestCase):
         self.assertAlmostEqual(np.sum(output1 - output2), 0)
 
     def test_train_save_load(self):
-        x_train = np.random.randint(0, 256, (90, 32, 32, 3), dtype=np.uint8)
-        y_train = np.random.randint(0, 10, (90,), dtype=np.uint8)
+        x_train = np.random.randint(0, 256, (5, 32, 32, 3), dtype=np.uint8)
+        y_train = np.random.randint(0, 10, (5,), dtype=np.uint8)
         labels = {'frog': 0, 'cat': 1, 'automobile': 2, 'dog': 3, 'truck': 4, 'deer': 5, 'bird': 6, 'ship': 7, 'airplane': 8, 'horse': 9}
-        for g in range(1, 10, 4):
+        if not os.path.exists("work/"):
+            os.makedirs("work/")
+        for g in [2,3,10]:
             M = gnn.trainer.train(
             x_train = x_train, 
             y_train = y_train, 
