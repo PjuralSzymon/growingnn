@@ -9,7 +9,7 @@ from .config import *
 IS_CUPY = False
 
 def switch_to_gpu():
-    print(" parent: switch_to_gpu")
+   # print(" parent: switch_to_gpu")
     global np, IS_CUPY
     try:
         helpers.switch_to_gpu()
@@ -22,7 +22,7 @@ def switch_to_gpu():
         switch_to_cpu()  # Fallback to CPU
 
 def switch_to_cpu():
-    print(" parent: switch_to_cpu")
+#    print(" parent: switch_to_cpu")
     global IS_CUPY, np
     helpers.switch_to_cpu()
     structure.switch_to_cpu()

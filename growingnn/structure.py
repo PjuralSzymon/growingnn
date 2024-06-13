@@ -18,7 +18,7 @@ def switch_to_gpu():
     IS_CUPY = True
     from cupyx.scipy.ndimage import correlate
     from cupyx.scipy.ndimage import convolve
-    print(" structure: switch_to_gpu")
+    #print(" structure: switch_to_gpu")
 
 
 def switch_to_cpu():
@@ -27,7 +27,7 @@ def switch_to_cpu():
     IS_CUPY = False
     from scipy.signal import correlate2d
     from scipy.signal import convolve2d
-    print(" structure: switch_to_cpu")
+    #print(" structure: switch_to_cpu")
 
 class Loss:
     

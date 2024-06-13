@@ -15,13 +15,13 @@ class NumpyArrayEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 def switch_to_gpu():
-    print(" helper: switch_to_gpu")
+    #print(" helper: switch_to_gpu")
     global np, IS_CUPY
     import cupy as np
     IS_CUPY = True
 
 def switch_to_cpu():
-    print(" helper: switch_to_cpu")
+    #print(" helper: switch_to_cpu")
     global np, IS_CUPY
     import numpy as np
     IS_CUPY = False
