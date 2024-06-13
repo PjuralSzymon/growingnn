@@ -2,6 +2,7 @@
 /build
 /dist
 /work
+/ignore
 Pipfile
 Pipfile.lock
 pypi_desc.md
@@ -11,3 +12,4 @@ test.py
 *html
 *.pyc
 *.vscode
+deploy.sh
