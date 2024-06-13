@@ -4,7 +4,6 @@ import cv2 as cv
 import json
 import random
 import numpy
-import cupy
 
 class NumpyArrayEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -42,6 +41,7 @@ def get_list_as_numpy_array(X):
     
 def get_numpy_array(X):
     if IS_CUPY == True:
+        import cupy
         if isinstance(X, cupy.ndarray):
             return X.get()
         else:
