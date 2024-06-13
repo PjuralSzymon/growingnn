@@ -30,4 +30,4 @@ def switch_to_cpu():
     IS_CUPY = True
     print("Numpy library loaded, CPU enabled.")
 
-switch_to_gpu()
+switch_to_cpu()
