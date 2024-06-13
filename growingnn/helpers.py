@@ -8,15 +8,6 @@ import numpy
 IS_CUPY = False
 LARGE_MAX = 2**128
 
-# try:
-#     import cupy as np
-#     IS_CUPY = True
-#     print(f"Cupy library loaded, GPU enabled: ", np.cuda.is_available())
-# except Exception as e:
-#     import numpy as np
-#     IS_CUPY = False
-#     print(f"Unexpected error occured: {e} while loading cupy library, switching to CPU")
-
 class NumpyArrayEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
@@ -26,9 +17,11 @@ class NumpyArrayEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 def switch_to_gpu():
-    global np, IS_CUPY
+    global np, IS_CUPY, correlate, convolve
     try:
         import cupy as np
+        from cupyx.scipy.ndimage import correlate
+        from cupyx.scipy.ndimage import convolve
         IS_CUPY = True
         print(f"Cupy library loaded, GPU enabled: ", np.cuda.is_available())
     except Exception as e:
@@ -36,8 +29,10 @@ def switch_to_gpu():
         switch_to_cpu()  # Fallback to CPU
 
 def switch_to_cpu():
-    global np, IS_CUPY
+    global np, IS_CUPY, correlate2d, convolve2d
     import numpy as np
+    from scipy.signal import correlate2d
+    from scipy.signal import convolve2d
     IS_CUPY = False
     print("Numpy library loaded, CPU enabled.")
     

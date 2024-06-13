@@ -8,10 +8,8 @@ from enum import Enum
 from scipy.optimize import curve_fit
 import json
 import imgaug.augmenters as iaa
-from scipy.signal import correlate2d
-from scipy.signal import convolve2d
-from cupyx.scipy.ndimage import correlate
-from cupyx.scipy.ndimage import convolve
+
+
 
 from .painter import *
 
