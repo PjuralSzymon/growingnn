@@ -4,9 +4,7 @@ import cv2 as cv
 import json
 import random
 import numpy
-
-IS_CUPY = False
-LARGE_MAX = 2**128
+import cupy
 
 class NumpyArrayEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -17,24 +15,16 @@ class NumpyArrayEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 def switch_to_gpu():
-    global np, IS_CUPY, correlate, convolve
-    try:
-        import cupy as np
-        from cupyx.scipy.ndimage import correlate
-        from cupyx.scipy.ndimage import convolve
-        IS_CUPY = True
-        print(f"Cupy library loaded, GPU enabled: ", np.cuda.is_available())
-    except Exception as e:
-        print(f"Unexpected error occurred: {e} while loading cupy library, switching to CPU")
-        switch_to_cpu()  # Fallback to CPU
+    print(" helper: switch_to_gpu")
+    global np, IS_CUPY
+    import cupy as np
+    IS_CUPY = True
 
 def switch_to_cpu():
-    global np, IS_CUPY, correlate2d, convolve2d
+    print(" helper: switch_to_cpu")
+    global np, IS_CUPY
     import numpy as np
-    from scipy.signal import correlate2d
-    from scipy.signal import convolve2d
     IS_CUPY = False
-    print("Numpy library loaded, CPU enabled.")
     
 def clip(X, min, max):
     return np.array(np.clip(get_numpy_array(X), min, max))
@@ -52,7 +42,7 @@ def get_list_as_numpy_array(X):
     
 def get_numpy_array(X):
     if IS_CUPY == True:
-        if isinstance(X, np.ndarray):
+        if isinstance(X, cupy.ndarray):
             return X.get()
         else:
             return numpy.array(X)
@@ -171,5 +161,3 @@ def limit_classes(x_train, y_train, x_test, y_test, num_classes=5):
 def set_seed(new_seed):
     np.random.seed(new_seed)
     random.seed(new_seed)
-
-switch_to_gpu()

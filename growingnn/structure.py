@@ -1,22 +1,33 @@
-
-
-from .helpers import *
-from .config import *
 import math
 import sys
 from enum import Enum
 from scipy.optimize import curve_fit
 import json
 import imgaug.augmenters as iaa
-
-
-
 from .painter import *
+from .config import *
 
 #from .convolution import * 
 
 #np.random.seed(0)
 #np.set_printoptions(suppress = True)
+
+def switch_to_gpu():
+    global np, IS_CUPY, correlate, convolve
+    import cupy as np
+    IS_CUPY = True
+    from cupyx.scipy.ndimage import correlate
+    from cupyx.scipy.ndimage import convolve
+    print(" structure: switch_to_gpu")
+
+
+def switch_to_cpu():
+    global np, IS_CUPY, correlate2d, convolve2d
+    import numpy as np
+    IS_CUPY = False
+    from scipy.signal import correlate2d
+    from scipy.signal import convolve2d
+    print(" structure: switch_to_cpu")
 
 class Loss:
     
