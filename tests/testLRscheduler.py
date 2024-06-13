@@ -7,16 +7,17 @@ import unittest
 import pandas as pd
 import random
 from unittest.mock import MagicMock
+from testSuite import mode
 
 class TestLearningRateScheduler(unittest.TestCase):
-    
+
     def setUp(self):
-        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        global mode
         if mode == 'cpu':
             gnn.switch_to_cpu()
         elif mode == 'gpu':
             gnn.switch_to_gpu()
-            
+
     def test_constant_scheduler(self):
         scheduler = gnn.LearningRateScheduler(mode=gnn.LearningRateScheduler.CONSTANT, alpha=0.1)
         alpha = scheduler.alpha_scheduler(i=10, iterations=100)

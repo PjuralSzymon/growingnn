@@ -7,11 +7,11 @@ import unittest
 import pandas as pd
 import random
 from unittest.mock import MagicMock
+from testSuite import mode
 
 class TestModel(unittest.TestCase):
-
     def setUp(self):
-        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        global mode
         if mode == 'cpu':
             gnn.switch_to_cpu()
         elif mode == 'gpu':

@@ -7,11 +7,12 @@ import time
 import unittest
 import pandas as pd
 import os 
+from testSuite import mode
 
 class TestingStorage(unittest.TestCase):
 
     def setUp(self):
-        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        global mode
         if mode == 'cpu':
             gnn.switch_to_cpu()
         elif mode == 'gpu':
@@ -29,10 +30,8 @@ class TestingStorage(unittest.TestCase):
 
     def test_train_save_load(self):
         x_train = np.random.randint(0, 256, (5, 32, 32, 3), dtype=np.uint8)
-        y_train = np.random.randint(0, 10, (5,), dtype=np.uint8)
-        labels = {'frog': 0, 'cat': 1, 'automobile': 2, 'dog': 3, 'truck': 4, 'deer': 5, 'bird': 6, 'ship': 7, 'airplane': 8, 'horse': 9}
-        if not os.path.exists("work/"):
-            os.makedirs("work/")
+        y_train = np.random.randint(0, 2, (5,), dtype=np.uint8)
+        labels = {'frog': 0, 'cat': 1}
         for g in [2,3,10]:
             M = gnn.trainer.train(
             x_train = x_train, 
@@ -41,7 +40,7 @@ class TestingStorage(unittest.TestCase):
             y_test= y_train,
             labels=labels,
             input_paths = 1,
-            path = "work/results/cifar10gpu_paraboidals/", 
+            path = "ignore/", 
             model_name = "GNN_model", #"GNN_model", 
             epochs = 2, 
             generations = g,
@@ -51,7 +50,7 @@ class TestingStorage(unittest.TestCase):
             lr_scheduler = gnn.LearningRateScheduler(gnn.LearningRateScheduler.PROGRESIVE_PARABOIDAL, 0.05, 0.8),
             input_size = 32 * 32, 
             hidden_size = 300, 
-            output_size = 10, 
+            output_size = 2, 
             input_shape = (32, 32, 3), 
             kernel_size = 3, 
             deepth = 2, 

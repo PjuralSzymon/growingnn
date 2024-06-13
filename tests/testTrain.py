@@ -5,11 +5,12 @@ import unittest
 import numpy as np
 import growingnn as gnn
 from growingnn.structure import SimulationScheduler
+from testSuite import mode
 
 class TestModelTraining(unittest.TestCase):
 
     def setUp(self):
-        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+        global mode
         if mode == 'cpu':
             gnn.switch_to_cpu()
         elif mode == 'gpu':
@@ -33,7 +34,7 @@ class TestModelTraining(unittest.TestCase):
 
     def test_train_dense_GPU(self):
         mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
-        if mode == 'gpu':
+        if mode == 'cpu':
             return
         # Wykonywanie treningu modelu z małym zbiorem danych
         gnn.switch_to_gpu()
@@ -53,7 +54,7 @@ class TestModelTraining(unittest.TestCase):
 
     def test_train_conv_GPU(self):
         mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
-        if mode == 'gpu':
+        if mode == 'cpu':
             return
         # Wykonywanie treningu modelu z małym zbiorem danych
         gnn.switch_to_gpu()

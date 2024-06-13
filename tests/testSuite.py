@@ -20,6 +20,7 @@ test_files = [
 parser = argparse.ArgumentParser(description="Run test suite with CPU/GPU mode.")
 parser.add_argument('--mode', choices=['cpu', 'gpu'], default='cpu', help="Select computation mode: 'cpu' or 'gpu'")
 args = parser.parse_args()
+mode = args.mode
 
 # Create a test loader
 loader = unittest.TestLoader()
@@ -31,11 +32,6 @@ suite = unittest.TestSuite()
 for test_file in test_files:
     # Discover tests in the test file
     discovered_tests = loader.discover('./tests/', pattern=test_file)
-    # Modify discovered tests before adding to the suite (if needed)
-    for test in discovered_tests:
-        if hasattr(test, 'mode'):
-            test.mode = args.mode  # Set mode parameter to each test
-    
     suite.addTests(discovered_tests)
 
 # Create a test runner that will output the results to the console
