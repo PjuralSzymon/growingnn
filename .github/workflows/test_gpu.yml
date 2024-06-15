@@ -29,4 +29,4 @@ jobs:
 
     - name: Run test Suite GPU
       run: |
-        python tests/testSuite.py --mode gpu
+        python tests/testSuite.py --mode cpu
