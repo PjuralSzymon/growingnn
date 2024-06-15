@@ -3,12 +3,12 @@ import random
 from ..action import *
 from ..structure import *
 
-def scoreFun(M, epochs, X_train, Y_train, simulation_score):
-    acc, history = M.gradient_descent(X_train, Y_train, epochs, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.1) , True)
-    return simulation_score.grade(acc, history)
+# def scoreFun(M, epochs, X_train, Y_train, simulation_score):
+#     acc, history = M.gradient_descent(X_train, Y_train, epochs, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.1) , True)
+#     return simulation_score.grade(acc, history)
     #return max(1.e-17, max_loss - history.get_last('loss'))
 
-async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_score):
+async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, scoreFun):
     all_actions = Action.generate_all_actions(M)
     size_of_changes = len(all_actions)
     if size_of_changes == 0:
@@ -28,7 +28,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
         action.execute(new_M)
         all_actions.remove(action)
 
-        score = scoreFun(new_M, epochs, X_train, Y_train, simulation_score)
+        score = scoreFun(new_M, epochs, X_train, Y_train)
 
         if score > best_score:
             best_score = score

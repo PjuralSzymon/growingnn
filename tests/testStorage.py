@@ -56,7 +56,7 @@ class TestingStorage(unittest.TestCase):
             deepth = 2, 
             batch_size = 5 * 128, 
             simulation_set_size = 5,
-            simulation_score = gnn.Simulation_score(gnn.Simulation_score.ACCURACY))
+            simulation_score = gnn.Simulation_score())
             output1 = M.forward_prop(x_train[:1])
             gnn.Storage.saveModel(M, "tmp.json")
             M_loaded = gnn.Storage.loadModel("tmp.json")

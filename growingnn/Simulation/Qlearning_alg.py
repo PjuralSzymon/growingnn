@@ -28,7 +28,7 @@ class QLearningAgent:
 # Globalny agent Q-learninga
 global_agent = QLearningAgent()
 
-async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_score):
+async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, scoreFun):
     size_of_changes = len(Action.generate_all_actions(M))
     if size_of_changes == 0:
         print("Error")
@@ -53,7 +53,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
             #new_M.apply_action(action)
 
         # Uzyskanie nagrody za wykonanie akcji
-        reward = scoreFun(new_M, epochs, X_train, Y_train, simulation_score) if new_M else 0
+        reward = scoreFun(new_M, epochs, X_train, Y_train) if new_M else 0
 
         # Aktualizacja wartości Q
         if state and action:
@@ -73,7 +73,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
 
     return best_action, deepth, rollouts
 
-def scoreFun(M, epochs, X_train, Y_train, simulation_score):
-    acc, history = M.gradient_descent(X_train, Y_train, epochs, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.1) , True)
-    return simulation_score.grade(acc, history)
-    #return max(1.e-17, max_loss - history.get_last('loss'))
+# def scoreFun(M, epochs, X_train, Y_train, simulation_score):
+#     acc, history = M.gradient_descent(X_train, Y_train, epochs, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.1) , True)
+#     return simulation_score.grade(acc, history)
+#     #return max(1.e-17, max_loss - history.get_last('loss'))

@@ -46,7 +46,7 @@ class TestModelTraining(unittest.TestCase):
     def test_train_dense_CPU(self):
         # Wykonywanie treningu modelu z małym zbiorem danych
         gnn.switch_to_cpu()
-        print(gnn.IS_CUPY)
+        self.train_dense()
         try:
             self.train_dense()
         except Exception as e:
@@ -66,7 +66,7 @@ class TestModelTraining(unittest.TestCase):
     def test_train_conv_CPU(self):
         # Wykonywanie treningu modelu z małym zbiorem danych
         gnn.switch_to_cpu()
-        print(gnn.IS_CUPY)
+        self.train_conv()
         try:
             self.train_conv()
         except Exception as e:

@@ -254,20 +254,6 @@ class SimulationScheduler:
         elif self.mode == SimulationScheduler.PROGRESS_CHECK: return "simprogres"
         elif self.mode == SimulationScheduler.OVERFIT_CHECK: return "simoverfit"
 
-class Simulation_score:
-    ACCURACY = 0
-    LOSS = 1
-    def __init__(self, mode = 0):
-        self.mode = mode
-        
-    def new_max_loss(self, global_history):
-        self.max_loss = numpy.max(get_list_as_numpy_array(global_history.Y['loss']))
-        
-    def grade(self, acc, history):
-        if self.mode == Simulation_score.ACCURACY:
-            return acc
-        else:
-            return max(1.e-17, self.max_loss - history.get_last('loss'))
 
 class History:
     def __init__(self, keys):

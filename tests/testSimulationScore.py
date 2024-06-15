@@ -3,63 +3,31 @@ import sys
 sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
+import numpy as np
 import unittest
 import pandas as pd
 import random
-from unittest.mock import MagicMock
 from testSuite import mode
 
-class TestSimulationScore(unittest.TestCase):
-    
-    def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
-        self.global_history_mock = MagicMock()
-        self.history_mock = MagicMock()
+shape = 20
+epochs = 1
 
-    def test_new_max_loss(self):
-        self.global_history_mock.Y = {'loss': [0.3, 0.5, 0.2]}
-        sim_score = gnn.Simulation_score(gnn.Simulation_score.LOSS)
-        sim_score.new_max_loss(self.global_history_mock)
-        self.assertEqual(sim_score.max_loss, 0.5)
+class TestingTrain(unittest.TestCase):
 
-    def test_grade_accuracy_mode(self):
-        sim_score = gnn.Simulation_score(gnn.Simulation_score.ACCURACY)
-        result = sim_score.grade(0.9, self.history_mock)
-        self.assertEqual(result, 0.9)
-
-    def test_grade_loss_mode(self):
-        sim_score = gnn.Simulation_score(gnn.Simulation_score.LOSS)
-        sim_score.max_loss = 0.5
-        self.history_mock.get_last.return_value = 0.3
-        result = sim_score.grade(0.9, self.history_mock)
-        self.assertEqual(result, 0.2)
-
-    def test_grade_loss_mode_min_threshold(self):
-        sim_score = gnn.Simulation_score(gnn.Simulation_score.LOSS)
-        sim_score.max_loss = 0.1
-        self.history_mock.get_last.return_value = 0.2
-        result = sim_score.grade(0.9, self.history_mock)
-        self.assertEqual(result, 1.e-17)
-
-    def test_grade_accuracy(self):
-        score = gnn.Simulation_score(mode=gnn.Simulation_score.ACCURACY)
-        result = score.grade(acc=0.9, history=None)
-        self.assertEqual(result, 0.9)
+    def test_actions(self):
+        M = gnn.structure.Model(shape,shape,2, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
+        x = np.random.rand(shape, shape)
+        y = np.random.randint(2, size=(shape,))
+        lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
+        for i in range(0,10):
+            all_actions = gnn.action.Action.generate_all_actions(M)
+            new_action = random.choice(all_actions)        
+            new_action.execute(M)
+        M.gradient_descent(x, y, 1, lr_scheduler, True)
+        simulation_score = gnn.Simulation_score(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
+        score = simulation_score.scoreFun(M, 10, x, y)
+        print("score: ", score)
         
-    def test_grade_loss(self):
-        score = gnn.Simulation_score(mode=gnn.Simulation_score.LOSS)
-        global_history = MagicMock()
-        global_history.Y = {'loss': [0.5, 0.4, 0.3]}
-        score.new_max_loss(global_history)
-        history = MagicMock()
-        history.get_last.return_value = 0.3
-        result = score.grade(acc=None, history=history)
-        expected = 0.5 - 0.3
-        self.assertAlmostEqual(result, expected)
 
 if __name__ == '__main__':
     unittest.main()

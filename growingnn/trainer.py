@@ -3,6 +3,7 @@ from .structure import *
 from .action import *
 import asyncio
 from .Simulation import *
+from .Simulation.ScoreFunctions import *
 import os
 from .helpers import convert_to_desired_type
 
@@ -40,8 +41,7 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
             correc_desc = "[iteration: "+str(i)+"] No correction detected acc: " + str(new_acc)+ " starting simulation." 
             hist_detail.description += correc_desc+'\n'            
             loop = asyncio.get_event_loop()
-            simulation_score.new_max_loss(hist_detail)
-            action, deepth, rollouts = loop.run_until_complete(simulation_alg.get_action(M.deepcopy(), simulation_scheduler.simulation_time, simulation_scheduler.simulation_epochs, sim_x, sim_y, simulation_score))
+            action, deepth, rollouts = loop.run_until_complete(simulation_alg.get_action(M.deepcopy(), simulation_scheduler.simulation_time, simulation_scheduler.simulation_epochs, sim_x, sim_y, simulation_score.scoreFun))
             size_of_changes = len(Action.generate_all_actions(M))
             action_desc = "[iteration: "+str(i)+"] Best action found after simulation: "+ str(action)+ " deepth of tree searched: "+ str(deepth) + " number of rollouts: "+ str(rollouts) + " size_of_changes: " + str(size_of_changes)
             hist_detail.description += action_desc+"\n"
