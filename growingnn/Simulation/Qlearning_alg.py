@@ -28,7 +28,7 @@ class QLearningAgent:
 # Globalny agent Q-learninga
 global_agent = QLearningAgent()
 
-async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, scoreFun):
+async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_score):
     size_of_changes = len(Action.generate_all_actions(M))
     if size_of_changes == 0:
         print("Error")
@@ -53,7 +53,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, scoreFun):
             #new_M.apply_action(action)
 
         # Uzyskanie nagrody za wykonanie akcji
-        reward = scoreFun(new_M, epochs, X_train, Y_train) if new_M else 0
+        reward = simulation_score.scoreFun(new_M, epochs, X_train, Y_train) if new_M else 0
 
         # Aktualizacja wartości Q
         if state and action:

@@ -14,14 +14,14 @@ def protected_divide(a,b):
     return a/b
 
 class TreeNode:
-    def __init__(self, _parent, _action, _M, _epochs, _X_train, _Y_train, _scoreFun):
+    def __init__(self, _parent, _action, _M, _epochs, _X_train, _Y_train, _simulation_score):
         self.parent = _parent
         self.action = _action
         self.X_train = _X_train
         self.Y_train = _Y_train
         self.epochs = _epochs
         self.action = _action
-        self.scoreFun = _scoreFun
+        self.simulation_score = _simulation_score
         self.M = _M
         self.childNodes = []
         self.value = 0
@@ -34,7 +34,7 @@ class TreeNode:
             M_copy = self.M.deepcopy()
             action.execute(M_copy)
             #M_copy.add_layer(action[0], action[1])
-            new_node = TreeNode(self, action, M_copy, self.epochs, self.X_train, self.Y_train, self.scoreFun)
+            new_node = TreeNode(self, action, M_copy, self.epochs, self.X_train, self.Y_train, self.simulation_score)
             self.childNodes.append(new_node)
 
     # def scoreFun(M, epochs, X_train, Y_train, simulation_score):
@@ -65,7 +65,7 @@ class TreeNode:
             all_action_seq = new_action_seq
             deepth -= 1
 
-        score = self.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
+        score = self.simulation_score.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
         return score
 
     def get_best_child(self):
@@ -100,13 +100,13 @@ class TreeNode:
             result += child.__str__()+ "\n"
         return result
     
-async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, scoreFun):
+async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_score):
     size_of_changes = len(Action.generate_all_actions(M))
     #size_of_changes = len(M.generate_all_possible_new_layers())
     if size_of_changes == 0: 
         print("Error")
         return None,0
-    root = TreeNode(None, None, M, epochs, X_train, Y_train, scoreFun)
+    root = TreeNode(None, None, M, epochs, X_train, Y_train, simulation_score)
     deadline = time.time() + max_time_for_dec
     deepth = 0
     rollouts = 0

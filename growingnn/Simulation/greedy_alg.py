@@ -8,7 +8,7 @@ from ..structure import *
 #     return simulation_score.grade(acc, history)
     #return max(1.e-17, max_loss - history.get_last('loss'))
 
-async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, scoreFun):
+async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_score):
     all_actions = Action.generate_all_actions(M)
     size_of_changes = len(all_actions)
     if size_of_changes == 0:
@@ -28,7 +28,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, scoreFun):
         action.execute(new_M)
         all_actions.remove(action)
 
-        score = scoreFun(new_M, epochs, X_train, Y_train)
+        score = simulation_score.scoreFun(new_M, epochs, X_train, Y_train)
 
         if score > best_score:
             best_score = score
