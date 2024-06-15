@@ -9,7 +9,7 @@ import pandas as pd
 import random
 from testSuite import mode
 
-shape = 10
+shape = 20
 epochs = 5
 
 class TestingTrain(unittest.TestCase):
