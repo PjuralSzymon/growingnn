@@ -1,5 +1,5 @@
-#import numpy as np
 from matplotlib import pyplot as plt
+from numba import jit
 import cv2 as cv
 import json
 import random
@@ -26,7 +26,12 @@ def switch_to_cpu():
     IS_CUPY = False
     
 def clip(X, min, max):
+    return np.array(fastclip(get_numpy_array(X), min, max))
     return np.array(np.clip(get_numpy_array(X), min, max))
+
+@jit(nopython=True)
+def fastclip(X : numpy, min : int, max : int):
+    return np.clip(X, min, max)
 
 def argmax(X, axis):
     return np.array(numpy.argmax(get_numpy_array(X), axis))
@@ -61,17 +66,20 @@ def one_hot(Y, Y_max = 0):
     one_hot_Y = one_hot_Y.T
     return one_hot_Y
 
+@jit(nopython=True)
 def add_n(array):
     sum = array[0]
     for i in range(1,len(array)): 
         sum += array[i]
     return sum
 
+@jit(nopython=True)
 def mean_n(array):
     sum = add_n(array)
     div = float(len(array))
     return sum / div
 
+@jit(nopython=True)
 def mean_n_conv(array, shape):
     sum = array[0]
     for i in range(1,len(array)): 
@@ -85,6 +93,7 @@ def delete_repetitions(array):
         if not obj in result:
             result.append(obj)
     return result
+
 
 def eye_stretch(a,b):
     A = np.eye(max(a,b))

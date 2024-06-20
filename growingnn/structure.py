@@ -1,16 +1,10 @@
 import math
 import sys
 from enum import Enum
-from scipy.optimize import curve_fit
 import json
-import imgaug.augmenters as iaa
 from .painter import *
 from .config import *
 
-#from .convolution import * 
-
-#np.random.seed(0)
-#np.set_printoptions(suppress = True)
 
 def switch_to_gpu():
     global np, IS_CUPY, correlate, convolve
@@ -18,8 +12,6 @@ def switch_to_gpu():
     IS_CUPY = True
     from cupyx.scipy.ndimage import correlate
     from cupyx.scipy.ndimage import convolve
-    #print(" structure: switch_to_gpu")
-
 
 def switch_to_cpu():
     global np, IS_CUPY, correlate2d, convolve2d
@@ -27,7 +19,6 @@ def switch_to_cpu():
     IS_CUPY = False
     from scipy.signal import correlate2d
     from scipy.signal import convolve2d
-    #print(" structure: switch_to_cpu")
 
 class Loss:
     
@@ -74,89 +65,60 @@ class Activations:
             return Activations.Sigmoid
     class ReLu:
         __name__ = 'ReLu'
+
+        @staticmethod
+        @jit(nopython=True)
         def exe(X):
             return numpy.maximum(X,0)
+        
+        @staticmethod
+        @jit(nopython=True)
         def der(X):
             return X > 0
         
     class leaky_ReLu:
         __name__ = 'leaky_ReLu'
+
+        @staticmethod
+        @jit(nopython=True)
         def exe(X):
             return  np.where(X > 0, X, X * 0.001)
+        
+        @staticmethod
+        @jit(nopython=True)
         def der(X):
             return  np.where(X > 0, 1, 0.001)
         
     class SoftMax:
         __name__ = 'SoftMax'
+
+        @staticmethod
         def exe(X):
             result = np.zeros(X.shape)
             for i in range(0, X.shape[1]):
                 exp = np.exp(X[:, i] - np.nanmax(X[:, i]))
                 result[:, i] = np.nan_to_num(exp / np.sum(exp))
             return clip(result, 0.0001, 0.999)
+        
+        @staticmethod
+        @jit(nopython=True)
         def der(X):
             return 1.0
         
     class Sigmoid:
         __name__ = 'Sigmoid'
+
+        @staticmethod
+        @jit(nopython=True)
         def exe(X):
             return  1/(1 + np.exp(-X))
+        
+        @staticmethod
+        @jit(nopython=True)
         def der(X):
             sigm = 1/(1 + np.exp(-X))
             return sigm * (1.0 - sigm)
         
-class Augmentor:
-    EMPTY = 0
-    AUGMENT_IMAGES = 1
-    AUGMENT_VECTOR = 2
-    AUGMENT_NOISE = 3
-
-    def __init__(self, mode = 0, probability = 0.25):
-        if mode == 0:
-            self.mode = Augmentor.EMPTY
-        elif mode == Augmentor.AUGMENT_IMAGES:
-            self.mode = mode
-            self.seq = iaa.Sequential([
-                iaa.Fliplr(probability),  # Odbijanie w poziomie z 50% prawdopodobieństwem
-                iaa.Crop(percent=(0, 0.1)),  # Przycinanie obrazu
-                iaa.Sometimes(probability, iaa.GaussianBlur(sigma=(0, 0.5))),  # Rozmycie Gaussa
-                iaa.Sometimes(probability, iaa.Affine(rotate=(-270, 270))),  # Rotacja obrazu
-                iaa.Sometimes(probability, iaa.ElasticTransformation(alpha=(0.5, 3.0), sigma=0.25)),  # Transformacja elastyczna
-            ])
-        elif mode == Augmentor.AUGMENT_VECTOR:
-            self.mode = mode
-            self.seq = iaa.Sequential([
-                iaa.Sometimes(probability, iaa.Add((-0.1, 0.1))),  # Dodaj losową wartość z przedziału (-10, 10)
-                iaa.Sometimes(probability, iaa.Multiply((0.9, 1.1))),  # Pomnóż przez losową wartość z przedziału (0.9, 1.1)
-            ])
-        elif mode == Augmentor.AUGMENT_NOISE:
-            self.mode = Augmentor.AUGMENT_NOISE
-
-    def process(self, X):
-        if self.mode == Augmentor.EMPTY:
-            return X
-        elif self.mode == Augmentor.AUGMENT_IMAGES:
-            return np.array(self.seq(images = X))
-        elif self.mode == Augmentor.AUGMENT_VECTOR:
-            return np.array(self.seq(data_vectors=X))
-        elif self.mode == Augmentor.AUGMENT_NOISE:
-            if np.random.ranf(1)[0] > 0.5: return X
-            else: return X + 0.1 * (np.random.ranf(X.shape))
-        
-    def augment_data(self, x_train, y_train, num_augmentations):
-        augmented_x_train = []
-        augmented_y_train = []
-        for i in range(len(x_train)):
-            image = x_train[i]
-            label = y_train[i]
-            augmented_images = [self.seq.augment_image(image) for _ in range(num_augmentations)]
-            augmented_labels = [label] * num_augmentations
-            augmented_x_train.extend(augmented_images)
-            augmented_y_train.extend(augmented_labels)
-        augmented_x_train = np.array(augmented_x_train)
-        augmented_y_train = np.array(augmented_y_train)
-        return augmented_x_train, augmented_y_train
-
 class LearningRateScheduler:
     CONSTANT = 0
     PROGRESIVE = 1
@@ -171,23 +133,24 @@ class LearningRateScheduler:
         thresh = float(self.steepness * iterations)
         i = float(i)
         iterations = float(iterations)
+        result = self.alpha
         if self.mode == LearningRateScheduler.CONSTANT:
-            return self.alpha
+            result =  self.alpha
         elif self.mode == LearningRateScheduler.PROGRESIVE:
             if i < thresh:
                 return self.alpha * ((i+1) / (thresh + 2))
-            return self.alpha * (1 - (i - thresh) / (iterations - thresh + 2))
+            result = self.alpha * (1 - (i - thresh) / (iterations - thresh + 2))
         else:
             thresh = self.steepness * iterations
             if i < thresh:
                 return self.alpha * ( -1 * ((1) / (pow(thresh, 2))) * pow((i) - thresh, 2) + 1)
-            return self.alpha * (-1 * ((1) / (pow(iterations - thresh, 2))) * pow((i) - thresh, 2) + 1)
+            result = self.alpha * (-1 * ((1) / (pow(iterations - thresh, 2))) * pow((i) - thresh, 2) + 1)
+        return max(0, result)
 
 class SimulationScheduler:
     CONSTANT = 0
     PROGRESS_CHECK = 1
     OVERFIT_CHECK = 2
-    FLATTEN_CHECK = 3
 
     def __init__(self, mode, simulation_time, simulation_epochs, min_grow_rate = 0.65):
         self.mode = mode
@@ -220,32 +183,6 @@ class SimulationScheduler:
                 return True
             else:
                 print("[iteration: "+str(i)+"] No overfit detected: " + str(new_acc)+ " training continues.")
-                return False
-        elif self.mode == SimulationScheduler.FLATTEN_CHECK:
-            if len(hist_detail.Y['accuracy']) < self.flatten_check_length:
-                values = hist_detail.Y['accuracy']
-            else:
-                values = hist_detail.Y['accuracy'][-self.flatten_check_length:]
-            def polynommial_fun(x, a, b, c):
-                return x**2 * a + x * b + c
-            params, _ = curve_fit(polynommial_fun, np.array(list(range(0, len(values)))), values)
-            x_mid = -params[1] / (2 * params[0])
-            grow_rate = 0
-            if params[0] < 0:
-                if x_mid < len(values) / 2.0:
-                    grow_rate = 0.0
-                else:
-                    grow_rate = (x_mid - len(values))  / len(values) 
-            else:
-                if x_mid > len(values) / 2.0:
-                    grow_rate = 0.0
-                else:
-                    grow_rate = -(x_mid - len(values))  / len(values) 
-            if grow_rate < self.min_grow_rate:
-                print("[iteration: "+str(i)+"] Wykryto spłaszczenie funkcji, grow_rate: " + str(grow_rate)+ " starting simulation."  )
-                return True
-            else:
-                print("[iteration: "+str(i)+"] Accuracy ma potencjał wzrostowy, grow_rate: " + str(grow_rate)+ " training continues."  )
                 return False
         return False
     
@@ -384,7 +321,8 @@ class Layer:
         # print("self.I: ", type(self.I))
         # print("self.W: ", type(self.W))
         # print("self.B: ", type(self.B))
-        self.Z = np.dot(self.W, self.I) + self.B
+        #self.Z = np.dot(self.W, self.I) + self.B
+        self.Z = Layer.calcuale_Z(self.W, self.I, self.B)
         self.A = self.act_fun.exe(self.Z)
         # print("self.Z: ", type(self.Z))
         # print("self.A: ", type(self.A))
@@ -402,6 +340,7 @@ class Layer:
         self.f_input = []
         return result
 
+
     def back_prop(self,E,m,alpha):
         m = 1.0
         E = Layer.Reshape(E, self.neurons, self.get_reshsper(E.shape[0], self.neurons))
@@ -409,17 +348,23 @@ class Layer:
         if len(self.b_input) < len(self.output_layers_ids): return None
         self.E =  clip(mean_n(self.b_input), -error_clip_range, error_clip_range)
         dZ = self.E * self.act_fun.der(self.Z)
-        self.dW = 1 / m * dZ @ self.I.T
-        self.dB = 1 / m * np.reshape(np.sum(dZ, 1), self.B.shape)
+        #self.dW = 1 / m * dZ @ self.I.T
+        #self.dB = 1 / m * np.reshape(np.sum(dZ, 1), self.B.shape)
+        self.dW = Layer.calcuale_dW(m, dZ, self.I)
+        self.dB = Layer.calcuale_dB(m, dZ, self.B)
         self.E = self.W.T @ dZ
         for layer_id in self.input_layers_ids:
             self.model.get_layer(layer_id).back_prop(self.E, m, alpha)
         self.update_params(alpha)
         self.b_input = []
 
+
+    
     def update_params(self, alpha):
-        self.W = self.W - alpha * self.dW
-        self.B = self.B - alpha * self.dB
+        #self.W = self.W - alpha * self.dW
+        #self.B = self.B - alpha * self.dB
+        self.W = Layer.calcuale_updateW(self.W, alpha, self.dW)
+        self.B = Layer.calcuale_updateW(self.B, alpha, self.dB)
         self.W = clip(self.W, -weights_clip_range, weights_clip_range)
         self.B = clip(self.B, -weights_clip_range, weights_clip_range)
         if np.any(np.isnan(self.W)):
@@ -439,6 +384,27 @@ class Layer:
             self.B[self.B == np.inf] = 1.0
             #print(" INF ")
 
+
+    @staticmethod
+    @jit(nopython=True)
+    def calcuale_Z(W, I, B):
+        return np.dot(W, I) + B
+
+    @staticmethod
+    @jit(nopython=True)
+    def calcuale_dW(m, dZ, I):
+        return 1 / m * dZ @ I.T
+    
+    @staticmethod
+    @jit(nopython=True)
+    def calcuale_dB(m, dZ, B):
+        return 1 / m * np.reshape(np.sum(dZ, 1), B.shape)
+    
+    @staticmethod
+    @jit(nopython=True)
+    def calcuale_updateW(W, alpha, dw):
+        return W - alpha * dw
+    
     def get_reshsper(self, size_from, size_to):
         if not (size_from, size_to) in self.reshspers.keys():
             self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
@@ -447,8 +413,6 @@ class Layer:
     def Reshape(x, output_size, resharper):
         x_reshaped = np.zeros((output_size, x.shape[1]))
         for i in range(0, x.shape[1]):
-    
-            #x_reshaped[:, i] = x[:, i].dot(resharper)
             x_reshaped[:, i] = np.dot(x[:, i], resharper)
         return x_reshaped
 
@@ -662,7 +626,7 @@ class Model:
             result = self.input_layers[i].forward_prop(input[i], 0)
         return result
     
-    def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, augmentor = Augmentor()):
+    def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True):
         if not isinstance(X, np.ndarray): X = np.array(X)
         if not isinstance(Y, np.ndarray): Y = np.array(Y)
         if one_hot_needed: one_hot_Y = one_hot(Y)
@@ -686,27 +650,18 @@ class Model:
             loss = 0
             for x_indx_start in range(0, X.shape[index_axis], self.batch_size): #lwn(x)
                 batch_indexes = indexes[x_indx_start:(x_indx_start + self.batch_size)]
-                A = self.forward_prop(augmentor.process(np.take(X, batch_indexes, index_axis)))
+                A = self.forward_prop(np.take(X, batch_indexes, index_axis))
                 E = self.loss_function.der(np.take(one_hot_Y, batch_indexes, 1) , A)
                 self.output_layer.back_prop(E, self.batch_size, current_alpha)                
                 loss += self.loss_function.exe(np.take(one_hot_Y, batch_indexes, 1) , A)
+            random.shuffle(indexes)
             acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
             history.append('accuracy', acc)
             history.append('loss', loss)
             if i % 1 == 0 and quiet==False:
                 print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)))
-            #if history.learning_capable() == False: 
-            #    print("history learning capable break")
-            #    break
         A = self.forward_prop(X)
         return history.get_last('accuracy'), history
-    
-#    def alpha_scheduler(i, iterations):
-#        thresh = 0.2 * iterations
-#        if i < thresh:
-#            return (float(i+1) / float(thresh + 2))
-#        return (1 - float(i - thresh) / float(iterations - thresh + 2))
-
 
     def evaluate(self, x, y):
         A = self.forward_prop(x)

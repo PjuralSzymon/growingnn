@@ -3,10 +3,7 @@ sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
 import numpy as np
-import time
 import unittest
-import pandas as pd
-import os 
 from testSuite import mode
 
 class TestingStorage(unittest.TestCase):

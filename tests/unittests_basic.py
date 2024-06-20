@@ -5,7 +5,6 @@ sys.path.append('../')
 import growingnn as gnn
 import numpy as np
 import unittest
-import pandas as pd
 import random
 from testSuite import mode
 

@@ -7,7 +7,7 @@ from .Simulation.ScoreFunctions import *
 import os
 from .helpers import convert_to_desired_type
 
-def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, augmentor = Augmentor(), simulation_score = Simulation_score()):
+def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score()):
     x_train = convert_to_desired_type(x_train)
     x_test = convert_to_desired_type(x_test)
     y_train = convert_to_desired_type(y_train)
@@ -33,7 +33,7 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
     sim_x, sim_y = sim_set_generator(x_train, y_train, simulation_set_size)
     draw(M, model_path+ 'cifar_init.html')
     for i in range(0,generations):
-        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, False, True, augmentor)
+        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, False, True)
         hist_detail.merge(new_hist)
         hist_detail.append('iteration_acc_train', new_acc)
         hist_detail.append('iteration_acc_test', M.evaluate(x_test, y_test))

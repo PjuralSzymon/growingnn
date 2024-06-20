@@ -29,7 +29,6 @@ The train function is a part of the growingnn package, which implements an innov
 - `activation_fun`: function, activation function (default: Sigmoid).
 - `input_paths`: int, number of input paths (default: 1).
 - `sample_sub_generator`: function, sample sub-generator (default: None).
-- `augmentor`: object, data augmentor (default: Augmentor).
 - `simulation_score`: object, simulation score (default: Simulation_score).
 
 

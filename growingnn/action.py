@@ -1,4 +1,3 @@
-#import helpers
 from .structure import *
 import numpy as np
 import math
