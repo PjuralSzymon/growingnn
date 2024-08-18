@@ -274,9 +274,7 @@ class Layer:
         self.b_input = [] # backwarding input
         self.reshspers = {}
         self.optimizer = _optimizer
-        print(" creating w")
         self.optimizer_W = OptimizerFactory.copy(self.optimizer)
-        print(" creating b")
         self.optimizer_B = OptimizerFactory.copy(self.optimizer)
         if layer_type == Layer_Type.EYE:
             self.W = np.asarray(eye_stretch(neurons, input_size))
