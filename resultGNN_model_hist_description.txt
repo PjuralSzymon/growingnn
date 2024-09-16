@@ -1,8 +1,0 @@
-
-description_of_training_process: 
-[iteration: 0] Rewriting best model for train acc prev: 0.0 new: 0.5
-[iteration: 0] Rewriting best model for test acc prev: 0.0 new: 0.2
-[iteration: 1] No correction detected acc: 0.5 starting simulation.
-[iteration: 1] Best action found after simulation:  ( Add Res Layer Action: ['init_0', 1, <Layer_Type.RANDOM: 2>] )  deepth of tree searched: 5 number of rollouts: 168 size_of_changes: 4
-[iteration: 2] No correction detected acc: 0.45 starting simulation.
-[iteration: 2] Best action found after simulation:  ( Add Res Layer Action: ['init_0', 2, <Layer_Type.ZERO: 1>] )  deepth of tree searched: 3 number of rollouts: 158 size_of_changes: 13
