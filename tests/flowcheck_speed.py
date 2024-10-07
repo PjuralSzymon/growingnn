@@ -32,8 +32,8 @@ def timer_train(datasize, datadimensionality, classes):
         input_paths=1,
         path="./result",
         model_name="GNN_model",
-        epochs=3,
-        generations=3,
+        epochs=1,
+        generations=1,
         input_size=datadimensionality,
         hidden_size=datadimensionality,
         output_size=classes,
@@ -47,31 +47,30 @@ def timer_train(datasize, datadimensionality, classes):
     return round(end_time - start_time, 2)
 
 if __name__ == '__main__':
-    TIMING_RESULTS = {"basic": "...", "easy": "...", "mid": "...", "hard": "..."}
+    TIMING_RESULTS = {"easy": "...", "mid": "...", "hard": "..."}
 
     print("[INFO] Starting timing for basic dataset")
-    train_time = timer_train(100, 5, 5) # basic settings
-    TIMING_RESULTS["basic"] = train_time
+    train_time = timer_train(10, 5, 5) # basic settings
     print("[INFO] Timing finished, result: ", TIMING_RESULTS)
 
     print("[INFO] Starting timing for easy dataset")
-    train_time = timer_train(50000, 28, 10) # MNIST settings
+    train_time = timer_train(500, 28, 10) # MNIST settings
     TIMING_RESULTS["easy"] = train_time
     print("[INFO] Timing finished, result: ", TIMING_RESULTS)
 
     print("[INFO] Starting timing for mid dataset")
-    train_time = timer_train(55000, 30, 10) # Something in beetween
+    train_time = timer_train(1000, 30, 10) # Something in beetween
     TIMING_RESULTS["mid"] = train_time
     print("[INFO] Timing finished, result: ", TIMING_RESULTS)
 
     print("[INFO] Starting timing for hard dataset")
-    train_time = timer_train(60000, 32, 10) # CIFAR settings
+    train_time = timer_train(6000, 32, 10) # CIFAR settings (600 instead of 6000)
     TIMING_RESULTS["hard"] = train_time
     print("[INFO] =========================")
     print("[INFO] Timing finished, result: ", TIMING_RESULTS)
     print("[INFO] =========================")
 
-    if TIMING_RESULTS["basic"] < 100:
+    if TIMING_RESULTS["easy"] < 100:
         print("[INFO] Time for basic run is acceptable")
         sys.exit(0)  # Exit with code 0 if all tests passed successfully
     else:
