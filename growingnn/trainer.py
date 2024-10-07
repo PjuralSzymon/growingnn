@@ -7,7 +7,7 @@ from .Simulation.ScoreFunctions import *
 import os
 from .helpers import convert_to_desired_type
 
-def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score()):
+def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score(), optimizer = SGDOptimizer()):
     x_train = convert_to_desired_type(x_train)
     x_test = convert_to_desired_type(x_test)
     y_train = convert_to_desired_type(y_train)
@@ -23,7 +23,7 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
     hist_detail = History(['accuracy', 'loss'])
     model_path = path+model_name
     hist_path = path+model_name+"_hist"
-    M = Model(input_size, hidden_size, output_size, loss_function, activation_fun, input_paths)
+    M = Model(input_size, hidden_size, output_size, loss_function, activation_fun, input_paths, optimizer)
     if input_shape != None:
             M.set_convolution_mode(input_shape, kernel_size, deepth)
     M.batch_size = batch_size

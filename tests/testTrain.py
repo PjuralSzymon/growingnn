@@ -29,6 +29,7 @@ class TestModelTraining(unittest.TestCase):
         self.x_conv_test = np.random.random((int(self.datasize / 2), self.datadimensionality, self.datadimensionality, 1))
         self.y_conv_test = np.random.randint(self.classes, size=(int(self.datasize / 2), ))
         self.labels = range(0, self.classes)
+        self.optimizer = gnn.SGDOptimizer()
         print("self.x_train: ", self.x_train.shape)
         print("self.y_train: ", self.y_train.shape)
 
@@ -72,8 +73,46 @@ class TestModelTraining(unittest.TestCase):
         except Exception as e:
             self.fail(f"Model training failed with exception: {e}")
 
+    def test_train_dense_CPU_SGD(self):
+        # Wykonywanie treningu modelu z małym zbiorem danych
+        gnn.switch_to_cpu()
+        self.optimizer = gnn.SGDOptimizer()
+        self.train_dense()
+        try:
+            self.train_dense()
+        except Exception as e:
+            self.fail(f"Model training failed with exception: {e}")
+
+    def test_train_conv_CPU_Adam(self):
+        # Wykonywanie treningu modelu z małym zbiorem danych
+        gnn.switch_to_cpu()
+        self.optimizer = gnn.AdamOptimizer()
+        self.train_conv()
+        try:
+            self.train_conv()
+        except Exception as e:
+            self.fail(f"Model training failed with exception: {e}") #acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
+
+    def test_train_conv_CPU_Adam_vs_SGD(self):
+        # Wykonywanie treningu modelu z małym zbiorem danych
+        gnn.switch_to_cpu()
+        self.optimizer = gnn.AdamOptimizer()
+        model_adam = self.train_dense()
+
+        self.optimizer = gnn.SGDOptimizer()
+        model_sgd = self.train_dense()
+
+        acc_adam = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_adam.forward_prop(self.x_train)), self.y_train)
+        acc_sgd = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_sgd.forward_prop(self.x_train)), self.y_train)
+        
+        self.assertEqual(acc_adam >= acc_sgd * 0.9, True, "Adam optimzier should have better result than SGD" + str(acc_adam) + " > " + str(acc_sgd))
+        try:
+            self.train_conv()
+        except Exception as e:
+            self.fail(f"Model training failed with exception: {e}") #acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
+
     def train_conv(self):
-        gnn.trainer.train(
+        return gnn.trainer.train(
             x_train=self.x_conv_train,
             y_train=self.y_conv_train,
             x_test=self.x_conv_test,
@@ -91,11 +130,12 @@ class TestModelTraining(unittest.TestCase):
             kernel_size=2,
             batch_size=1,
             simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 2, simulation_epochs = 2), 
-            deepth=2
+            deepth=2,
+            optimizer=self.optimizer
         )
 
     def train_dense(self):
-        gnn.trainer.train(
+        return gnn.trainer.train(
             x_train=self.x_train,
             y_train=self.y_train,
             x_test=self.x_test,
@@ -113,7 +153,8 @@ class TestModelTraining(unittest.TestCase):
             kernel_size=None,
             batch_size=1,
             simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 2, simulation_epochs = 2), 
-            deepth=None
+            deepth=None,
+            optimizer=self.optimizer
         )
 
 

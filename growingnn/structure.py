@@ -4,6 +4,7 @@ from enum import Enum
 import json
 from .painter import *
 from .config import *
+from .optimizers import *
 
 
 def switch_to_gpu():
@@ -260,7 +261,7 @@ class Layer_Type(Enum):
     EYE = 3
 
 class Layer:
-    def __init__(self, _id, _model, input_size, neurons, act_fun, layer_type = Layer_Type.RANDOM):
+    def __init__(self, _id, _model, input_size, neurons, act_fun, layer_type = Layer_Type.RANDOM, _optimizer = SGDOptimizer()):
         self.id = _id
         self.model = _model
         self.input_size = input_size
@@ -272,13 +273,16 @@ class Layer:
         self.f_input = [] # forwarind input
         self.b_input = [] # backwarding input
         self.reshspers = {}
+        self.optimizer = _optimizer
+        self.optimizer_W = OptimizerFactory.copy(self.optimizer)
+        self.optimizer_B = OptimizerFactory.copy(self.optimizer)
         if layer_type == Layer_Type.EYE:
             self.W = np.asarray(eye_stretch(neurons, input_size))
             self.B = np.asarray(np.zeros((neurons, 1)))
         elif layer_type == Layer_Type.ZERO:
             self.W = np.asarray(np.zeros((neurons, input_size)))
             self.B = np.asarray(np.zeros((neurons, 1)))
-        elif layer_type == Layer_Type.RANDOM:
+        else:
             self.W = np.asarray(np.random.randn(neurons, input_size))
             self.B = np.asarray(np.random.randn(neurons, 1))
     
@@ -358,31 +362,29 @@ class Layer:
         self.update_params(alpha)
         self.b_input = []
 
-
+#     def update_params(self, weight_grads, bias_grads):
+#         self.weights = self.optimizer.update(self.weights, weight_grads)
+#         self.biases = self.optimizer.update(self.biases, bias_grads)
     
     def update_params(self, alpha):
-        #self.W = self.W - alpha * self.dW
-        #self.B = self.B - alpha * self.dB
-        self.W = Layer.calcuale_updateW(self.W, alpha, self.dW)
-        self.B = Layer.calcuale_updateW(self.B, alpha, self.dB)
-        self.W = clip(self.W, -weights_clip_range, weights_clip_range)
-        self.B = clip(self.B, -weights_clip_range, weights_clip_range)
-        if np.any(np.isnan(self.W)):
-            self.W = np.nan_to_num(self.W, nan = np.nanmean(self.W))
-            #print(" NAN ")
-        if np.any(np.isnan(self.B)):
-            self.B = np.nan_to_num(self.B, nan = np.nanmean(self.B))
-            #print(" NAN ")
-        if np.any(np.isinf(self.W)):
-            print(self.id, "W inf discovered")
-            self.W[self.W == -np.inf] = -1.0
-            self.W[self.W == np.inf] = 1.0
-            #print(" INF ")
-        if np.any(np.isinf(self.B)):
-            print(self.id, "B inf discovered")
-            self.B[self.B == -np.inf] = -1.0
-            self.B[self.B == np.inf] = 1.0
-            #print(" INF ")
+        self.W = self.optimizer_W.update(self.W, self.dW, alpha)
+        self.B = self.optimizer_B.update(self.B, self.dB, alpha)
+        # self.W = Layer.calcuale_updateW(self.W, alpha, self.dW)
+        # self.B = Layer.calcuale_updateW(self.B, alpha, self.dB)
+        # self.W = clip(self.W, -weights_clip_range, weights_clip_range)
+        # self.B = clip(self.B, -weights_clip_range, weights_clip_range)
+        # if np.any(np.isnan(self.W)):
+        #     self.W = np.nan_to_num(self.W, nan = np.nanmean(self.W))
+        # if np.any(np.isnan(self.B)):
+        #     self.B = np.nan_to_num(self.B, nan = np.nanmean(self.B))
+        # if np.any(np.isinf(self.W)):
+        #     print(self.id, "W inf discovered")
+        #     self.W[self.W == -np.inf] = -1.0
+        #     self.W[self.W == np.inf] = 1.0
+        # if np.any(np.isinf(self.B)):
+        #     print(self.id, "B inf discovered")
+        #     self.B[self.B == -np.inf] = -1.0
+        #     self.B[self.B == np.inf] = 1.0
 
 
     @staticmethod
@@ -395,8 +397,8 @@ class Layer:
     def calcuale_dW(m, dZ, I):
         return 1 / m * dZ @ I.T
     
-    @staticmethod
-    @jit(nopython=True)
+#    @staticmethod
+#    @jit(nopython=True)
     def calcuale_dB(m, dZ, B):
         return 1 / m * np.reshape(np.sum(dZ, 1), B.shape)
     
@@ -438,7 +440,7 @@ class Layer:
         return False
         
     def deepcopy(self):
-        copy = Layer(self.id, None, self.input_size, self.neurons, self.act_fun)
+        copy = Layer(self.id, None, self.input_size, self.neurons, self.act_fun, Layer_Type.RANDOM, self.optimizer.getDense())
         copy.is_ending = self.is_ending
         copy.input_layers_ids = self.input_layers_ids.copy()
         copy.output_layers_ids = self.output_layers_ids.copy()
@@ -458,7 +460,7 @@ class Layer:
         return "[<layer: "+ str(self.id)+ " id: " + str(id(self)) + " model id: "+ str(id(self.model))+" in conn: "+ str(len(self.input_layers_ids)) +" out conn: "+ str(len(self.output_layers_ids))+ ">]" 
 
 class Model:
-    def __init__(self, input_size, hidden_size, output_size, loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1):
+    def __init__(self, input_size, hidden_size, output_size, loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, _optimizer = SGDOptimizer()):
         self.batch_size = 128
         self.loss_function = loss_function
         self.input_size = input_size
@@ -468,10 +470,11 @@ class Model:
         self.avaible_id = 2
         self.activation_fun = activation_fun
         self.input_layers = []#Layer(0, self, input_size, hidden_size, self.activation_fun)
-        self.output_layer = Layer(1, self, hidden_size, output_size, Activations.SoftMax)
+        self.optimizer = _optimizer
+        self.output_layer = Layer(1, self, hidden_size, output_size, Activations.SoftMax, Layer_Type.RANDOM, self.optimizer.getDense())
         for i in range(0, input_paths):
             layer_id = "init_"+str(i)
-            self.input_layers.append(Layer(layer_id, self, input_size, hidden_size, self.activation_fun))
+            self.input_layers.append(Layer(layer_id, self, input_size, hidden_size, self.activation_fun, Layer_Type.RANDOM, self.optimizer.getDense()))
             self.add_connection(layer_id, self.output_layer.id)
         self.output_layer.is_ending = True
         if input_paths > 1: self.add_sequential_output_Layer()
@@ -480,6 +483,7 @@ class Model:
         self.input_shape = None
         self.kernel_size = None
         self.depth = None
+        
 
     def set_convolution_mode(self, input_shape, kernel_size, depth):
         #import convolution
@@ -493,7 +497,7 @@ class Model:
             for output_layer_id in output_layers_ids:
                 self.input_layers[i].disconnect(output_layer_id)
                 self.get_layer(output_layer_id).disconnect(self.input_layers[i].id)
-                self.input_layers[i] = Conv(layer_id, self, self.input_shape, self.kernel_size, self.depth, self.activation_fun)
+                self.input_layers[i] = Conv(layer_id, self, self.input_shape, self.kernel_size, self.depth, self.activation_fun, self.optimizer.getConv())
                 self.add_connection(layer_id, output_layer_id)
         #print("self.input_layer: ", self.input_layers[0].output_shape)
         #print("self.input_layer: ", self.input_layers[0].output_flatten)
@@ -508,7 +512,7 @@ class Model:
             input_size = layer_from.output_flatten
         elif type(layer_from) == Layer:
             input_size = layer_from.neurons
-        new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type)
+        new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
         self.add_connection(new_layer.id, layer_to_id)
@@ -522,7 +526,7 @@ class Model:
             input_size = layer_from.output_flatten
         elif type(layer_from) == Layer:
             input_size = layer_from.neurons
-        new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type)
+        new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
         self.add_connection(new_layer.id, layer_to_id)
@@ -532,7 +536,7 @@ class Model:
         return new_layer.id
     
     def add_sequential_output_Layer(self):
-        new_layer = Layer(self.avaible_id, self, self.output_layer.input_size, self.output_layer.input_size, self.activation_fun, Layer_Type.EYE)
+        new_layer = Layer(self.avaible_id, self, self.output_layer.input_size, self.output_layer.input_size, self.activation_fun, Layer_Type.EYE, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         input_layers_ids = self.output_layer.input_layers_ids.copy()
         for input_layer_id in input_layers_ids:
@@ -551,13 +555,13 @@ class Model:
             i = layer_from.output_shape[0]
             d = clip(layer_to.depth, 1, 3)
             k = clip(layer_to.kernel_size, 1, i)
-            new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun)
+            new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun, self.optimizer.getConv())
         elif type(layer_to) == Layer:
             o = layer_to.input_size
             i = layer_from.output_shape[0]
             d = clip(math.floor(o ** ( 1 / 3)), 1, 3)
             k = clip(i + 1 - math.ceil(o ** ( 1 / 3)), 1, i)
-            new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun)
+            new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun, self.optimizer.getConv())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
         self.add_connection(new_layer.id, layer_to_id)
@@ -573,13 +577,13 @@ class Model:
             d = layer_to.depth
             i = layer_from.output_shape[0]
             k = clip(layer_to.kernel_size, 1, i)
-            new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun)        
+            new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun, self.optimizer.getConv())        
         elif type(layer_to) == Layer:
             o = layer_to.input_size
             i = layer_from.output_shape[0]
             d = clip(math.floor(o ** ( 1 / 3)), 1, 3)
             k = clip(i + 1 - math.ceil(o ** ( 1 / 3)), 1, i)
-            new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun)
+            new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun, self.optimizer.getConv())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
         self.add_connection(new_layer.id, layer_to_id)
@@ -744,7 +748,7 @@ class Model:
         return result
 
 class Conv(Layer):
-    def __init__(self, _id, _model, input_shape, kernel_size, depth, act_fun):
+    def __init__(self, _id, _model, input_shape, kernel_size, depth, act_fun, _optimizer = SGDOptimizer()):
         self.id = _id
         self.model = _model
         self.act_fun = act_fun
@@ -764,6 +768,7 @@ class Conv(Layer):
         self.reshspers = {}
         self.kernels = np.array(numpy.random.randn(*self.kernels_shape) - 0.5)
         self.biases = np.array(numpy.random.randn(*self.output_shape) - 0.5)
+        self.optimizer = _optimizer
 
     def get_reshsper(self, size_from, size_to):
         if not (size_from, size_to) in self.reshspers.keys():
@@ -831,24 +836,25 @@ class Conv(Layer):
         self.b_input = []
 
     def update_params(self, alpha):
-        self.kernels = self.kernels - alpha * self.kernels_gradient
-        self.biases = self.biases - alpha * self.error
-        self.kernels = clip(self.kernels, -weights_clip_range, weights_clip_range)
-        self.biases = clip(self.biases, -weights_clip_range, weights_clip_range)
-        if np.any(np.isnan(self.kernels)):
-            self.kernels = np.nan_to_num(self.kernels, nan = np.nanmean(self.kernels))
-        if np.any(np.isnan(self.biases)):
-            self.biases = np.nan_to_num(self.biases, nan = np.nanmean(self.biases))
-        if np.any(np.isinf(self.kernels)):
-            self.kernels[self.kernels == -np.inf] = -1.0
-            self.kernels[self.kernels == np.inf] = 1.0
-        if np.any(np.isinf(self.biases)):
-            self.biases[self.biases == -np.inf] = -1.0
-            self.biases[self.biases == np.inf] = 1.0
+        self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)
+        # self.kernels = self.kernels - alpha * self.kernels_gradient
+        # self.biases = self.biases - alpha * self.error
+        # self.kernels = clip(self.kernels, -weights_clip_range, weights_clip_range)
+        # self.biases = clip(self.biases, -weights_clip_range, weights_clip_range)
+        # if np.any(np.isnan(self.kernels)):
+        #     self.kernels = np.nan_to_num(self.kernels, nan = np.nanmean(self.kernels))
+        # if np.any(np.isnan(self.biases)):
+        #     self.biases = np.nan_to_num(self.biases, nan = np.nanmean(self.biases))
+        # if np.any(np.isinf(self.kernels)):
+        #     self.kernels[self.kernels == -np.inf] = -1.0
+        #     self.kernels[self.kernels == np.inf] = 1.0
+        # if np.any(np.isinf(self.biases)):
+        #     self.biases[self.biases == -np.inf] = -1.0
+        #     self.biases[self.biases == np.inf] = 1.0
             
     
     def deepcopy(self):
-        copy = Conv(self.id, None, self.input_shape, self.kernel_size, self.depth, self.act_fun)
+        copy = Conv(self.id, None, self.input_shape, self.kernel_size, self.depth, self.act_fun, self.optimizer.getConv())
         copy.is_ending = self.is_ending
         copy.input_layers_ids = self.input_layers_ids.copy()
         copy.output_layers_ids = self.output_layers_ids.copy()
@@ -903,6 +909,8 @@ def Resize(x, shape):
         x_resized[i, :, :, 0:index] = strech(x[i], (shape[0], shape[1]))[:, :, 0:index]
     return x_resized
 
+
+
 class Storage:
     
     def __init__(self):
@@ -933,7 +941,7 @@ class Storage:
         dict_main['settings']['input_shape'] = model.input_shape
         dict_main['settings']['kernel_size'] = model.kernel_size
         dict_main['settings']['depth'] = model.depth
-        dict_main['settings']['convolution'] = model.convolution
+        dict_main['settings']['optimizer'] = OptimizerFactory.ToDict(model.optimizer)
         dict_main['hidden_layers'] = {}
         dict_main['input_layers'] = {}
         dict_main['output_layer'] = {}
@@ -951,6 +959,7 @@ class Storage:
         dict_main['is_ending'] = layer.is_ending
         dict_main['input_layers_ids'] = [str(i) for i in layer.input_layers_ids] 
         dict_main['output_layers_ids'] = [str(i) for i in layer.output_layers_ids]
+        dict_main['optimizer'] = OptimizerFactory.ToDict(layer.optimizer)
         dict_reshapers = {}
         for resheper_key in layer.reshspers.keys():
             reshsper_id = str(resheper_key)
@@ -997,7 +1006,8 @@ class Storage:
         input_size = dict_main['settings']['input_size']
         loss_function = Loss.getByName(loss_function_name)
         activation_fun = Activations.getByName(activation_fun_name)
-        model = Model(input_size, hidden_size, output_size, loss_function, activation_fun, 1)
+        optimizer = OptimizerFactory.FromDict(dict_main['settings']['optimizer'])
+        model = Model(input_size, hidden_size, output_size, loss_function, activation_fun, 1, optimizer)
         model.batch_size = batch_size
         model.avaible_id = avaible_id
         model.convolution = convolution
@@ -1028,9 +1038,10 @@ class Storage:
         output_layers_ids = layer_dict['output_layers_ids']
         reshapers = layer_dict['reshapers']
         act_fun = Activations.getByName(act_fun_name)
+        optimizer = OptimizerFactory.FromDict(layer_dict['optimizer'])
         if 'conv' in layer_dict:
             conv_dict = layer_dict['conv']
-            layer = Conv(layer_id, model, conv_dict['input_shape'], conv_dict['kernel_size'], conv_dict['depth'], act_fun)
+            layer = Conv(layer_id, model, conv_dict['input_shape'], conv_dict['kernel_size'], conv_dict['depth'], act_fun, optimizer)
             layer.input_height = conv_dict['input_height']
             layer.input_width = conv_dict['input_width']
             layer.input_depth = conv_dict['input_depth']
@@ -1041,7 +1052,7 @@ class Storage:
         else:
             input_size = layer_dict['input_size']
             neurons = layer_dict['neurons']
-            layer = Layer(layer_id, model, input_size, neurons, act_fun)
+            layer = Layer(layer_id, model, input_size, neurons, act_fun, Layer_Type.RANDOM,  optimizer.getDense())
         
         layer.is_ending = is_ending
         layer.input_layers_ids = input_layers_ids

@@ -66,20 +66,20 @@ def one_hot(Y, Y_max = 0):
     one_hot_Y = one_hot_Y.T
     return one_hot_Y
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def add_n(array):
     sum = array[0]
     for i in range(1,len(array)): 
         sum += array[i]
     return sum
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def mean_n(array):
     sum = add_n(array)
     div = float(len(array))
     return sum / div
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def mean_n_conv(array, shape):
     sum = array[0]
     for i in range(1,len(array)): 
