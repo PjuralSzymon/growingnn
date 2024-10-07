@@ -367,8 +367,8 @@ class Layer:
 #         self.biases = self.optimizer.update(self.biases, bias_grads)
     
     def update_params(self, alpha):
-        self.W = self.optimizer_W.update(self.W, self.dW)
-        self.B = self.optimizer_B.update(self.B, self.dB)
+        self.W = self.optimizer_W.update(self.W, self.dW, alpha)
+        self.B = self.optimizer_B.update(self.B, self.dB, alpha)
         # self.W = Layer.calcuale_updateW(self.W, alpha, self.dW)
         # self.B = Layer.calcuale_updateW(self.B, alpha, self.dB)
         # self.W = clip(self.W, -weights_clip_range, weights_clip_range)
@@ -836,7 +836,7 @@ class Conv(Layer):
         self.b_input = []
 
     def update_params(self, alpha):
-        self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error)
+        self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)
         # self.kernels = self.kernels - alpha * self.kernels_gradient
         # self.biases = self.biases - alpha * self.error
         # self.kernels = clip(self.kernels, -weights_clip_range, weights_clip_range)

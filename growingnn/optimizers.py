@@ -2,8 +2,7 @@ from numba import jit
 import numpy as np
 
 class Optimizer:
-    def __init__(self, alpha=0.1, weights_clip_range=1.0):
-        self.alpha = alpha
+    def __init__(self, weights_clip_range=1.0):
         self.weights_clip_range = weights_clip_range
         self.updateType("SGD", "Dense")
 
@@ -25,20 +24,19 @@ class Optimizer:
         dict = {}
         dict["optimzierType"] = self.optimzierType
         dict["layerType"] = self.layerType
-        dict["alpha"] = self.alpha
         dict["weights_clip_range"] = self.weights_clip_range
         return dict
     
     def FromDict(dict):
-        return Optimizer(dict["alpha"], dict["weights_clip_range"])
+        return Optimizer(dict["weights_clip_range"])
     
-    def update(self, params, grads):
+    def update(self, params, grads, alpha):
         raise NotImplementedError("This method should be implemented by subclasses.")
 
 class SGDOptimizer(Optimizer):
 
-    def __init__(self, alpha = 0.1, weights_clip_range=1.0):
-        super().__init__(alpha, weights_clip_range)
+    def __init__(self, weights_clip_range=1.0):
+        super().__init__(weights_clip_range)
         self.updateType("SGD", "Dense")
         
     # @staticmethod
@@ -50,26 +48,25 @@ class SGDOptimizer(Optimizer):
         dict = {}
         dict["optimzierType"] = self.optimzierType
         dict["layerType"] = self.layerType
-        dict["alpha"] = self.alpha
         dict["weights_clip_range"] = self.weights_clip_range
         return dict
     
     def FromDict(dict):
-        return SGDOptimizer(dict["alpha"], dict["weights_clip_range"])
+        return SGDOptimizer(dict["weights_clip_range"])
     
-    def update(self, params, grads):
-        params = self.sgd_update(params, grads, self.alpha)
+    def update(self, params, grads, alpha):
+        params = self.sgd_update(params, grads, alpha)
         return self.clip_and_fix(params, self.weights_clip_range)
     
     def getDense(self):
         return self
 
     def getConv(self):
-        return ConvSGDOptimizer(self.alpha, self.weights_clip_range)
+        return ConvSGDOptimizer(self.weights_clip_range)
 
 class AdamOptimizer(Optimizer):
-    def __init__(self, alpha=0.1, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=1.0):
-        super().__init__(alpha, weights_clip_range)
+    def __init__(self, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=1.0):
+        super().__init__(weights_clip_range)
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
@@ -82,7 +79,6 @@ class AdamOptimizer(Optimizer):
         dict = {}
         dict["optimzierType"] = self.optimzierType
         dict["layerType"] = self.layerType
-        dict["alpha"] = self.alpha
         dict["beta1"] = self.beta1
         dict["beta2"] = self.beta2
         dict["epsilon"] = self.epsilon
@@ -90,7 +86,7 @@ class AdamOptimizer(Optimizer):
         return dict
     
     def FromDict(dict):
-        return AdamOptimizer(dict["alpha"], dict["beta1"], dict["beta2"], dict["epsilon"], dict["weights_clip_range"])
+        return AdamOptimizer(dict["beta1"], dict["beta2"], dict["epsilon"], dict["weights_clip_range"])
     
     @staticmethod
     @jit(nopython=True)
@@ -102,7 +98,7 @@ class AdamOptimizer(Optimizer):
         params = params - alpha * m_hat / (np.sqrt(v_hat) + epsilon)
         return params, m, v
 
-    def update(self, params, grads):
+    def update(self, params, grads, alpha):
         if self.m is None:
             self.m = np.zeros_like(params)
         if self.v is None:
@@ -110,7 +106,7 @@ class AdamOptimizer(Optimizer):
 
         self.t += 1
         params, self.m, self.v = self.adam_update(
-            params, grads, self.m, self.v, self.t, self.alpha, self.beta1, self.beta2, self.epsilon
+            params, grads, self.m, self.v, self.t, alpha, self.beta1, self.beta2, self.epsilon
         )
         return self.clip_and_fix(params, self.weights_clip_range)
 
@@ -118,24 +114,23 @@ class AdamOptimizer(Optimizer):
         return self
     
     def getConv(self):
-        return ConvAdamOptimizer(self.alpha, self.beta1, self.beta2, self.epsilon, self.weights_clip_range)
+        return ConvAdamOptimizer(self.beta1, self.beta2, self.epsilon, self.weights_clip_range)
     
 class ConvSGDOptimizer(Optimizer):
 
-    def __init__(self, alpha=0.1, weights_clip_range=1.0):
-        super().__init__(alpha, weights_clip_range)
+    def __init__(self, weights_clip_range=1.0):
+        super().__init__(weights_clip_range)
         self.updateType("SGD", "Conv")
 
     def ToDict(self):
         dict = {}
         dict["optimzierType"] = self.optimzierType
         dict["layerType"] = self.layerType
-        dict["alpha"] = self.alpha
         dict["weights_clip_range"] = self.weights_clip_range
         return dict
     
     def FromDict(dict):
-        return ConvSGDOptimizer(dict["alpha"], dict["weights_clip_range"])
+        return ConvSGDOptimizer(dict["weights_clip_range"])
     
     @staticmethod
     @jit(nopython=True)
@@ -144,21 +139,21 @@ class ConvSGDOptimizer(Optimizer):
         biases = biases - alpha * bias_grads
         return kernels, biases
 
-    def update(self, kernels, kernel_grads, biases, bias_grads):
-        kernels, biases = self.conv_sgd_update(kernels, kernel_grads, biases, bias_grads, self.alpha)
+    def update(self, kernels, kernel_grads, biases, bias_grads, alpha):
+        kernels, biases = self.conv_sgd_update(kernels, kernel_grads, biases, bias_grads, alpha)
         kernels = self.clip_and_fix(kernels, self.weights_clip_range)
         biases = self.clip_and_fix(biases, self.weights_clip_range)
         return kernels, biases
     
     def getDense(self):
-        return SGDOptimizer(self.alpha, self.weights_clip_range)
+        return SGDOptimizer(self.weights_clip_range)
     
     def getConv(self):
         return self
     
 class ConvAdamOptimizer(Optimizer):
-    def __init__(self, alpha=0.1, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=1.0):
-        super().__init__(alpha, weights_clip_range)
+    def __init__(self, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=1.0):
+        super().__init__(weights_clip_range)
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
@@ -173,7 +168,6 @@ class ConvAdamOptimizer(Optimizer):
         dict = {}
         dict["optimzierType"] = self.optimzierType
         dict["layerType"] = self.layerType
-        dict["alpha"] = self.alpha
         dict["beta1"] = self.beta1
         dict["beta2"] = self.beta2
         dict["epsilon"] = self.epsilon
@@ -181,7 +175,7 @@ class ConvAdamOptimizer(Optimizer):
         return dict
     
     def FromDict(dict):
-        return ConvAdamOptimizer(dict["alpha"], dict["beta1"], dict["beta2"], dict["epsilon"], dict["weights_clip_range"])
+        return ConvAdamOptimizer(dict["beta1"], dict["beta2"], dict["epsilon"], dict["weights_clip_range"])
     
     @staticmethod
     @jit(nopython=True)
@@ -202,7 +196,7 @@ class ConvAdamOptimizer(Optimizer):
         
         return kernels, biases, m_kernels, v_kernels, m_biases, v_biases
 
-    def update(self, kernels, kernel_grads, biases, bias_grads):
+    def update(self, kernels, kernel_grads, biases, bias_grads, alpha):
         if self.m_kernels is None:
             self.m_kernels = np.zeros_like(kernels)
         if self.v_kernels is None:
@@ -215,14 +209,14 @@ class ConvAdamOptimizer(Optimizer):
         self.t += 1
         kernels, biases, self.m_kernels, self.v_kernels, self.m_biases, self.v_biases = self.conv_adam_update(
             kernels, kernel_grads, biases, bias_grads, self.m_kernels, self.v_kernels, self.m_biases, self.v_biases,
-            self.t, self.alpha, self.beta1, self.beta2, self.epsilon
+            self.t, alpha, self.beta1, self.beta2, self.epsilon
         )
         kernels = self.clip_and_fix(kernels, self.weights_clip_range)
         biases = self.clip_and_fix(biases, self.weights_clip_range)
         return kernels, biases
     
     def getDense(self):
-        return AdamOptimizer(self.alpha, self.beta1, self.beta2, self.epsilon, self.weights_clip_range)
+        return AdamOptimizer(self.beta1, self.beta2, self.epsilon, self.weights_clip_range)
     
     def getConv(self):
         return self
@@ -231,23 +225,22 @@ class OptimizerFactory:
     SGD = "SGD"
     Adam = "Adam"
 
-    def __init__(self, alpha, weights_clip_range=1.0, **kwargs):
-        self.alpha = alpha
+    def __init__(self, weights_clip_range=1.0, **kwargs):
         self.weights_clip_range = weights_clip_range
         self.kwargs = kwargs
 
     def create_optimizer(self, optimizer_type, layer_type):
         if layer_type == "Dense":
             if optimizer_type == OptimizerFactory.SGD:
-                return SGDOptimizer(self.alpha, self.weights_clip_range)
+                return SGDOptimizer(self.weights_clip_range)
             elif optimizer_type == OptimizerFactory.Adam:
-                return AdamOptimizer(self.alpha, **self.kwargs)
+                return AdamOptimizer(**self.kwargs)
         elif layer_type == "Conv":
             if optimizer_type == OptimizerFactory.SGD:
-                return ConvSGDOptimizer(self.alpha, self.weights_clip_range)
+                return ConvSGDOptimizer(self.weights_clip_range)
             elif optimizer_type == OptimizerFactory.Adam:
                 # Assuming ConvOptimizer can also support Adam-like optimizers, or you could implement a ConvAdamOptimizer class
-                return ConvAdamOptimizer(self.alpha, self.weights_clip_range)  # or ConvAdamOptimizer(self.alpha, **self.kwargs)
+                return ConvAdamOptimizer(self.weights_clip_range)  # or ConvAdamOptimizer(self.alpha, **self.kwargs)
         else:
             raise ValueError("Unsupported layer type or optimizer type")
         

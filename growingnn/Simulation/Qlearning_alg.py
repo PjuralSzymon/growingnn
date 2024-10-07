@@ -1,6 +1,6 @@
 import time
 import random
-from ..action import *
+from ..action import Action
 from ..structure import *
 
 class QLearningAgent:
