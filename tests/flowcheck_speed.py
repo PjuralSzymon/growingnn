@@ -80,5 +80,5 @@ if __name__ == '__main__':
         print("[INFO] Time for hard run is acceptable")
         sys.exit(0)  # Exit with code 0 if all tests passed successfully
     else:
-        print("[ERROR] Time for basic run took too much time")
+        print("[ERROR] Time for training takes too much time optimization errors")
         sys.exit(1)  # Exit with code 1 if there were failures or errors in tests
