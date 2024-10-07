@@ -70,8 +70,14 @@ if __name__ == '__main__':
     print("[INFO] Timing finished, result: ", TIMING_RESULTS)
     print("[INFO] =========================")
 
-    if TIMING_RESULTS["easy"] < 100:
+    if TIMING_RESULTS["easy"] < 6:
         print("[INFO] Time for basic run is acceptable")
+        sys.exit(0)  # Exit with code 0 if all tests passed successfully
+    elif TIMING_RESULTS["mid"] < 10:
+        print("[INFO] Time for mid run is acceptable")
+        sys.exit(0)  # Exit with code 0 if all tests passed successfully
+    elif TIMING_RESULTS["hard"] < 50:
+        print("[INFO] Time for hard run is acceptable")
         sys.exit(0)  # Exit with code 0 if all tests passed successfully
     else:
         print("[ERROR] Time for basic run took too much time")
