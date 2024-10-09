@@ -27,6 +27,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt || echo "Failed to install dependencies"
 
-    - name: Run test Suite GPU
+    - name: Check algrotihm timing / optimization
       run: |
-        python tests/testSuite.py --mode cpu
+        python tests/flowcheck_speed.py
