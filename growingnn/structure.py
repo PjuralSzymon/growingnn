@@ -276,6 +276,7 @@ class Layer:
         self.optimizer = _optimizer
         self.optimizer_W = OptimizerFactory.copy(self.optimizer)
         self.optimizer_B = OptimizerFactory.copy(self.optimizer)
+        self.connections = {}
         if layer_type == Layer_Type.EYE:
             self.W = np.asarray(eye_stretch(neurons, input_size))
             self.B = np.asarray(np.zeros((neurons, 1)))
@@ -306,6 +307,10 @@ class Layer:
             self.output_layers_ids.append(layer_id)
         if not self in target_layer.input_layers_ids:
             target_layer.connect_input(self.id)
+        # neurons, input_size = self.W.shape
+        # self.connections[layer_id] = np.zeros((neurons, input_size))
+        # print(f"Connected new layer with ID {layer_id}.")
+        
     
     def disconnect(self, to_remove_layer_id):
         if to_remove_layer_id in self.input_layers_ids:
@@ -315,18 +320,59 @@ class Layer:
         if self.id == to_remove_layer_id:
             self.input_layers_ids = []
             self.output_layers_ids = []
+        # if to_remove_layer_id in self.connections:
+        #     del self.connections[to_remove_layer_id]
+        #     print(f"Disconnected layer with ID {to_remove_layer_id}.")
+        # else:
+        #     print(f"Layer with ID {to_remove_layer_id} not found.")
 
-    def forward_prop(self, X, deepth = 0):
+    def update_weights_shape(self, input_size):
+        """
+        Sprawdza, czy rozmiar wag `self.W` jest zgodny z rozmiarem wejścia. Jeśli jest za mały, dodaje wiersze zerowe.
+        Jeśli jest za duży, obcina nadmiarowe wiersze.
+        """
+        current_weight_size = self.W.shape[1]  # Liczba kolumn w macierzy wag (rozmiar wejścia dla wag)
+        
+        if current_weight_size < input_size:
+            # Dodajemy brakujące kolumny zerowe, aby dopasować macierz wag do większego wejścia
+            extra_columns = input_size - current_weight_size
+            zero_padding = np.zeros((self.W.shape[0], extra_columns))
+            
+            print("BEFORE self.W.shape: ", self.W.shape)
+            self.W = np.hstack([self.W, zero_padding])
+            print("AFTER self.W.shape: ", self.W.shape)
+            
+            print("zero_padding: ", zero_padding.shape)
+            print(f"Dodano {extra_columns} kolumn zerowych do macierzy wag.")
+        
+        elif current_weight_size > input_size:
+            # Obcinamy nadmiarowe kolumny z macierzy wag
+            self.W = self.W[:, :input_size]
+            print(f"Obcięto {current_weight_size - input_size} nadmiarowych kolumn z macierzy wag.")
+    
+    
+    def forward_prop(self, X, layer_id, deepth = 0):
         self.f_input.append(X)
         if len(self.f_input) < len(self.input_layers_ids): 
             return None
 
-        self.I = mean_n(self.f_input)
+        #self.I = mean_n(self.f_input)
+        input_list = []
+        for layer_input in self.f_input:
+            input_list.append(layer_input)  # Zbiera dane wejściowe
+        self.I = np.vstack(input_list)
+        print("------Weights shape: ", self.W.shape)
+        self.update_weights_shape(self.I.shape[0])
         # print("self.I: ", type(self.I))
         # print("self.W: ", type(self.W))
         # print("self.B: ", type(self.B))
         #self.Z = np.dot(self.W, self.I) + self.B
-        self.Z = Layer.calcuale_Z(self.W, self.I, self.B)
+        #self.Z = Layer.calcuale_Z(self.W, self.I, self.B)
+        
+        print("Weights shape: ", self.W.shape)
+        print("self.I shape: ", self.I.shape)
+        self.Z = np.dot(self.W, self.I)
+        print("===============RESUKT================self.Z shape: ", self.Z.shape)
         self.A = self.act_fun.exe(self.Z)
         # print("self.Z: ", type(self.Z))
         # print("self.A: ", type(self.A))
@@ -338,7 +384,7 @@ class Layer:
                 layer = self.model.get_layer(layer_id)
                 if type(layer) == Layer:
                     new_input = Layer.Reshape(self.A.copy(), layer.input_size, self.get_reshsper(self.A.shape[0], layer.input_size))
-                r = self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
+                r = self.model.get_layer(layer_id).forward_prop(new_input, self.id, deepth + 1)
                 if not r is None: result = r        
                 
         self.f_input = []
@@ -608,7 +654,7 @@ class Model:
         return argmax(A2, 0)
 
     def get_loss(self, x, y):
-        A = self.forward_prop(x)
+        A = self.forward_prop(x, self.id)
         return self.loss_function.exe(one_hot(y) , A)
     
     def get_accuracy(predictions, Y):
@@ -624,10 +670,10 @@ class Model:
             input = np.array(input)
         #print("len(self.input_layers): ", len(self.input_layers))
         if len(self.input_layers) == 1:
-            return self.input_layers[0].forward_prop(input, 0)
+            return self.input_layers[0].forward_prop(input, "INPUT", 0)
         result = None 
         for i in range(0, len(self.input_layers)):
-            result = self.input_layers[i].forward_prop(input[i], 0)
+            result = self.input_layers[i].forward_prop(input[i], "INPUT", 0)
         return result
     
     def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True):
@@ -654,21 +700,21 @@ class Model:
             loss = 0
             for x_indx_start in range(0, X.shape[index_axis], self.batch_size): #lwn(x)
                 batch_indexes = indexes[x_indx_start:(x_indx_start + self.batch_size)]
-                A = self.forward_prop(np.take(X, batch_indexes, index_axis))
+                A = self.forward_prop(np.take(X, batch_indexes, index_axis), "INPUT")
                 E = self.loss_function.der(np.take(one_hot_Y, batch_indexes, 1) , A)
                 self.output_layer.back_prop(E, self.batch_size, current_alpha)                
                 loss += self.loss_function.exe(np.take(one_hot_Y, batch_indexes, 1) , A)
             random.shuffle(indexes)
-            acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
+            acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X, "INPUT")),Y)
             history.append('accuracy', acc)
             history.append('loss', loss)
             if i % 1 == 0 and quiet==False:
                 print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)))
-        A = self.forward_prop(X)
+        A = self.forward_prop(X, "INPUT")
         return history.get_last('accuracy'), history
 
     def evaluate(self, x, y):
-        A = self.forward_prop(x)
+        A = self.forward_prop(x, "INPUT")
         return Model.get_accuracy(Model.get_predictions(A),y)
 
     def remove_layer(self, layer_id, preserve_flow = True):
@@ -775,7 +821,7 @@ class Conv(Layer):
             self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
         return self.reshspers[(size_from, size_to)]
 
-    def forward_prop(self, X, deepth = 0):
+    def forward_prop(self, X, layer_id, deepth = 0):
         self.f_input.append(X)
         if len(self.f_input) < len(self.input_layers_ids): 
             return None
@@ -798,7 +844,7 @@ class Conv(Layer):
                 new_input = Resize(self.A.copy(), layer.input_shape)
             elif type(layer) == Layer:
                 new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, self.get_reshsper(self.output_flatten, layer.input_size))
-            r = layer.forward_prop(new_input, deepth + 1)
+            r = layer.forward_prop(new_input, self.id, deepth + 1)
             if not r is None: result = r
         self.f_input = []
         return result
@@ -837,22 +883,7 @@ class Conv(Layer):
 
     def update_params(self, alpha):
         self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)
-        # self.kernels = self.kernels - alpha * self.kernels_gradient
-        # self.biases = self.biases - alpha * self.error
-        # self.kernels = clip(self.kernels, -weights_clip_range, weights_clip_range)
-        # self.biases = clip(self.biases, -weights_clip_range, weights_clip_range)
-        # if np.any(np.isnan(self.kernels)):
-        #     self.kernels = np.nan_to_num(self.kernels, nan = np.nanmean(self.kernels))
-        # if np.any(np.isnan(self.biases)):
-        #     self.biases = np.nan_to_num(self.biases, nan = np.nanmean(self.biases))
-        # if np.any(np.isinf(self.kernels)):
-        #     self.kernels[self.kernels == -np.inf] = -1.0
-        #     self.kernels[self.kernels == np.inf] = 1.0
-        # if np.any(np.isinf(self.biases)):
-        #     self.biases[self.biases == -np.inf] = -1.0
-        #     self.biases[self.biases == np.inf] = 1.0
             
-    
     def deepcopy(self):
         copy = Conv(self.id, None, self.input_shape, self.kernel_size, self.depth, self.act_fun, self.optimizer.getConv())
         copy.is_ending = self.is_ending

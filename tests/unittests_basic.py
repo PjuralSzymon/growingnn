@@ -34,7 +34,7 @@ class TestingTrain(unittest.TestCase):
         M = gnn.structure.Model(shape, shape, 2, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
         x = np.asarray(np.random.rand(shape, shape))
         for _ in range(10):
-            output = M.forward_prop(x * float(np.random.ranf(1)))
+            output = M.forward_prop(x * float(np.random.ranf(1)), "INPUT")
         self.assertEqual(output.any(), True)
 
     def test_res_structure(self):
@@ -42,7 +42,7 @@ class TestingTrain(unittest.TestCase):
         M.add_res_layer('init_0', 1)
         x = np.asarray(np.random.rand(shape, shape))
         for _ in range(10):
-            output = M.forward_prop(x * float(np.random.ranf(1)))
+            output = M.forward_prop(x * float(np.random.ranf(1)), "INPUT")
         self.assertEqual(output.any(), True)
 
     def test_simple_train(self):

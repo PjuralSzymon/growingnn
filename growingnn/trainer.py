@@ -27,7 +27,7 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
     if input_shape != None:
             M.set_convolution_mode(input_shape, kernel_size, deepth)
     M.batch_size = batch_size
-    acc = Model.get_accuracy(Model.get_predictions(M.forward_prop(x_test)),y_test)
+    acc = Model.get_accuracy(Model.get_predictions(M.forward_prop(x_test, "INPUT")),y_test)
     print("model is ready, starting accuracy: ", acc)
 
     sim_x, sim_y = sim_set_generator(x_train, y_train, simulation_set_size)
