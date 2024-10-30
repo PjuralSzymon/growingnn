@@ -338,12 +338,12 @@ class Layer:
             extra_columns = input_size - current_weight_size
             zero_padding = np.zeros((self.W.shape[0], extra_columns))
             
-            print("BEFORE self.W.shape: ", self.W.shape)
+            #print("BEFORE self.W.shape: ", self.W.shape)
             self.W = np.hstack([self.W, zero_padding])
-            print("AFTER self.W.shape: ", self.W.shape)
+            #print("AFTER self.W.shape: ", self.W.shape)
             
-            print("zero_padding: ", zero_padding.shape)
-            print(f"Dodano {extra_columns} kolumn zerowych do macierzy wag.")
+            #print("zero_padding: ", zero_padding.shape)
+            #print(f"Dodano {extra_columns} kolumn zerowych do macierzy wag.")
         
         elif current_weight_size > input_size:
             # Obcinamy nadmiarowe kolumny z macierzy wag
@@ -403,8 +403,12 @@ class Layer:
         self.dW = Layer.calcuale_dW(m, dZ, self.I)
         self.dB = Layer.calcuale_dB(m, dZ, self.B)
         self.E = self.W.T @ dZ
+        before_iteration = 0  # Start index for slicing self.W
         for layer_id in self.input_layers_ids:
-            self.model.get_layer(layer_id).back_prop(self.E, m, alpha)
+            neurons = self.model.get_layer(layer_id).neurons
+            E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
+            before_iteration += neurons
+            self.model.get_layer(layer_id).back_prop(E_slice, m, alpha)
         self.update_params(alpha)
         self.b_input = []
 
