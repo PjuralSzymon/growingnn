@@ -361,7 +361,7 @@ class Layer:
         for layer_input in self.f_input:
             input_list.append(layer_input)  # Zbiera dane wejściowe
         self.I = np.vstack(input_list)
-        print("------Weights shape: ", self.W.shape)
+        #print("------Weights shape: ", self.W.shape)
         self.update_weights_shape(self.I.shape[0])
         # print("self.I: ", type(self.I))
         # print("self.W: ", type(self.W))
@@ -369,10 +369,10 @@ class Layer:
         #self.Z = np.dot(self.W, self.I) + self.B
         #self.Z = Layer.calcuale_Z(self.W, self.I, self.B)
         
-        print("Weights shape: ", self.W.shape)
-        print("self.I shape: ", self.I.shape)
+        #print("Weights shape: ", self.W.shape)
+        #print("self.I shape: ", self.I.shape)
         self.Z = np.dot(self.W, self.I)
-        print("===============RESUKT================self.Z shape: ", self.Z.shape)
+        #print("===============RESUKT================self.Z shape: ", self.Z.shape)
         self.A = self.act_fun.exe(self.Z)
         # print("self.Z: ", type(self.Z))
         # print("self.A: ", type(self.A))
@@ -670,10 +670,10 @@ class Model:
             input = np.array(input)
         #print("len(self.input_layers): ", len(self.input_layers))
         if len(self.input_layers) == 1:
-            return self.input_layers[0].forward_prop(input, "INPUT", 0)
+            return self.input_layers[0].forward_prop(input, 0)
         result = None 
         for i in range(0, len(self.input_layers)):
-            result = self.input_layers[i].forward_prop(input[i], "INPUT", 0)
+            result = self.input_layers[i].forward_prop(input[i], 0)
         return result
     
     def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True):
@@ -700,21 +700,21 @@ class Model:
             loss = 0
             for x_indx_start in range(0, X.shape[index_axis], self.batch_size): #lwn(x)
                 batch_indexes = indexes[x_indx_start:(x_indx_start + self.batch_size)]
-                A = self.forward_prop(np.take(X, batch_indexes, index_axis), "INPUT")
+                A = self.forward_prop(np.take(X, batch_indexes, index_axis))
                 E = self.loss_function.der(np.take(one_hot_Y, batch_indexes, 1) , A)
                 self.output_layer.back_prop(E, self.batch_size, current_alpha)                
                 loss += self.loss_function.exe(np.take(one_hot_Y, batch_indexes, 1) , A)
             random.shuffle(indexes)
-            acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X, "INPUT")),Y)
+            acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
             history.append('accuracy', acc)
             history.append('loss', loss)
             if i % 1 == 0 and quiet==False:
                 print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)))
-        A = self.forward_prop(X, "INPUT")
+        A = self.forward_prop(X)
         return history.get_last('accuracy'), history
 
     def evaluate(self, x, y):
-        A = self.forward_prop(x, "INPUT")
+        A = self.forward_prop(x)
         return Model.get_accuracy(Model.get_predictions(A),y)
 
     def remove_layer(self, layer_id, preserve_flow = True):

@@ -59,8 +59,8 @@ class TestLayer(unittest.TestCase):
     def test_forward_prop(self):
         self.layer.input_layers_ids = [2, 3]
         self.layer.model = MagicMock()
-        result1 = self.layer.forward_prop(gnn.np.ones((10, 1)), "INPUT")
-        result2 = self.layer.forward_prop(gnn.np.ones((10, 1)), "INPUT")
+        result1 = self.layer.forward_prop(gnn.np.ones((10, 1)))
+        result2 = self.layer.forward_prop(gnn.np.ones((10, 1)))
         self.assertIsNone(result1)
         self.assertIsNotNone(result2)
         self.assertEqual(len(self.layer.f_input), 0)
