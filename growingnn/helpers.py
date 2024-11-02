@@ -96,8 +96,14 @@ def delete_repetitions(array):
 
 
 def eye_stretch(a,b):
-    A = np.eye(max(a,b))
-    return np.array(cv.resize(get_numpy_array(A), (a,b))).T
+    if isinstance(a, int) and isinstance(b, int) and a > 0 and b > 0:
+        # Resize the image and transpose if needed
+        A = np.eye(max(a,b))
+        return np.array(cv.resize(get_numpy_array(A), (a,b))).T
+    else:
+        raise ValueError("Dimensions 'a' and 'b' must be positive integers.", a, b)
+
+    
 
 def strech(x, shape):
     result = np.zeros((shape[0], shape[1], x.shape[2]))

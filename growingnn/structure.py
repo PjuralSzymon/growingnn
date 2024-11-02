@@ -287,6 +287,9 @@ class Layer:
             self.W = np.asarray(np.random.randn(neurons, input_size))
             self.B = np.asarray(np.random.randn(neurons, 1))
     
+    def get_output_size(self):
+        return self.neurons
+    
     def connect_input(self, layer_id):
         if layer_id == self.id: 
             print("error I")
@@ -351,7 +354,7 @@ class Layer:
             print(f"Obcięto {current_weight_size - input_size} nadmiarowych kolumn z macierzy wag.")
     
     
-    def forward_prop(self, X, layer_id, deepth = 0):
+    def forward_prop(self, X, deepth = 0):
         self.f_input.append(X)
         if len(self.f_input) < len(self.input_layers_ids): 
             return None
@@ -384,7 +387,7 @@ class Layer:
                 layer = self.model.get_layer(layer_id)
                 if type(layer) == Layer:
                     new_input = Layer.Reshape(self.A.copy(), layer.input_size, self.get_reshsper(self.A.shape[0], layer.input_size))
-                r = self.model.get_layer(layer_id).forward_prop(new_input, self.id, deepth + 1)
+                r = self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
                 if not r is None: result = r        
                 
         self.f_input = []
@@ -392,6 +395,8 @@ class Layer:
 
 
     def back_prop(self,E,m,alpha):
+        if E.shape[0] <=0:
+            raise ValueError("Error with 0 shape can't be backpropagated E.shape:", E.shape)
         m = 1.0
         E = Layer.Reshape(E, self.neurons, self.get_reshsper(E.shape[0], self.neurons))
         self.b_input.append(E)
@@ -405,7 +410,7 @@ class Layer:
         self.E = self.W.T @ dZ
         before_iteration = 0  # Start index for slicing self.W
         for layer_id in self.input_layers_ids:
-            neurons = self.model.get_layer(layer_id).neurons
+            neurons = self.input_size#self.model.get_layer(layer_id).get_output_size()
             E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
             before_iteration += neurons
             self.model.get_layer(layer_id).back_prop(E_slice, m, alpha)
@@ -459,6 +464,7 @@ class Layer:
     
     def get_reshsper(self, size_from, size_to):
         if not (size_from, size_to) in self.reshspers.keys():
+            #print("sizes: ", size_from, size_to)
             self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
         return self.reshspers[(size_from, size_to)]
     
@@ -558,10 +564,11 @@ class Model:
     def add_res_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
-        if type(layer_from) == Conv:
-            input_size = layer_from.output_flatten
-        elif type(layer_from) == Layer:
-            input_size = layer_from.neurons
+        # if type(layer_from) == Conv:
+        #     input_size = layer_from.output_flatten
+        # elif type(layer_from) == Layer:
+        #     input_size = layer_from.neurons
+        input_size = layer_from.get_output_size()
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
@@ -658,7 +665,7 @@ class Model:
         return argmax(A2, 0)
 
     def get_loss(self, x, y):
-        A = self.forward_prop(x, self.id)
+        A = self.forward_prop(x)
         return self.loss_function.exe(one_hot(y) , A)
     
     def get_accuracy(predictions, Y):
@@ -820,12 +827,15 @@ class Conv(Layer):
         self.biases = np.array(numpy.random.randn(*self.output_shape) - 0.5)
         self.optimizer = _optimizer
 
+    def get_output_size(self):
+        return self.output_flatten
+    
     def get_reshsper(self, size_from, size_to):
         if not (size_from, size_to) in self.reshspers.keys():
             self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
         return self.reshspers[(size_from, size_to)]
 
-    def forward_prop(self, X, layer_id, deepth = 0):
+    def forward_prop(self, X, deepth = 0):
         self.f_input.append(X)
         if len(self.f_input) < len(self.input_layers_ids): 
             return None
@@ -848,7 +858,7 @@ class Conv(Layer):
                 new_input = Resize(self.A.copy(), layer.input_shape)
             elif type(layer) == Layer:
                 new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, self.get_reshsper(self.output_flatten, layer.input_size))
-            r = layer.forward_prop(new_input, self.id, deepth + 1)
+            r = layer.forward_prop(new_input, deepth + 1)
             if not r is None: result = r
         self.f_input = []
         return result

@@ -99,11 +99,13 @@ class AdamOptimizer(Optimizer):
         return params, m, v
 
     def update(self, params, grads, alpha):
-        if self.m is None:
+        if self.m is None or self.v is None or self.m.shape != params.shape:
+            reset = True
+        else:
+            reset = False
+        if reset:
             self.m = np.zeros_like(params)
-        if self.v is None:
             self.v = np.zeros_like(params)
-
         self.t += 1
         params, self.m, self.v = self.adam_update(
             params, grads, self.m, self.v, self.t, alpha, self.beta1, self.beta2, self.epsilon
