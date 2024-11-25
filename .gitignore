@@ -10,6 +10,11 @@ setup.py
 pypi.info
 test.py
 *html
+*png
+*description.txt
 *.pyc
 *.vscode
 deploy.sh
+*here.json
+*tmp.json
+*resultGNN_model_hist

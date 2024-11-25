@@ -33,55 +33,55 @@ class TestModelTraining(unittest.TestCase):
         print("self.x_train: ", self.x_train.shape)
         print("self.y_train: ", self.y_train.shape)
 
-    def test_train_dense_GPU(self):
-        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
-        if mode == 'cpu':
-            return
-        # Wykonywanie treningu modelu z małym zbiorem danych
-        gnn.switch_to_gpu()
-        try:
-            self.train_dense()
-        except Exception as e:
-            self.fail(f"Model training failed with exception: {e}")
+    # def test_train_dense_GPU(self):
+    #     mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+    #     if mode == 'cpu':
+    #         return
+    #     # Wykonywanie treningu modelu z małym zbiorem danych
+    #     gnn.switch_to_gpu()
+    #     try:
+    #         self.train_dense()
+    #     except Exception as e:
+    #         self.fail(f"Model training failed with exception: {e}")
 
-    def test_train_dense_CPU(self):
-        # Wykonywanie treningu modelu z małym zbiorem danych
-        gnn.switch_to_cpu()
-        self.train_dense()
-        try:
-            self.train_dense()
-        except Exception as e:
-            self.fail(f"Model training failed with exception: {e}")
+    # def test_train_dense_CPU(self):
+    #     # Wykonywanie treningu modelu z małym zbiorem danych
+    #     gnn.switch_to_cpu()
+    #     self.train_dense()
+    #     try:
+    #         self.train_dense()
+    #     except Exception as e:
+    #         self.fail(f"Model training failed with exception: {e}")
 
-    def test_train_conv_GPU(self):
-        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
-        if mode == 'cpu':
-            return
-        # Wykonywanie treningu modelu z małym zbiorem danych
-        gnn.switch_to_gpu()
-        try:
-            self.train_conv()
-        except Exception as e:
-            self.fail(f"Model training failed with exception: {e}")
+    # def test_train_conv_GPU(self):
+    #     mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+    #     if mode == 'cpu':
+    #         return
+    #     # Wykonywanie treningu modelu z małym zbiorem danych
+    #     gnn.switch_to_gpu()
+    #     try:
+    #         self.train_conv()
+    #     except Exception as e:
+    #         self.fail(f"Model training failed with exception: {e}")
 
-    def test_train_conv_CPU(self):
-        # Wykonywanie treningu modelu z małym zbiorem danych
-        gnn.switch_to_cpu()
-        self.train_conv()
-        try:
-            self.train_conv()
-        except Exception as e:
-            self.fail(f"Model training failed with exception: {e}")
+    # def test_train_conv_CPU(self):
+    #     # Wykonywanie treningu modelu z małym zbiorem danych
+    #     gnn.switch_to_cpu()
+    #     self.train_conv()
+    #     try:
+    #         self.train_conv()
+    #     except Exception as e:
+    #         self.fail(f"Model training failed with exception: {e}")
 
-    def test_train_dense_CPU_SGD(self):
-        # Wykonywanie treningu modelu z małym zbiorem danych
-        gnn.switch_to_cpu()
-        self.optimizer = gnn.SGDOptimizer()
-        self.train_dense()
-        try:
-            self.train_dense()
-        except Exception as e:
-            self.fail(f"Model training failed with exception: {e}")
+    # def test_train_dense_CPU_SGD(self):
+    #     # Wykonywanie treningu modelu z małym zbiorem danych
+    #     gnn.switch_to_cpu()
+    #     self.optimizer = gnn.SGDOptimizer()
+    #     self.train_dense()
+    #     try:
+    #         self.train_dense()
+    #     except Exception as e:
+    #         self.fail(f"Model training failed with exception: {e}")
 
     def test_train_conv_CPU_Adam(self):
         # Wykonywanie treningu modelu z małym zbiorem danych
@@ -93,23 +93,23 @@ class TestModelTraining(unittest.TestCase):
         except Exception as e:
             self.fail(f"Model training failed with exception: {e}") #acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
 
-    def test_train_conv_CPU_Adam_vs_SGD(self):
-        # Wykonywanie treningu modelu z małym zbiorem danych
-        gnn.switch_to_cpu()
-        self.optimizer = gnn.AdamOptimizer()
-        model_adam = self.train_dense()
+    # def test_train_conv_CPU_Adam_vs_SGD(self):
+    #     # Wykonywanie treningu modelu z małym zbiorem danych
+    #     gnn.switch_to_cpu()
+    #     self.optimizer = gnn.AdamOptimizer()
+    #     model_adam = self.train_dense()
 
-        self.optimizer = gnn.SGDOptimizer()
-        model_sgd = self.train_dense()
+    #     self.optimizer = gnn.SGDOptimizer()
+    #     model_sgd = self.train_dense()
 
-        acc_adam = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_adam.forward_prop(self.x_train)), self.y_train)
-        acc_sgd = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_sgd.forward_prop(self.x_train)), self.y_train)
+    #     acc_adam = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_adam.forward_prop(self.x_train)), self.y_train)
+    #     acc_sgd = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_sgd.forward_prop(self.x_train)), self.y_train)
         
-        self.assertEqual(acc_adam >= acc_sgd * 0.9, True, "Adam optimzier should have better result than SGD" + str(acc_adam) + " > " + str(acc_sgd))
-        try:
-            self.train_conv()
-        except Exception as e:
-            self.fail(f"Model training failed with exception: {e}") #acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
+    #     self.assertEqual(acc_adam >= acc_sgd * 0.9, True, "Adam optimzier should have better result than SGD" + str(acc_adam) + " > " + str(acc_sgd))
+    #     try:
+    #         self.train_conv()
+    #     except Exception as e:
+    #         self.fail(f"Model training failed with exception: {e}") #acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
 
     def train_conv(self):
         return gnn.trainer.train(

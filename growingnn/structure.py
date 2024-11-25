@@ -276,6 +276,7 @@ class Layer:
         self.optimizer = _optimizer
         self.optimizer_W = OptimizerFactory.copy(self.optimizer)
         self.optimizer_B = OptimizerFactory.copy(self.optimizer)
+        self.connections = {}
         if layer_type == Layer_Type.EYE:
             self.W = np.asarray(eye_stretch(neurons, input_size))
             self.B = np.asarray(np.zeros((neurons, 1)))
@@ -285,6 +286,9 @@ class Layer:
         else:
             self.W = np.asarray(np.random.randn(neurons, input_size))
             self.B = np.asarray(np.random.randn(neurons, 1))
+    
+    def get_output_size(self):
+        return self.neurons
     
     def connect_input(self, layer_id):
         if layer_id == self.id: 
@@ -306,6 +310,10 @@ class Layer:
             self.output_layers_ids.append(layer_id)
         if not self in target_layer.input_layers_ids:
             target_layer.connect_input(self.id)
+        # neurons, input_size = self.W.shape
+        # self.connections[layer_id] = np.zeros((neurons, input_size))
+        # print(f"Connected new layer with ID {layer_id}.")
+        
     
     def disconnect(self, to_remove_layer_id):
         if to_remove_layer_id in self.input_layers_ids:
@@ -315,18 +323,59 @@ class Layer:
         if self.id == to_remove_layer_id:
             self.input_layers_ids = []
             self.output_layers_ids = []
+        # if to_remove_layer_id in self.connections:
+        #     del self.connections[to_remove_layer_id]
+        #     print(f"Disconnected layer with ID {to_remove_layer_id}.")
+        # else:
+        #     print(f"Layer with ID {to_remove_layer_id} not found.")
 
+    def update_weights_shape(self, input_size):
+        """
+        Sprawdza, czy rozmiar wag `self.W` jest zgodny z rozmiarem wejścia. Jeśli jest za mały, dodaje wiersze zerowe.
+        Jeśli jest za duży, obcina nadmiarowe wiersze.
+        """
+        current_weight_size = self.W.shape[1]  # Liczba kolumn w macierzy wag (rozmiar wejścia dla wag)
+        
+        if current_weight_size < input_size:
+            # Dodajemy brakujące kolumny zerowe, aby dopasować macierz wag do większego wejścia
+            extra_columns = input_size - current_weight_size
+            zero_padding = np.zeros((self.W.shape[0], extra_columns))
+            
+            #print("BEFORE self.W.shape: ", self.W.shape)
+            self.W = np.hstack([self.W, zero_padding])
+            #print("AFTER self.W.shape: ", self.W.shape)
+            
+            #print("zero_padding: ", zero_padding.shape)
+            #print(f"Dodano {extra_columns} kolumn zerowych do macierzy wag.")
+        
+        elif current_weight_size > input_size:
+            # Obcinamy nadmiarowe kolumny z macierzy wag
+            self.W = self.W[:, :input_size]
+            print(f"Obcięto {current_weight_size - input_size} nadmiarowych kolumn z macierzy wag.")
+    
+    
     def forward_prop(self, X, deepth = 0):
         self.f_input.append(X)
         if len(self.f_input) < len(self.input_layers_ids): 
             return None
 
-        self.I = mean_n(self.f_input)
+        #self.I = mean_n(self.f_input)
+        input_list = []
+        for layer_input in self.f_input:
+            input_list.append(layer_input)  # Zbiera dane wejściowe
+        self.I = np.vstack(input_list)
+        #print("------Weights shape: ", self.W.shape)
+        self.update_weights_shape(self.I.shape[0])
         # print("self.I: ", type(self.I))
         # print("self.W: ", type(self.W))
         # print("self.B: ", type(self.B))
         #self.Z = np.dot(self.W, self.I) + self.B
-        self.Z = Layer.calcuale_Z(self.W, self.I, self.B)
+        #self.Z = Layer.calcuale_Z(self.W, self.I, self.B)
+        
+        #print("Weights shape: ", self.W.shape)
+        #print("self.I shape: ", self.I.shape)
+        self.Z = np.dot(self.W, self.I)
+        #print("===============RESUKT================self.Z shape: ", self.Z.shape)
         self.A = self.act_fun.exe(self.Z)
         # print("self.Z: ", type(self.Z))
         # print("self.A: ", type(self.A))
@@ -346,6 +395,8 @@ class Layer:
 
 
     def back_prop(self,E,m,alpha):
+        if E.shape[0] <=0:
+            raise ValueError("Error with 0 shape can't be backpropagated E.shape:", E.shape)
         m = 1.0
         E = Reshape(E, self.neurons, get_reshsper(E.shape[0], self.neurons))
         self.b_input.append(E)
@@ -357,8 +408,12 @@ class Layer:
         self.dW = Layer.calcuale_dW(m, dZ, self.I)
         self.dB = Layer.calcuale_dB(m, dZ, self.B)
         self.E = self.W.T @ dZ
+        before_iteration = 0  # Start index for slicing self.W
         for layer_id in self.input_layers_ids:
-            self.model.get_layer(layer_id).back_prop(self.E, m, alpha)
+            neurons = self.input_size#self.model.get_layer(layer_id).get_output_size()
+            E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
+            before_iteration += neurons
+            self.model.get_layer(layer_id).back_prop(E_slice, m, alpha)
         self.update_params(alpha)
         self.b_input = []
 
@@ -498,10 +553,11 @@ class Model:
     def add_res_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
-        if type(layer_from) == Conv:
-            input_size = layer_from.output_flatten
-        elif type(layer_from) == Layer:
-            input_size = layer_from.neurons
+        # if type(layer_from) == Conv:
+        #     input_size = layer_from.output_flatten
+        # elif type(layer_from) == Layer:
+        #     input_size = layer_from.neurons
+        input_size = layer_from.get_output_size()
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
@@ -760,6 +816,9 @@ class Conv(Layer):
         self.biases = np.array(numpy.random.randn(*self.output_shape) - 0.5)
         self.optimizer = _optimizer
 
+    def get_output_size(self):
+        return self.output_flatten
+    
     def get_reshsper(self, size_from, size_to):
         if not (size_from, size_to) in self.reshspers.keys():
             self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
@@ -827,22 +886,7 @@ class Conv(Layer):
 
     def update_params(self, alpha):
         self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)
-        # self.kernels = self.kernels - alpha * self.kernels_gradient
-        # self.biases = self.biases - alpha * self.error
-        # self.kernels = clip(self.kernels, -weights_clip_range, weights_clip_range)
-        # self.biases = clip(self.biases, -weights_clip_range, weights_clip_range)
-        # if np.any(np.isnan(self.kernels)):
-        #     self.kernels = np.nan_to_num(self.kernels, nan = np.nanmean(self.kernels))
-        # if np.any(np.isnan(self.biases)):
-        #     self.biases = np.nan_to_num(self.biases, nan = np.nanmean(self.biases))
-        # if np.any(np.isinf(self.kernels)):
-        #     self.kernels[self.kernels == -np.inf] = -1.0
-        #     self.kernels[self.kernels == np.inf] = 1.0
-        # if np.any(np.isinf(self.biases)):
-        #     self.biases[self.biases == -np.inf] = -1.0
-        #     self.biases[self.biases == np.inf] = 1.0
             
-    
     def deepcopy(self):
         copy = Conv(self.id, None, self.input_shape, self.kernel_size, self.depth, self.act_fun, self.optimizer.getConv())
         copy.is_ending = self.is_ending
