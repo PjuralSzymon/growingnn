@@ -5,7 +5,7 @@ import json
 from .painter import *
 from .config import *
 from .optimizers import *
-
+from .quaziIdentity import *
 
 def switch_to_gpu():
     global np, IS_CUPY, correlate, convolve
@@ -337,7 +337,7 @@ class Layer:
             for layer_id in self.output_layers_ids:
                 layer = self.model.get_layer(layer_id)
                 if type(layer) == Layer:
-                    new_input = Layer.Reshape(self.A.copy(), layer.input_size, self.get_reshsper(self.A.shape[0], layer.input_size))
+                    new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
                 r = self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
                 if not r is None: result = r        
                 
@@ -347,7 +347,7 @@ class Layer:
 
     def back_prop(self,E,m,alpha):
         m = 1.0
-        E = Layer.Reshape(E, self.neurons, self.get_reshsper(E.shape[0], self.neurons))
+        E = Reshape(E, self.neurons, get_reshsper(E.shape[0], self.neurons))
         self.b_input.append(E)
         if len(self.b_input) < len(self.output_layers_ids): return None
         self.E =  clip(mean_n(self.b_input), -error_clip_range, error_clip_range)
@@ -407,16 +407,6 @@ class Layer:
     def calcuale_updateW(W, alpha, dw):
         return W - alpha * dw
     
-    def get_reshsper(self, size_from, size_to):
-        if not (size_from, size_to) in self.reshspers.keys():
-            self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
-        return self.reshspers[(size_from, size_to)]
-    
-    def Reshape(x, output_size, resharper):
-        x_reshaped = np.zeros((output_size, x.shape[1]))
-        for i in range(0, x.shape[1]):
-            x_reshaped[:, i] = np.dot(x[:, i], resharper)
-        return x_reshaped
 
     def get_all_childrens_connections(self, deepth = 0):
         conn = []
@@ -797,7 +787,7 @@ class Conv(Layer):
             if type(layer) == Conv:
                 new_input = Resize(self.A.copy(), layer.input_shape)
             elif type(layer) == Layer:
-                new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, self.get_reshsper(self.output_flatten, layer.input_size))
+                new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, get_reshsper(self.output_flatten, layer.input_size))
             r = layer.forward_prop(new_input, deepth + 1)
             if not r is None: result = r
         self.f_input = []
@@ -805,7 +795,7 @@ class Conv(Layer):
 
     def back_prop(self, E, m, alpha):
         if len(E.shape) <= 2:
-            E = Reshape_back_prop(E, self.output_shape, self.get_reshsper(E[:, 0].shape[0], self.output_flatten))
+            E = Reshape_back_prop(E, self.output_shape, get_reshsper(E[:, 0].shape[0], self.output_flatten))
         else:
             E = Resize(E, self.output_shape)
         self.b_input.append(E)
@@ -880,24 +870,6 @@ class Conv(Layer):
     def __str__(self):
         return "[<layer: "+ str(self.id)+ " id: " + str(id(self)) + " model id: "+ str(id(self.model))+" in conn: "+ str(len(self.input_layers_ids)) +" out conn: "+ str(len(self.output_layers_ids))+ ">]"
 
-    
-def Reshape_forward_prop(x, output_size, resharper):
-    x_reshaped = np.zeros((output_size, x.shape[0]))
-    for i in range(0, x.shape[0]):
-        flatten_size = x[i].shape[0] * x[i].shape[1] * x[i].shape[2]
-        flatten = np.reshape(x[i], flatten_size)
-        identity = resharper
-        x_reshaped[:, i] = flatten.dot(identity)
-    return x_reshaped
-
-def Reshape_back_prop(E, input_shape, resharper):
-    E_reshaped = np.zeros((E.shape[1], input_shape[0], input_shape[1], input_shape[2]))
-    for i in range(0, E.shape[1]):
-        needed_shape = input_shape[0] * input_shape[1] * input_shape[2]
-        identity = resharper
-        x_reshaped = E[:, i].dot(identity)
-        E_reshaped[i, :, :, :] = np.reshape(x_reshaped, input_shape)
-    return E_reshaped
     
 def Resize(x, shape):
     if x[0].shape == shape:

@@ -95,9 +95,6 @@ def delete_repetitions(array):
     return result
 
 
-def eye_stretch(a,b):
-    A = np.eye(max(a,b))
-    return np.array(cv.resize(get_numpy_array(A), (a,b))).T
 
 def strech(x, shape):
     result = np.zeros((shape[0], shape[1], x.shape[2]))
