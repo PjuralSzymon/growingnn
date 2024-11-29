@@ -2,10 +2,14 @@ import math
 import sys
 from enum import Enum
 import json
+import threading
+import os
 from .painter import *
 from .config import *
 from .optimizers import *
 from .quaziIdentity import *
+
+MAX_THREADS = os.cpu_count() * 5  # Example: 5 threads per CPU core
 
 def switch_to_gpu():
     global np, IS_CUPY, correlate, convolve
@@ -358,38 +362,47 @@ class Layer:
         self.f_input.append(X)
         if len(self.f_input) < len(self.input_layers_ids): 
             return None
-
-        #self.I = mean_n(self.f_input)
         input_list = []
         for layer_input in self.f_input:
             input_list.append(layer_input)  # Zbiera dane wejściowe
         self.I = np.vstack(input_list)
-        #print("------Weights shape: ", self.W.shape)
         self.update_weights_shape(self.I.shape[0])
-        # print("self.I: ", type(self.I))
-        # print("self.W: ", type(self.W))
-        # print("self.B: ", type(self.B))
-        #self.Z = np.dot(self.W, self.I) + self.B
-        #self.Z = Layer.calcuale_Z(self.W, self.I, self.B)
-        
-        #print("Weights shape: ", self.W.shape)
-        #print("self.I shape: ", self.I.shape)
         self.Z = np.dot(self.W, self.I)
-        #print("===============RESUKT================self.Z shape: ", self.Z.shape)
         self.A = self.act_fun.exe(self.Z)
-        # print("self.Z: ", type(self.Z))
-        # print("self.A: ", type(self.A))
         result = None
         if self.is_ending:
             result = self.A
         else:
+            threads=[]
+            results=[]
             for layer_id in self.output_layers_ids:
                 layer = self.model.get_layer(layer_id)
                 if type(layer) == Layer:
                     new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
-                r = self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
-                if not r is None: result = r        
-                
+   
+                if threading.active_count() < MAX_THREADS:
+                    thread = threading.Thread(
+                        target=lambda: results.append(self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)),
+                    )
+                    thread.start()
+                    threads.append(thread)
+                else:
+                    print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
+                    r = self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
+                    results.append(r)
+                    #if not r is None: result = r        
+            
+            for thread in threads:
+                #print("joinging thread: ", thread)
+                thread.join()
+
+            for recived_result in results:
+                if recived_result is not None:
+                    if result is None:
+                        result = recived_result
+                    else:
+                        raise ValueError("More than one result has value")
+
         self.f_input = []
         return result
 
@@ -709,7 +722,7 @@ class Model:
             history.append('accuracy', acc)
             history.append('loss', loss)
             if i % 1 == 0 and quiet==False:
-                print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)))
+                print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)) +  " threads: " + str(threading.active_count()))
         A = self.forward_prop(X)
         return history.get_last('accuracy'), history
 
