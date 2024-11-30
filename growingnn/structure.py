@@ -9,8 +9,6 @@ from .config import *
 from .optimizers import *
 from .quaziIdentity import *
 
-MAX_THREADS = os.cpu_count() * 5  # Example: 5 threads per CPU core
-
 def switch_to_gpu():
     global np, IS_CUPY, correlate, convolve
     import cupy as np
@@ -390,10 +388,8 @@ class Layer:
                     print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
                     r = self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
                     results.append(r)
-                    #if not r is None: result = r        
             
             for thread in threads:
-                #print("joinging thread: ", thread)
                 thread.join()
 
             for recived_result in results:
@@ -402,7 +398,6 @@ class Layer:
                         result = recived_result
                     else:
                         raise ValueError("More than one result has value")
-
         self.f_input = []
         return result
 
@@ -422,38 +417,28 @@ class Layer:
         self.dB = Layer.calcuale_dB(m, dZ, self.B)
         self.E = self.W.T @ dZ
         before_iteration = 0  # Start index for slicing self.W
+        threads=[]
         for layer_id in self.input_layers_ids:
             neurons = self.input_size#self.model.get_layer(layer_id).get_output_size()
             E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
             before_iteration += neurons
-            self.model.get_layer(layer_id).back_prop(E_slice, m, alpha)
+            if threading.active_count() < MAX_THREADS:
+                thread = threading.Thread(
+                    target=lambda: self.model.get_layer(layer_id).back_prop(E_slice, m, alpha),
+                )
+                thread.start()
+                threads.append(thread)
+            else:
+                print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
+                self.model.get_layer(layer_id).back_prop(E_slice, m, alpha)
         self.update_params(alpha)
         self.b_input = []
+        #for thread in threads:
+        #    thread.join()
 
-#     def update_params(self, weight_grads, bias_grads):
-#         self.weights = self.optimizer.update(self.weights, weight_grads)
-#         self.biases = self.optimizer.update(self.biases, bias_grads)
-    
     def update_params(self, alpha):
         self.W = self.optimizer_W.update(self.W, self.dW, alpha)
         self.B = self.optimizer_B.update(self.B, self.dB, alpha)
-        # self.W = Layer.calcuale_updateW(self.W, alpha, self.dW)
-        # self.B = Layer.calcuale_updateW(self.B, alpha, self.dB)
-        # self.W = clip(self.W, -weights_clip_range, weights_clip_range)
-        # self.B = clip(self.B, -weights_clip_range, weights_clip_range)
-        # if np.any(np.isnan(self.W)):
-        #     self.W = np.nan_to_num(self.W, nan = np.nanmean(self.W))
-        # if np.any(np.isnan(self.B)):
-        #     self.B = np.nan_to_num(self.B, nan = np.nanmean(self.B))
-        # if np.any(np.isinf(self.W)):
-        #     print(self.id, "W inf discovered")
-        #     self.W[self.W == -np.inf] = -1.0
-        #     self.W[self.W == np.inf] = 1.0
-        # if np.any(np.isinf(self.B)):
-        #     print(self.id, "B inf discovered")
-        #     self.B[self.B == -np.inf] = -1.0
-        #     self.B[self.B == np.inf] = 1.0
-
 
     @staticmethod
     @jit(nopython=True)
@@ -464,9 +449,7 @@ class Layer:
     @jit(nopython=True)
     def calcuale_dW(m, dZ, I):
         return 1 / m * dZ @ I.T
-    
-#    @staticmethod
-#    @jit(nopython=True)
+
     def calcuale_dB(m, dZ, B):
         return 1 / m * np.reshape(np.sum(dZ, 1), B.shape)
     
@@ -854,14 +837,35 @@ class Conv(Layer):
                 self.Z[img_id,:,:,i] += self.biases[:,:,i]
         self.A = self.act_fun.exe(self.Z)
         result = None
+        threads=[]
+        results=[]
         for layer_id in self.output_layers_ids:
             layer = self.model.get_layer(layer_id)
             if type(layer) == Conv:
                 new_input = Resize(self.A.copy(), layer.input_shape)
             elif type(layer) == Layer:
-                new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, get_reshsper(self.output_flatten, layer.input_size))
-            r = layer.forward_prop(new_input, deepth + 1)
-            if not r is None: result = r
+                new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, get_reshsper(self.output_flatten, layer.input_size))         
+            
+            if threading.active_count() < MAX_THREADS:
+                thread = threading.Thread(
+                    target=lambda: results.append(layer.forward_prop(new_input.copy(), deepth + 1)),
+                )
+                thread.start()
+                threads.append(thread)
+            else:
+                print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
+                r = layer.forward_prop(new_input, deepth + 1)
+                results.append(r)
+            
+        for thread in threads:
+            thread.join()
+
+        for recived_result in results:
+            if recived_result is not None:
+                if result is None:
+                    result = recived_result
+                else:
+                    raise ValueError("More than one result has value")            
         self.f_input = []
         return result
 
@@ -893,7 +897,14 @@ class Conv(Layer):
         self.input_gradient[img_id,:,:,j] /= self.I.shape[0]
         self.error /= self.I.shape[0]
         for layer_id in self.input_layers_ids:
-            self.model.get_layer(layer_id).back_prop(self.input_gradient, m, alpha)
+            if threading.active_count() < MAX_THREADS:
+                thread = threading.Thread(
+                    target=lambda: self.model.get_layer(layer_id).back_prop(self.input_gradient.copy, m, alpha),
+                )
+                thread.start()
+            else:
+                print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
+                self.model.get_layer(layer_id).back_prop(self.input_gradient, m, alpha)
         self.update_params(alpha)
         self.b_input = []
 
