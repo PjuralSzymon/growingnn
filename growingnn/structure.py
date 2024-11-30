@@ -4,6 +4,7 @@ from enum import Enum
 import json
 import threading
 import os
+import time
 from .painter import *
 from .config import *
 from .optimizers import *
@@ -270,6 +271,7 @@ class Layer:
         self.neurons = neurons
         self.act_fun = act_fun
         self.is_ending = False
+        self.is_starting = False
         self.input_layers_ids = []
         self.output_layers_ids = []
         self.f_input = [] # forwarind input
@@ -289,6 +291,14 @@ class Layer:
             self.W = np.asarray(np.random.randn(neurons, input_size))
             self.B = np.asarray(np.random.randn(neurons, 1))
     
+    def set_as_ending(self):
+        self.is_ending = True
+        self.done_event = threading.Event()
+    
+    def set_as_starting(self):
+        self.is_starting = True
+        self.done_event = threading.Event()
+        
     def get_output_size(self):
         return self.neurons
     
@@ -312,10 +322,6 @@ class Layer:
             self.output_layers_ids.append(layer_id)
         if not self in target_layer.input_layers_ids:
             target_layer.connect_input(self.id)
-        # neurons, input_size = self.W.shape
-        # self.connections[layer_id] = np.zeros((neurons, input_size))
-        # print(f"Connected new layer with ID {layer_id}.")
-        
     
     def disconnect(self, to_remove_layer_id):
         if to_remove_layer_id in self.input_layers_ids:
@@ -325,11 +331,6 @@ class Layer:
         if self.id == to_remove_layer_id:
             self.input_layers_ids = []
             self.output_layers_ids = []
-        # if to_remove_layer_id in self.connections:
-        #     del self.connections[to_remove_layer_id]
-        #     print(f"Disconnected layer with ID {to_remove_layer_id}.")
-        # else:
-        #     print(f"Layer with ID {to_remove_layer_id} not found.")
 
     def update_weights_shape(self, input_size):
         """
@@ -367,12 +368,9 @@ class Layer:
         self.update_weights_shape(self.I.shape[0])
         self.Z = np.dot(self.W, self.I)
         self.A = self.act_fun.exe(self.Z)
-        result = None
         if self.is_ending:
-            result = self.A
+            self.done_event.set()
         else:
-            threads=[]
-            results=[]
             for layer_id in self.output_layers_ids:
                 layer = self.model.get_layer(layer_id)
                 if type(layer) == Layer:
@@ -380,26 +378,13 @@ class Layer:
    
                 if threading.active_count() < MAX_THREADS:
                     thread = threading.Thread(
-                        target=lambda: results.append(self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)),
+                        target=lambda: self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1),
                     )
                     thread.start()
-                    threads.append(thread)
                 else:
                     print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
-                    r = self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
-                    results.append(r)
-            
-            for thread in threads:
-                thread.join()
-
-            for recived_result in results:
-                if recived_result is not None:
-                    if result is None:
-                        result = recived_result
-                    else:
-                        raise ValueError("More than one result has value")
+                    self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
         self.f_input = []
-        return result
 
 
     def back_prop(self,E,m,alpha):
@@ -411,30 +396,26 @@ class Layer:
         if len(self.b_input) < len(self.output_layers_ids): return None
         self.E =  clip(mean_n(self.b_input), -error_clip_range, error_clip_range)
         dZ = self.E * self.act_fun.der(self.Z)
-        #self.dW = 1 / m * dZ @ self.I.T
-        #self.dB = 1 / m * np.reshape(np.sum(dZ, 1), self.B.shape)
         self.dW = Layer.calcuale_dW(m, dZ, self.I)
         self.dB = Layer.calcuale_dB(m, dZ, self.B)
         self.E = self.W.T @ dZ
-        before_iteration = 0  # Start index for slicing self.W
-        threads=[]
+        before_iteration = 0
         for layer_id in self.input_layers_ids:
-            neurons = self.input_size#self.model.get_layer(layer_id).get_output_size()
+            neurons = self.input_size
             E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
             before_iteration += neurons
             if threading.active_count() < MAX_THREADS:
                 thread = threading.Thread(
-                    target=lambda: self.model.get_layer(layer_id).back_prop(E_slice, m, alpha),
+                    target=lambda: self.model.get_layer(layer_id).back_prop(E_slice.copy(), m, alpha),
                 )
                 thread.start()
-                threads.append(thread)
             else:
                 print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
                 self.model.get_layer(layer_id).back_prop(E_slice, m, alpha)
         self.update_params(alpha)
         self.b_input = []
-        #for thread in threads:
-        #    thread.join()
+        if self.is_starting:
+            self.done_event.set()
 
     def update_params(self, alpha):
         self.W = self.optimizer_W.update(self.W, self.dW, alpha)
@@ -482,7 +463,10 @@ class Layer:
         
     def deepcopy(self):
         copy = Layer(self.id, None, self.input_size, self.neurons, self.act_fun, Layer_Type.RANDOM, self.optimizer.getDense())
-        copy.is_ending = self.is_ending
+        if self.is_ending:
+            copy.set_as_ending()
+        if self.is_starting:
+            copy.set_as_starting()
         copy.input_layers_ids = self.input_layers_ids.copy()
         copy.output_layers_ids = self.output_layers_ids.copy()
         copy.f_input = self.f_input.copy()
@@ -513,11 +497,13 @@ class Model:
         self.input_layers = []#Layer(0, self, input_size, hidden_size, self.activation_fun)
         self.optimizer = _optimizer
         self.output_layer = Layer(1, self, hidden_size, output_size, Activations.SoftMax, Layer_Type.RANDOM, self.optimizer.getDense())
+        self.output_layer.set_as_ending()
         for i in range(0, input_paths):
             layer_id = "init_"+str(i)
-            self.input_layers.append(Layer(layer_id, self, input_size, hidden_size, self.activation_fun, Layer_Type.RANDOM, self.optimizer.getDense()))
+            layer = Layer(layer_id, self, input_size, hidden_size, self.activation_fun, Layer_Type.RANDOM, self.optimizer.getDense())
+            layer.set_as_starting()
+            self.input_layers.append(layer)
             self.add_connection(layer_id, self.output_layer.id)
-        self.output_layer.is_ending = True
         if input_paths > 1: self.add_sequential_output_Layer()
         # in testing:
         self.convolution = False
@@ -649,9 +635,9 @@ class Model:
     def get_predictions(A2):
         return argmax(A2, 0)
 
-    def get_loss(self, x, y):
-        A = self.forward_prop(x)
-        return self.loss_function.exe(one_hot(y) , A)
+    # def get_loss(self, x, y):
+    #     A = self.forward_prop(x)
+    #     return self.loss_function.exe(one_hot(y) , A)
     
     def get_accuracy(predictions, Y):
         if predictions.shape != Y.shape:
@@ -665,12 +651,27 @@ class Model:
         if not isinstance(input, np.ndarray):
             input = np.array(input)
         #print("len(self.input_layers): ", len(self.input_layers))
+        self.output_layer.A = None
+        self.output_layer.set_as_ending()
         if len(self.input_layers) == 1:
-            return self.input_layers[0].forward_prop(input, 0)
-        result = None 
+            self.input_layers[0].forward_prop(input, 0)
+        else:
+            for i in range(0, len(self.input_layers)):
+                self.input_layers[i].forward_prop(input[i], 0)
+        
+        self.output_layer.done_event.wait()
+        if self.output_layer.A is None:
+            raise ValueError("After forward prop A on output layer is None")
+        return self.output_layer.A
+        #return result
+        
+    #def back_prop(self,
+    def back_prop(self,E,m,alpha):
         for i in range(0, len(self.input_layers)):
-            result = self.input_layers[i].forward_prop(input[i], 0)
-        return result
+            self.input_layers[i].set_as_starting()
+        self.output_layer.back_prop(E, m, alpha)   
+        for i in range(0, len(self.input_layers)):
+            self.input_layers[i].done_event.wait()
     
     def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True):
         if not isinstance(X, np.ndarray): X = np.array(X)
@@ -698,14 +699,17 @@ class Model:
                 batch_indexes = indexes[x_indx_start:(x_indx_start + self.batch_size)]
                 A = self.forward_prop(np.take(X, batch_indexes, index_axis))
                 E = self.loss_function.der(np.take(one_hot_Y, batch_indexes, 1) , A)
-                self.output_layer.back_prop(E, self.batch_size, current_alpha)                
+                self.back_prop(E, self.batch_size, current_alpha)
+                #self.output_layer.back_prop(E, self.batch_size, current_alpha)                
                 loss += self.loss_function.exe(np.take(one_hot_Y, batch_indexes, 1) , A)
             random.shuffle(indexes)
+            #TODO: acc don't need to be calculated in next process
             acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
             history.append('accuracy', acc)
             history.append('loss', loss)
             if i % 1 == 0 and quiet==False:
                 print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)) +  " threads: " + str(threading.active_count()))
+        #TODO: this forward seems useless
         A = self.forward_prop(X)
         return history.get_last('accuracy'), history
 
@@ -795,6 +799,7 @@ class Conv(Layer):
         self.model = _model
         self.act_fun = act_fun
         self.is_ending = False
+        self.is_starting = False
         self.input_layers_ids = []
         self.output_layers_ids = []
         self.f_input = [] # forwarind input
@@ -836,9 +841,6 @@ class Conv(Layer):
                         self.Z[img_id,:,:,i] += correlate2d(self.I[img_id,:,:,j], self.kernels[i,j], "valid") 
                 self.Z[img_id,:,:,i] += self.biases[:,:,i]
         self.A = self.act_fun.exe(self.Z)
-        result = None
-        threads=[]
-        results=[]
         for layer_id in self.output_layers_ids:
             layer = self.model.get_layer(layer_id)
             if type(layer) == Conv:
@@ -848,26 +850,13 @@ class Conv(Layer):
             
             if threading.active_count() < MAX_THREADS:
                 thread = threading.Thread(
-                    target=lambda: results.append(layer.forward_prop(new_input.copy(), deepth + 1)),
+                    target=lambda: layer.forward_prop(new_input.copy(), deepth + 1),
                 )
                 thread.start()
-                threads.append(thread)
             else:
                 print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
-                r = layer.forward_prop(new_input, deepth + 1)
-                results.append(r)
-            
-        for thread in threads:
-            thread.join()
-
-        for recived_result in results:
-            if recived_result is not None:
-                if result is None:
-                    result = recived_result
-                else:
-                    raise ValueError("More than one result has value")            
+                layer.forward_prop(new_input, deepth + 1)
         self.f_input = []
-        return result
 
     def back_prop(self, E, m, alpha):
         if len(E.shape) <= 2:
@@ -899,7 +888,7 @@ class Conv(Layer):
         for layer_id in self.input_layers_ids:
             if threading.active_count() < MAX_THREADS:
                 thread = threading.Thread(
-                    target=lambda: self.model.get_layer(layer_id).back_prop(self.input_gradient.copy, m, alpha),
+                    target=lambda: self.model.get_layer(layer_id).back_prop(self.input_gradient.copy(), m, alpha),
                 )
                 thread.start()
             else:
@@ -907,13 +896,18 @@ class Conv(Layer):
                 self.model.get_layer(layer_id).back_prop(self.input_gradient, m, alpha)
         self.update_params(alpha)
         self.b_input = []
-
+        if self.is_starting:
+            self.done_event.set()
+            
     def update_params(self, alpha):
         self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)
             
     def deepcopy(self):
         copy = Conv(self.id, None, self.input_shape, self.kernel_size, self.depth, self.act_fun, self.optimizer.getConv())
-        copy.is_ending = self.is_ending
+        if self.is_ending:
+            copy.set_as_ending()
+        if self.is_starting:
+            copy.set_as_starting()
         copy.input_layers_ids = self.input_layers_ids.copy()
         copy.output_layers_ids = self.output_layers_ids.copy()
         copy.f_input = self.f_input.copy()
@@ -997,6 +991,7 @@ class Storage:
         dict_main['id'] = str(layer.id)
         dict_main['act_fun'] = str(layer.act_fun.__name__)
         dict_main['is_ending'] = layer.is_ending
+        dict_main['is_starting'] = layer.is_starting
         dict_main['input_layers_ids'] = [str(i) for i in layer.input_layers_ids] 
         dict_main['output_layers_ids'] = [str(i) for i in layer.output_layers_ids]
         dict_main['optimizer'] = OptimizerFactory.ToDict(layer.optimizer)
@@ -1074,6 +1069,7 @@ class Storage:
         layer_id = str(layer_dict['id'])
         act_fun_name = layer_dict['act_fun']
         is_ending = layer_dict['is_ending']
+        is_starting = layer_dict['is_starting']
         input_layers_ids = layer_dict['input_layers_ids']
         output_layers_ids = layer_dict['output_layers_ids']
         reshapers = layer_dict['reshapers']
@@ -1094,7 +1090,8 @@ class Storage:
             neurons = layer_dict['neurons']
             layer = Layer(layer_id, model, input_size, neurons, act_fun, Layer_Type.RANDOM,  optimizer.getDense())
         
-        layer.is_ending = is_ending
+        if is_ending: layer.set_as_ending()
+        if is_starting : layer.set_as_starting()
         layer.input_layers_ids = input_layers_ids
         layer.output_layers_ids = output_layers_ids
         reshapers_dict = {}

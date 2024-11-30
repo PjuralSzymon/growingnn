@@ -16,8 +16,7 @@ class TestLayer(unittest.TestCase):
             gnn.switch_to_gpu()
         self.layer = gnn.Layer(1, None, 10, 5, None)
         self.layer.act_fun = gnn.structure.Activations.ReLu
-        self.layer.is_ending = True
-
+        self.layer.set_as_ending()
 
     def test_init(self):
         self.assertEqual(self.layer.id, 1)
@@ -55,13 +54,12 @@ class TestLayer(unittest.TestCase):
         self.layer.disconnect(5)
         self.assertEqual(self.layer.output_layers_ids, [4])
 
-
     def test_forward_prop(self):
         self.layer.input_layers_ids = [2, 3]
         self.layer.model = MagicMock()
-        result1 = self.layer.forward_prop(gnn.np.ones((10, 1)))
-        result2 = self.layer.forward_prop(gnn.np.ones((10, 1)))
-        self.assertIsNone(result1)
+        self.layer.forward_prop(gnn.np.ones((10, 1)))
+        self.layer.forward_prop(gnn.np.ones((10, 1)))
+        result2 = self.layer.A
         self.assertIsNotNone(result2)
         self.assertEqual(len(self.layer.f_input), 0)
 
