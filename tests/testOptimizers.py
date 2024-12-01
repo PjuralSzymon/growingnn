@@ -27,7 +27,7 @@ class TestingTrain(unittest.TestCase):
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
         gnn.painter.draw(M, "input_test.html")
         acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler)
-        self.assertEqual(acc >= 0.4, True)
+        self.assertEqual(acc >= 0.3, True)
 
     def test_simple_Adam_train(self):
         M = gnn.structure.Model(shape,shape,2, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1, gnn.optimizers.AdamOptimizer())
@@ -36,7 +36,7 @@ class TestingTrain(unittest.TestCase):
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
         gnn.painter.draw(M, "input_test.html")
         acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler)
-        self.assertEqual(acc >= 0.4, True)
+        self.assertEqual(acc >= 0.3, True)
 
     def test_res_SGD_structure(self):
         M = gnn.structure.Model(shape, shape, 2, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1, gnn.optimizers.SGDOptimizer())

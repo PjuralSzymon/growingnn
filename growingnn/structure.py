@@ -293,11 +293,11 @@ class Layer:
     
     def set_as_ending(self):
         self.is_ending = True
-        self.done_event = threading.Event()
+        #self.done_event = threading.Event()
     
     def set_as_starting(self):
         self.is_starting = True
-        self.done_event = threading.Event()
+        #self.done_event = threading.Event()
         
     def get_output_size(self):
         return self.neurons
@@ -332,30 +332,27 @@ class Layer:
             self.input_layers_ids = []
             self.output_layers_ids = []
 
-    def update_weights_shape(self, input_size):
-        """
-        Sprawdza, czy rozmiar wag `self.W` jest zgodny z rozmiarem wejścia. Jeśli jest za mały, dodaje wiersze zerowe.
-        Jeśli jest za duży, obcina nadmiarowe wiersze.
-        """
-        current_weight_size = self.W.shape[1]  # Liczba kolumn w macierzy wag (rozmiar wejścia dla wag)
-        
+    @staticmethod
+    @jit(nopython=True)
+    def update_weights_shape(W, input_size):
+        current_weight_size = W.shape[1]
         if current_weight_size < input_size:
-            # Dodajemy brakujące kolumny zerowe, aby dopasować macierz wag do większego wejścia
+            # Dodawanie brakujących kolumn z zerami
             extra_columns = input_size - current_weight_size
-            zero_padding = np.zeros((self.W.shape[0], extra_columns))
-            
-            #print("BEFORE self.W.shape: ", self.W.shape)
-            self.W = np.hstack([self.W, zero_padding])
-            #print("AFTER self.W.shape: ", self.W.shape)
-            
-            #print("zero_padding: ", zero_padding.shape)
-            #print(f"Dodano {extra_columns} kolumn zerowych do macierzy wag.")
-        
+            zero_padding = np.zeros((W.shape[0], extra_columns))
+            # Zamiast np.hstack używamy manualnej konkatenacji
+            W = np.concatenate((W, zero_padding), axis=1)
         elif current_weight_size > input_size:
-            # Obcinamy nadmiarowe kolumny z macierzy wag
-            self.W = self.W[:, :input_size]
-            print(f"Obcięto {current_weight_size - input_size} nadmiarowych kolumn z macierzy wag.")
+            # Usuwanie niepotrzebnych kolumn
+            W = W[:, :input_size]
+        return W
     
+    def should_thread_forward(self):
+        if threading.active_count() >= MAX_THREADS:
+            return False
+        if len(self.f_input) + 1 < len(self.input_layers_ids): 
+            return False
+        return True
     
     def forward_prop(self, X, deepth = 0):
         self.f_input.append(X)
@@ -365,28 +362,36 @@ class Layer:
         for layer_input in self.f_input:
             input_list.append(layer_input)  # Zbiera dane wejściowe
         self.I = np.vstack(input_list)
-        self.update_weights_shape(self.I.shape[0])
+        self.W = Layer.update_weights_shape(self.W, self.I.shape[0])
         self.Z = np.dot(self.W, self.I)
         self.A = self.act_fun.exe(self.Z)
-        if self.is_ending:
-            self.done_event.set()
-        else:
-            for layer_id in self.output_layers_ids:
-                layer = self.model.get_layer(layer_id)
-                if type(layer) == Layer:
-                    new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
-   
-                if threading.active_count() < MAX_THREADS:
-                    thread = threading.Thread(
-                        target=lambda: self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1),
-                    )
-                    thread.start()
-                else:
-                    print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
-                    self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
+
+        for layer_id in self.output_layers_ids:
+            layer = self.model.get_layer(layer_id)
+            if type(layer) == Layer:
+                new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
+
+            #TODO: Check if creating a thread makes sense
+            #TODO: new_input CAN BE SEND BEFORE ASSIGMENT WHY ?
+            if layer.should_thread_forward():
+                thread = threading.Thread(
+                    target=lambda: self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1),
+                )
+                thread.start()
+                self.model.forward_threads.append(thread)
+            else:
+                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
+                self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
         self.f_input = []
 
 
+    def should_thread_backward(self):
+        if threading.active_count() >= MAX_THREADS:
+            return False
+        if len(self.b_input) + 1 < len(self.output_layers_ids): 
+            return False
+        return True
+    
     def back_prop(self,E,m,alpha):
         if E.shape[0] <=0:
             raise ValueError("Error with 0 shape can't be backpropagated E.shape:", E.shape)
@@ -404,18 +409,20 @@ class Layer:
             neurons = self.input_size
             E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
             before_iteration += neurons
-            if threading.active_count() < MAX_THREADS:
+            layer = self.model.get_layer(layer_id)
+            if layer.should_thread_backward():
                 thread = threading.Thread(
-                    target=lambda: self.model.get_layer(layer_id).back_prop(E_slice.copy(), m, alpha),
+                    target=lambda: layer.back_prop(E_slice.copy(), m, alpha),
                 )
                 thread.start()
+                self.model.bacward_threads.append(thread)
             else:
-                print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
-                self.model.get_layer(layer_id).back_prop(E_slice, m, alpha)
+                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
+                layer.back_prop(E_slice, m, alpha)
         self.update_params(alpha)
         self.b_input = []
-        if self.is_starting:
-            self.done_event.set()
+        # if self.is_starting:
+        #     self.done_event.set()
 
     def update_params(self, alpha):
         self.W = self.optimizer_W.update(self.W, self.dW, alpha)
@@ -510,6 +517,8 @@ class Model:
         self.input_shape = None
         self.kernel_size = None
         self.depth = None
+        self.forward_threads = []
+        self.bacward_threads = []
         
 
     def set_convolution_mode(self, input_shape, kernel_size, depth):
@@ -526,19 +535,10 @@ class Model:
                 self.get_layer(output_layer_id).disconnect(self.input_layers[i].id)
                 self.input_layers[i] = Conv(layer_id, self, self.input_shape, self.kernel_size, self.depth, self.activation_fun, self.optimizer.getConv())
                 self.add_connection(layer_id, output_layer_id)
-        #print("self.input_layer: ", self.input_layers[0].output_shape)
-        #print("self.input_layer: ", self.input_layers[0].output_flatten)
-        #print("hidden_size: ", self.hidden_size)
-
-
 
     def add_res_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
-        # if type(layer_from) == Conv:
-        #     input_size = layer_from.output_flatten
-        # elif type(layer_from) == Layer:
-        #     input_size = layer_from.neurons
         input_size = layer_from.get_output_size()
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
@@ -635,16 +635,9 @@ class Model:
     def get_predictions(A2):
         return argmax(A2, 0)
 
-    # def get_loss(self, x, y):
-    #     A = self.forward_prop(x)
-    #     return self.loss_function.exe(one_hot(y) , A)
-    
     def get_accuracy(predictions, Y):
         if predictions.shape != Y.shape:
             sys.exit("ERROR, shape of predictions is diffrent than one_hot_Y: " + str(predictions.shape) + " != " + str(Y.shape))
-        #test
-        #for i in range(0, len(Y)):
-        #    print("predicted: ", predictions[i], " real: ", Y[i])
         return np.sum(predictions == Y) / Y.size
 
     def forward_prop(self, input):
@@ -659,7 +652,10 @@ class Model:
             for i in range(0, len(self.input_layers)):
                 self.input_layers[i].forward_prop(input[i], 0)
         
-        self.output_layer.done_event.wait()
+        #self.output_layer.done_event.wait()
+        for thread in self.forward_threads:
+            thread.join()
+        self.forward_threads.clear()
         if self.output_layer.A is None:
             raise ValueError("After forward prop A on output layer is None")
         return self.output_layer.A
@@ -670,8 +666,11 @@ class Model:
         for i in range(0, len(self.input_layers)):
             self.input_layers[i].set_as_starting()
         self.output_layer.back_prop(E, m, alpha)   
-        for i in range(0, len(self.input_layers)):
-            self.input_layers[i].done_event.wait()
+        # for i in range(0, len(self.input_layers)):
+        #     self.input_layers[i].done_event.wait()
+        for thread in self.bacward_threads:
+            thread.join()
+        self.bacward_threads.clear()
     
     def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True):
         if not isinstance(X, np.ndarray): X = np.array(X)
@@ -695,22 +694,25 @@ class Model:
         for i in range(iterations + 1):
             current_alpha = lr_scheduler.alpha_scheduler(i, iterations) #alpha * Model.alpha_scheduler(i, iterations)
             loss = 0
+            predictions = []  
+            expectations = []
             for x_indx_start in range(0, X.shape[index_axis], self.batch_size): #lwn(x)
                 batch_indexes = indexes[x_indx_start:(x_indx_start + self.batch_size)]
                 A = self.forward_prop(np.take(X, batch_indexes, index_axis))
                 E = self.loss_function.der(np.take(one_hot_Y, batch_indexes, 1) , A)
                 self.back_prop(E, self.batch_size, current_alpha)
-                #self.output_layer.back_prop(E, self.batch_size, current_alpha)                
                 loss += self.loss_function.exe(np.take(one_hot_Y, batch_indexes, 1) , A)
+                predictions.append(A)
+                expectations.append(np.take(Y, batch_indexes, 0))
             random.shuffle(indexes)
-            #TODO: acc don't need to be calculated in next process
-            acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
+           
+            acc = Model.get_accuracy(Model.get_predictions(np.concatenate(predictions, axis=1)), np.concatenate(expectations, axis=0))
             history.append('accuracy', acc)
             history.append('loss', loss)
             if i % 1 == 0 and quiet==False:
                 print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)) +  " threads: " + str(threading.active_count()))
         #TODO: this forward seems useless
-        A = self.forward_prop(X)
+        #A = self.forward_prop(X)
         return history.get_last('accuracy'), history
 
     def evaluate(self, x, y):
@@ -848,13 +850,14 @@ class Conv(Layer):
             elif type(layer) == Layer:
                 new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, get_reshsper(self.output_flatten, layer.input_size))         
             
-            if threading.active_count() < MAX_THREADS:
+            if layer.should_thread_forward():
                 thread = threading.Thread(
                     target=lambda: layer.forward_prop(new_input.copy(), deepth + 1),
                 )
                 thread.start()
+                self.model.forward_threads.append(thread)
             else:
-                print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
+                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
                 layer.forward_prop(new_input, deepth + 1)
         self.f_input = []
 
@@ -886,18 +889,20 @@ class Conv(Layer):
         self.input_gradient[img_id,:,:,j] /= self.I.shape[0]
         self.error /= self.I.shape[0]
         for layer_id in self.input_layers_ids:
-            if threading.active_count() < MAX_THREADS:
+            layer = self.model.get_layer(layer_id)
+            if layer.should_thread_backward():
                 thread = threading.Thread(
-                    target=lambda: self.model.get_layer(layer_id).back_prop(self.input_gradient.copy(), m, alpha),
+                    target=lambda: layer.back_prop(self.input_gradient.copy(), m, alpha),
                 )
                 thread.start()
+                self.model.bacward_threads.append(thread)
             else:
-                print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
-                self.model.get_layer(layer_id).back_prop(self.input_gradient, m, alpha)
+                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
+                layer.back_prop(self.input_gradient, m, alpha)
         self.update_params(alpha)
         self.b_input = []
-        if self.is_starting:
-            self.done_event.set()
+        #if self.is_starting:
+        #    self.done_event.set()
             
     def update_params(self, alpha):
         self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)
