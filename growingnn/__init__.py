@@ -4,6 +4,7 @@ from .structure import *
 from .trainer import *
 from .helpers import *
 from .config import *
+from .quaziIdentity import *
 
 IS_CUPY = False
 

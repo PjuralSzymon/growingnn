@@ -11,13 +11,13 @@ class Optimizer:
         self.layerType = _layerType
         pass
 
-#    @staticmethod
-#    @jit(nopython=True)
-    def clip_and_fix(self, params, clip_range):
+    @staticmethod
+    @jit(nopython=True)
+    def clip_and_fix(params, clip_range):
         params = np.clip(params, -clip_range, clip_range)
         params = np.nan_to_num(params, nan=np.nanmean(params))
-        params[params == -np.inf] = -1.0
-        params[params == np.inf] = 1.0
+        #params[params == -np.inf] = -1.0
+        #params[params == np.inf] = 1.0
         return params
 
     def ToDict(self):
@@ -39,9 +39,9 @@ class SGDOptimizer(Optimizer):
         super().__init__(weights_clip_range)
         self.updateType("SGD", "Dense")
         
-    # @staticmethod
-    # @jit(nopython=True)
-    def sgd_update(self, params, grads, alpha):
+    @staticmethod
+    @jit(nopython=True)
+    def sgd_update(params, grads, alpha):
          return params.astype(np.float64) - alpha * grads
 
     def ToDict(self):
@@ -55,8 +55,8 @@ class SGDOptimizer(Optimizer):
         return SGDOptimizer(dict["weights_clip_range"])
     
     def update(self, params, grads, alpha):
-        params = self.sgd_update(params, grads, alpha)
-        return self.clip_and_fix(params, self.weights_clip_range)
+        return SGDOptimizer.clip_and_fix(SGDOptimizer.sgd_update(params, grads, alpha), 
+                                         self.weights_clip_range)
     
     def getDense(self):
         return self
@@ -99,16 +99,18 @@ class AdamOptimizer(Optimizer):
         return params, m, v
 
     def update(self, params, grads, alpha):
-        if self.m is None:
+        if self.m is None or self.v is None or self.m.shape != params.shape:
+            reset = True
+        else:
+            reset = False
+        if reset:
             self.m = np.zeros_like(params)
-        if self.v is None:
             self.v = np.zeros_like(params)
-
         self.t += 1
         params, self.m, self.v = self.adam_update(
             params, grads, self.m, self.v, self.t, alpha, self.beta1, self.beta2, self.epsilon
         )
-        return self.clip_and_fix(params, self.weights_clip_range)
+        return AdamOptimizer.clip_and_fix(params, self.weights_clip_range)
 
     def getDense(self):
         return self
@@ -141,8 +143,8 @@ class ConvSGDOptimizer(Optimizer):
 
     def update(self, kernels, kernel_grads, biases, bias_grads, alpha):
         kernels, biases = self.conv_sgd_update(kernels, kernel_grads, biases, bias_grads, alpha)
-        kernels = self.clip_and_fix(kernels, self.weights_clip_range)
-        biases = self.clip_and_fix(biases, self.weights_clip_range)
+        kernels = ConvSGDOptimizer.clip_and_fix(kernels, self.weights_clip_range)
+        biases = ConvSGDOptimizer.clip_and_fix(biases, self.weights_clip_range)
         return kernels, biases
     
     def getDense(self):
@@ -211,8 +213,8 @@ class ConvAdamOptimizer(Optimizer):
             kernels, kernel_grads, biases, bias_grads, self.m_kernels, self.v_kernels, self.m_biases, self.v_biases,
             self.t, alpha, self.beta1, self.beta2, self.epsilon
         )
-        kernels = self.clip_and_fix(kernels, self.weights_clip_range)
-        biases = self.clip_and_fix(biases, self.weights_clip_range)
+        kernels = ConvAdamOptimizer.clip_and_fix(kernels, self.weights_clip_range)
+        biases = ConvAdamOptimizer.clip_and_fix(biases, self.weights_clip_range)
         return kernels, biases
     
     def getDense(self):
@@ -261,41 +263,3 @@ class OptimizerFactory:
                 return SGDOptimizer.FromDict(dict)
             elif dict["optimzierType"] ==  "Adam":
                 return AdamOptimizer.FromDict(dict)    
-
-# class DenseLayer:
-#     def __init__(self, optimizer):
-#         self.weights = np.random.randn(10, 10)
-#         self.biases = np.random.randn(10, 1)
-#         self.optimizer = optimizer
-
-#     def update_params(self, weight_grads, bias_grads):
-#         self.weights = self.optimizer.update(self.weights, weight_grads)
-#         self.biases = self.optimizer.update(self.biases, bias_grads)
-
-# class ConvolutionLayer:
-#     def __init__(self, optimizer):
-#         self.kernels = np.random.randn(3, 3, 3, 3)
-#         self.biases = np.random.randn(3)
-#         self.optimizer = optimizer
-
-#     def update_params(self, kernel_grads, bias_grads):
-#         self.kernels, self.biases = self.optimizer.update(self.kernels, kernel_grads, self.biases, bias_grads)
-
-
-# # For a dense layer using SGD
-# dense_optimizer = SGDOptimizer(alpha=0.01, weights_clip_range=1.0)
-# dense_layer = DenseLayer(dense_optimizer)
-
-# # During training
-# weight_grads = np.random.randn(10, 10)  # Example gradients
-# bias_grads = np.random.randn(10, 1)
-# dense_layer.update_params(weight_grads, bias_grads)
-
-# # For a convolutional layer using Adam
-# conv_optimizer = ConvOptimizer(alpha=0.001, weights_clip_range=1.0)
-# conv_layer = ConvolutionLayer(conv_optimizer)
-
-# # During training
-# kernel_grads = np.random.randn(3, 3, 3, 3)  # Example gradients
-# bias_grads = np.random.randn(3)
-# conv_layer.update_params(kernel_grads, bias_grads)

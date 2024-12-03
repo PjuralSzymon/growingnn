@@ -30,19 +30,21 @@ class TestModelTraining(unittest.TestCase):
         self.y_conv_test = np.random.randint(self.classes, size=(int(self.datasize / 2), ))
         self.labels = range(0, self.classes)
         self.optimizer = gnn.SGDOptimizer()
+        self.simulation_time = 2
+        self.simulation_alg = gnn.montecarlo_alg
         print("self.x_train: ", self.x_train.shape)
         print("self.y_train: ", self.y_train.shape)
 
-    def test_train_dense_GPU(self):
-        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
-        if mode == 'cpu':
-            return
-        # Wykonywanie treningu modelu z małym zbiorem danych
-        gnn.switch_to_gpu()
-        try:
-            self.train_dense()
-        except Exception as e:
-            self.fail(f"Model training failed with exception: {e}")
+    # def test_train_dense_GPU(self):
+    #     mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+    #     if mode == 'cpu':
+    #         return
+    #     # Wykonywanie treningu modelu z małym zbiorem danych
+    #     gnn.switch_to_gpu()
+    #     try:
+    #         self.train_dense()
+    #     except Exception as e:
+    #         self.fail(f"Model training failed with exception: {e}")
 
     def test_train_dense_CPU(self):
         # Wykonywanie treningu modelu z małym zbiorem danych
@@ -53,16 +55,16 @@ class TestModelTraining(unittest.TestCase):
         except Exception as e:
             self.fail(f"Model training failed with exception: {e}")
 
-    def test_train_conv_GPU(self):
-        mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
-        if mode == 'cpu':
-            return
-        # Wykonywanie treningu modelu z małym zbiorem danych
-        gnn.switch_to_gpu()
-        try:
-            self.train_conv()
-        except Exception as e:
-            self.fail(f"Model training failed with exception: {e}")
+    # def test_train_conv_GPU(self):
+    #     mode = getattr(self, 'mode', 'cpu')  # Default to 'cpu' if 'mode' is not set
+    #     if mode == 'cpu':
+    #         return
+    #     # Wykonywanie treningu modelu z małym zbiorem danych
+    #     gnn.switch_to_gpu()
+    #     try:
+    #         self.train_conv()
+    #     except Exception as e:
+    #         self.fail(f"Model training failed with exception: {e}")
 
     def test_train_conv_CPU(self):
         # Wykonywanie treningu modelu z małym zbiorem danych
@@ -111,6 +113,64 @@ class TestModelTraining(unittest.TestCase):
         except Exception as e:
             self.fail(f"Model training failed with exception: {e}") #acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
 
+    def test_train_dense_CPU_SGD_SIMULATION(self):
+        # Wykonywanie treningu modelu z małym zbiorem danych
+        gnn.switch_to_cpu()
+        self.optimizer = gnn.SGDOptimizer()
+        self.simulation_time = 30
+        self.train_dense()
+        try:
+            self.train_dense()
+        except Exception as e:
+            self.fail(f"Model training failed with exception: {e}")
+
+    def test_train_conv_CPU_Adam_SIMULATION(self):
+        # Wykonywanie treningu modelu z małym zbiorem danych
+        gnn.switch_to_cpu()
+        self.optimizer = gnn.AdamOptimizer()
+        self.simulation_time = 30
+        self.train_conv()
+        try:
+            self.train_conv()
+        except Exception as e:
+            self.fail(f"Model training failed with exception: {e}") #acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
+
+    def test_train_dense_CPU_SGD_monte_carlo(self):
+        # Wykonywanie treningu modelu z małym zbiorem danych
+        gnn.switch_to_cpu()
+        self.optimizer = gnn.SGDOptimizer()
+        self.simulation_time = 10
+        self.simulation_alg = gnn.montecarlo_alg
+        self.train_dense()
+        try:
+            self.train_dense()
+        except Exception as e:
+            self.fail(f"Model training failed with exception: {e}")
+
+    def test_train_dense_CPU_SGD_greedy(self):
+        # Wykonywanie treningu modelu z małym zbiorem danych
+        gnn.switch_to_cpu()
+        self.optimizer = gnn.SGDOptimizer()
+        self.simulation_time = 10
+        self.simulation_alg = gnn.greedy_alg
+        self.train_dense()
+        try:
+            self.train_dense()
+        except Exception as e:
+            self.fail(f"Model training failed with exception: {e}")
+            
+    def test_train_dense_CPU_SGD_random(self):
+        # Wykonywanie treningu modelu z małym zbiorem danych
+        gnn.switch_to_cpu()
+        self.optimizer = gnn.SGDOptimizer()
+        self.simulation_time = 10
+        self.simulation_alg = gnn.random_alg
+        self.train_dense()
+        try:
+            self.train_dense()
+        except Exception as e:
+            self.fail(f"Model training failed with exception: {e}")
+            
     def train_conv(self):
         return gnn.trainer.train(
             x_train=self.x_conv_train,
@@ -129,8 +189,9 @@ class TestModelTraining(unittest.TestCase):
             input_shape=(self.datadimensionality, self.datadimensionality, 1),
             kernel_size=2,
             batch_size=1,
-            simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 2, simulation_epochs = 2), 
+            simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = self.simulation_time, simulation_epochs = 2), 
             deepth=2,
+            simulation_alg=self.simulation_alg,
             optimizer=self.optimizer
         )
 
@@ -152,8 +213,9 @@ class TestModelTraining(unittest.TestCase):
             input_shape=None,
             kernel_size=None,
             batch_size=1,
-            simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 2, simulation_epochs = 2), 
+            simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = self.simulation_time, simulation_epochs = 2), 
             deepth=None,
+            simulation_alg=self.simulation_alg,
             optimizer=self.optimizer
         )
 

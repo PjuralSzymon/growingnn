@@ -2,10 +2,13 @@ import math
 import sys
 from enum import Enum
 import json
+import threading
+import os
+import time
 from .painter import *
 from .config import *
 from .optimizers import *
-
+from .quaziIdentity import *
 
 def switch_to_gpu():
     global np, IS_CUPY, correlate, convolve
@@ -268,6 +271,7 @@ class Layer:
         self.neurons = neurons
         self.act_fun = act_fun
         self.is_ending = False
+        self.is_starting = False
         self.input_layers_ids = []
         self.output_layers_ids = []
         self.f_input = [] # forwarind input
@@ -276,6 +280,7 @@ class Layer:
         self.optimizer = _optimizer
         self.optimizer_W = OptimizerFactory.copy(self.optimizer)
         self.optimizer_B = OptimizerFactory.copy(self.optimizer)
+        self.connections = {}
         if layer_type == Layer_Type.EYE:
             self.W = np.asarray(eye_stretch(neurons, input_size))
             self.B = np.asarray(np.zeros((neurons, 1)))
@@ -285,6 +290,17 @@ class Layer:
         else:
             self.W = np.asarray(np.random.randn(neurons, input_size))
             self.B = np.asarray(np.random.randn(neurons, 1))
+    
+    def set_as_ending(self):
+        self.is_ending = True
+        #self.done_event = threading.Event()
+    
+    def set_as_starting(self):
+        self.is_starting = True
+        #self.done_event = threading.Event()
+        
+    def get_output_size(self):
+        return self.neurons
     
     def connect_input(self, layer_id):
         if layer_id == self.id: 
@@ -316,76 +332,101 @@ class Layer:
             self.input_layers_ids = []
             self.output_layers_ids = []
 
+    @staticmethod
+    @jit(nopython=True)
+    def update_weights_shape(W, input_size):
+        current_weight_size = W.shape[1]
+        if current_weight_size < input_size:
+            # Dodawanie brakujących kolumn z zerami
+            extra_columns = input_size - current_weight_size
+            zero_padding = np.zeros((W.shape[0], extra_columns))
+            # Zamiast np.hstack używamy manualnej konkatenacji
+            W = np.concatenate((W, zero_padding), axis=1)
+        elif current_weight_size > input_size:
+            # Usuwanie niepotrzebnych kolumn
+            W = W[:, :input_size]
+        return W
+    
+    def should_thread_forward(self):
+        if threading.active_count() >= MAX_THREADS:
+            return False
+        if len(self.f_input) + 1 < len(self.input_layers_ids): 
+            return False
+        return True
+    
     def forward_prop(self, X, deepth = 0):
         self.f_input.append(X)
         if len(self.f_input) < len(self.input_layers_ids): 
             return None
-
-        self.I = mean_n(self.f_input)
-        # print("self.I: ", type(self.I))
-        # print("self.W: ", type(self.W))
-        # print("self.B: ", type(self.B))
-        #self.Z = np.dot(self.W, self.I) + self.B
-        self.Z = Layer.calcuale_Z(self.W, self.I, self.B)
+        input_list = []
+        for layer_input in self.f_input:
+            input_list.append(layer_input)  # Zbiera dane wejściowe
+        self.I = np.vstack(input_list)
+        self.W = Layer.update_weights_shape(self.W, self.I.shape[0])
+        self.Z = np.dot(self.W, self.I)
         self.A = self.act_fun.exe(self.Z)
-        # print("self.Z: ", type(self.Z))
-        # print("self.A: ", type(self.A))
-        result = None
-        if self.is_ending:
-            result = self.A
-        else:
-            for layer_id in self.output_layers_ids:
-                layer = self.model.get_layer(layer_id)
-                if type(layer) == Layer:
-                    new_input = Layer.Reshape(self.A.copy(), layer.input_size, self.get_reshsper(self.A.shape[0], layer.input_size))
-                r = self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
-                if not r is None: result = r        
-                
+
+        for layer_id in self.output_layers_ids:
+            layer = self.model.get_layer(layer_id)
+            if type(layer) == Layer:
+                new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
+
+            #TODO: Check if creating a thread makes sense
+            #TODO: new_input CAN BE SEND BEFORE ASSIGMENT WHY ?
+            if layer.should_thread_forward():
+                thread = threading.Thread(
+                    target=lambda: self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1),
+                )
+                thread.start()
+                self.model.forward_threads.append(thread)
+            else:
+                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
+                self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
         self.f_input = []
-        return result
 
 
+    def should_thread_backward(self):
+        if threading.active_count() >= MAX_THREADS:
+            return False
+        if len(self.b_input) + 1 < len(self.output_layers_ids): 
+            return False
+        return True
+    
     def back_prop(self,E,m,alpha):
+        if E.shape[0] <=0:
+            raise ValueError("Error with 0 shape can't be backpropagated E.shape:", E.shape)
         m = 1.0
-        E = Layer.Reshape(E, self.neurons, self.get_reshsper(E.shape[0], self.neurons))
+        E = Reshape(E, self.neurons, get_reshsper(E.shape[0], self.neurons))
         self.b_input.append(E)
         if len(self.b_input) < len(self.output_layers_ids): return None
         self.E =  clip(mean_n(self.b_input), -error_clip_range, error_clip_range)
         dZ = self.E * self.act_fun.der(self.Z)
-        #self.dW = 1 / m * dZ @ self.I.T
-        #self.dB = 1 / m * np.reshape(np.sum(dZ, 1), self.B.shape)
         self.dW = Layer.calcuale_dW(m, dZ, self.I)
         self.dB = Layer.calcuale_dB(m, dZ, self.B)
         self.E = self.W.T @ dZ
+        before_iteration = 0
         for layer_id in self.input_layers_ids:
-            self.model.get_layer(layer_id).back_prop(self.E, m, alpha)
+            neurons = self.input_size
+            E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
+            before_iteration += neurons
+            layer = self.model.get_layer(layer_id)
+            if layer.should_thread_backward():
+                thread = threading.Thread(
+                    target=lambda: layer.back_prop(E_slice.copy(), m, alpha),
+                )
+                thread.start()
+                self.model.bacward_threads.append(thread)
+            else:
+                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
+                layer.back_prop(E_slice, m, alpha)
         self.update_params(alpha)
         self.b_input = []
+        # if self.is_starting:
+        #     self.done_event.set()
 
-#     def update_params(self, weight_grads, bias_grads):
-#         self.weights = self.optimizer.update(self.weights, weight_grads)
-#         self.biases = self.optimizer.update(self.biases, bias_grads)
-    
     def update_params(self, alpha):
         self.W = self.optimizer_W.update(self.W, self.dW, alpha)
         self.B = self.optimizer_B.update(self.B, self.dB, alpha)
-        # self.W = Layer.calcuale_updateW(self.W, alpha, self.dW)
-        # self.B = Layer.calcuale_updateW(self.B, alpha, self.dB)
-        # self.W = clip(self.W, -weights_clip_range, weights_clip_range)
-        # self.B = clip(self.B, -weights_clip_range, weights_clip_range)
-        # if np.any(np.isnan(self.W)):
-        #     self.W = np.nan_to_num(self.W, nan = np.nanmean(self.W))
-        # if np.any(np.isnan(self.B)):
-        #     self.B = np.nan_to_num(self.B, nan = np.nanmean(self.B))
-        # if np.any(np.isinf(self.W)):
-        #     print(self.id, "W inf discovered")
-        #     self.W[self.W == -np.inf] = -1.0
-        #     self.W[self.W == np.inf] = 1.0
-        # if np.any(np.isinf(self.B)):
-        #     print(self.id, "B inf discovered")
-        #     self.B[self.B == -np.inf] = -1.0
-        #     self.B[self.B == np.inf] = 1.0
-
 
     @staticmethod
     @jit(nopython=True)
@@ -396,9 +437,7 @@ class Layer:
     @jit(nopython=True)
     def calcuale_dW(m, dZ, I):
         return 1 / m * dZ @ I.T
-    
-#    @staticmethod
-#    @jit(nopython=True)
+
     def calcuale_dB(m, dZ, B):
         return 1 / m * np.reshape(np.sum(dZ, 1), B.shape)
     
@@ -407,16 +446,6 @@ class Layer:
     def calcuale_updateW(W, alpha, dw):
         return W - alpha * dw
     
-    def get_reshsper(self, size_from, size_to):
-        if not (size_from, size_to) in self.reshspers.keys():
-            self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
-        return self.reshspers[(size_from, size_to)]
-    
-    def Reshape(x, output_size, resharper):
-        x_reshaped = np.zeros((output_size, x.shape[1]))
-        for i in range(0, x.shape[1]):
-            x_reshaped[:, i] = np.dot(x[:, i], resharper)
-        return x_reshaped
 
     def get_all_childrens_connections(self, deepth = 0):
         conn = []
@@ -441,7 +470,10 @@ class Layer:
         
     def deepcopy(self):
         copy = Layer(self.id, None, self.input_size, self.neurons, self.act_fun, Layer_Type.RANDOM, self.optimizer.getDense())
-        copy.is_ending = self.is_ending
+        if self.is_ending:
+            copy.set_as_ending()
+        if self.is_starting:
+            copy.set_as_starting()
         copy.input_layers_ids = self.input_layers_ids.copy()
         copy.output_layers_ids = self.output_layers_ids.copy()
         copy.f_input = self.f_input.copy()
@@ -472,17 +504,21 @@ class Model:
         self.input_layers = []#Layer(0, self, input_size, hidden_size, self.activation_fun)
         self.optimizer = _optimizer
         self.output_layer = Layer(1, self, hidden_size, output_size, Activations.SoftMax, Layer_Type.RANDOM, self.optimizer.getDense())
+        self.output_layer.set_as_ending()
         for i in range(0, input_paths):
             layer_id = "init_"+str(i)
-            self.input_layers.append(Layer(layer_id, self, input_size, hidden_size, self.activation_fun, Layer_Type.RANDOM, self.optimizer.getDense()))
+            layer = Layer(layer_id, self, input_size, hidden_size, self.activation_fun, Layer_Type.RANDOM, self.optimizer.getDense())
+            layer.set_as_starting()
+            self.input_layers.append(layer)
             self.add_connection(layer_id, self.output_layer.id)
-        self.output_layer.is_ending = True
         if input_paths > 1: self.add_sequential_output_Layer()
         # in testing:
         self.convolution = False
         self.input_shape = None
         self.kernel_size = None
         self.depth = None
+        self.forward_threads = []
+        self.bacward_threads = []
         
 
     def set_convolution_mode(self, input_shape, kernel_size, depth):
@@ -499,19 +535,11 @@ class Model:
                 self.get_layer(output_layer_id).disconnect(self.input_layers[i].id)
                 self.input_layers[i] = Conv(layer_id, self, self.input_shape, self.kernel_size, self.depth, self.activation_fun, self.optimizer.getConv())
                 self.add_connection(layer_id, output_layer_id)
-        #print("self.input_layer: ", self.input_layers[0].output_shape)
-        #print("self.input_layer: ", self.input_layers[0].output_flatten)
-        #print("hidden_size: ", self.hidden_size)
-
-
 
     def add_res_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
-        if type(layer_from) == Conv:
-            input_size = layer_from.output_flatten
-        elif type(layer_from) == Layer:
-            input_size = layer_from.neurons
+        input_size = layer_from.get_output_size()
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
@@ -607,28 +635,42 @@ class Model:
     def get_predictions(A2):
         return argmax(A2, 0)
 
-    def get_loss(self, x, y):
-        A = self.forward_prop(x)
-        return self.loss_function.exe(one_hot(y) , A)
-    
     def get_accuracy(predictions, Y):
         if predictions.shape != Y.shape:
             sys.exit("ERROR, shape of predictions is diffrent than one_hot_Y: " + str(predictions.shape) + " != " + str(Y.shape))
-        #test
-        #for i in range(0, len(Y)):
-        #    print("predicted: ", predictions[i], " real: ", Y[i])
         return np.sum(predictions == Y) / Y.size
 
     def forward_prop(self, input):
         if not isinstance(input, np.ndarray):
             input = np.array(input)
         #print("len(self.input_layers): ", len(self.input_layers))
+        self.output_layer.A = None
+        self.output_layer.set_as_ending()
         if len(self.input_layers) == 1:
-            return self.input_layers[0].forward_prop(input, 0)
-        result = None 
+            self.input_layers[0].forward_prop(input, 0)
+        else:
+            for i in range(0, len(self.input_layers)):
+                self.input_layers[i].forward_prop(input[i], 0)
+        
+        #self.output_layer.done_event.wait()
+        for thread in self.forward_threads:
+            thread.join()
+        self.forward_threads.clear()
+        if self.output_layer.A is None:
+            raise ValueError("After forward prop A on output layer is None")
+        return self.output_layer.A
+        #return result
+        
+    #def back_prop(self,
+    def back_prop(self,E,m,alpha):
         for i in range(0, len(self.input_layers)):
-            result = self.input_layers[i].forward_prop(input[i], 0)
-        return result
+            self.input_layers[i].set_as_starting()
+        self.output_layer.back_prop(E, m, alpha)   
+        # for i in range(0, len(self.input_layers)):
+        #     self.input_layers[i].done_event.wait()
+        for thread in self.bacward_threads:
+            thread.join()
+        self.bacward_threads.clear()
     
     def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True):
         if not isinstance(X, np.ndarray): X = np.array(X)
@@ -652,19 +694,25 @@ class Model:
         for i in range(iterations + 1):
             current_alpha = lr_scheduler.alpha_scheduler(i, iterations) #alpha * Model.alpha_scheduler(i, iterations)
             loss = 0
+            predictions = []  
+            expectations = []
             for x_indx_start in range(0, X.shape[index_axis], self.batch_size): #lwn(x)
                 batch_indexes = indexes[x_indx_start:(x_indx_start + self.batch_size)]
                 A = self.forward_prop(np.take(X, batch_indexes, index_axis))
                 E = self.loss_function.der(np.take(one_hot_Y, batch_indexes, 1) , A)
-                self.output_layer.back_prop(E, self.batch_size, current_alpha)                
+                self.back_prop(E, self.batch_size, current_alpha)
                 loss += self.loss_function.exe(np.take(one_hot_Y, batch_indexes, 1) , A)
+                predictions.append(A)
+                expectations.append(np.take(Y, batch_indexes, 0))
             random.shuffle(indexes)
-            acc = Model.get_accuracy(Model.get_predictions(self.forward_prop(X)),Y)
+           
+            acc = Model.get_accuracy(Model.get_predictions(np.concatenate(predictions, axis=1)), np.concatenate(expectations, axis=0))
             history.append('accuracy', acc)
             history.append('loss', loss)
             if i % 1 == 0 and quiet==False:
-                print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)))
-        A = self.forward_prop(X)
+                print("Epoch: "+ str(i) + " Accuracy: " + str(round(float(acc),3))+ " loss: " + str(round(float(loss),3)) + " lr: " + str(round(float(current_alpha), 3)) +  " threads: " + str(threading.active_count()))
+        #TODO: this forward seems useless
+        #A = self.forward_prop(X)
         return history.get_last('accuracy'), history
 
     def evaluate(self, x, y):
@@ -753,6 +801,7 @@ class Conv(Layer):
         self.model = _model
         self.act_fun = act_fun
         self.is_ending = False
+        self.is_starting = False
         self.input_layers_ids = []
         self.output_layers_ids = []
         self.f_input = [] # forwarind input
@@ -770,6 +819,9 @@ class Conv(Layer):
         self.biases = np.array(numpy.random.randn(*self.output_shape) - 0.5)
         self.optimizer = _optimizer
 
+    def get_output_size(self):
+        return self.output_flatten
+    
     def get_reshsper(self, size_from, size_to):
         if not (size_from, size_to) in self.reshspers.keys():
             self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
@@ -791,21 +843,27 @@ class Conv(Layer):
                         self.Z[img_id,:,:,i] += correlate2d(self.I[img_id,:,:,j], self.kernels[i,j], "valid") 
                 self.Z[img_id,:,:,i] += self.biases[:,:,i]
         self.A = self.act_fun.exe(self.Z)
-        result = None
         for layer_id in self.output_layers_ids:
             layer = self.model.get_layer(layer_id)
             if type(layer) == Conv:
                 new_input = Resize(self.A.copy(), layer.input_shape)
             elif type(layer) == Layer:
-                new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, self.get_reshsper(self.output_flatten, layer.input_size))
-            r = layer.forward_prop(new_input, deepth + 1)
-            if not r is None: result = r
+                new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, get_reshsper(self.output_flatten, layer.input_size))         
+            
+            if layer.should_thread_forward():
+                thread = threading.Thread(
+                    target=lambda: layer.forward_prop(new_input.copy(), deepth + 1),
+                )
+                thread.start()
+                self.model.forward_threads.append(thread)
+            else:
+                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
+                layer.forward_prop(new_input, deepth + 1)
         self.f_input = []
-        return result
 
     def back_prop(self, E, m, alpha):
         if len(E.shape) <= 2:
-            E = Reshape_back_prop(E, self.output_shape, self.get_reshsper(E[:, 0].shape[0], self.output_flatten))
+            E = Reshape_back_prop(E, self.output_shape, get_reshsper(E[:, 0].shape[0], self.output_flatten))
         else:
             E = Resize(E, self.output_shape)
         self.b_input.append(E)
@@ -831,31 +889,30 @@ class Conv(Layer):
         self.input_gradient[img_id,:,:,j] /= self.I.shape[0]
         self.error /= self.I.shape[0]
         for layer_id in self.input_layers_ids:
-            self.model.get_layer(layer_id).back_prop(self.input_gradient, m, alpha)
+            layer = self.model.get_layer(layer_id)
+            if layer.should_thread_backward():
+                thread = threading.Thread(
+                    target=lambda: layer.back_prop(self.input_gradient.copy(), m, alpha),
+                )
+                thread.start()
+                self.model.bacward_threads.append(thread)
+            else:
+                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
+                layer.back_prop(self.input_gradient, m, alpha)
         self.update_params(alpha)
         self.b_input = []
-
+        #if self.is_starting:
+        #    self.done_event.set()
+            
     def update_params(self, alpha):
         self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)
-        # self.kernels = self.kernels - alpha * self.kernels_gradient
-        # self.biases = self.biases - alpha * self.error
-        # self.kernels = clip(self.kernels, -weights_clip_range, weights_clip_range)
-        # self.biases = clip(self.biases, -weights_clip_range, weights_clip_range)
-        # if np.any(np.isnan(self.kernels)):
-        #     self.kernels = np.nan_to_num(self.kernels, nan = np.nanmean(self.kernels))
-        # if np.any(np.isnan(self.biases)):
-        #     self.biases = np.nan_to_num(self.biases, nan = np.nanmean(self.biases))
-        # if np.any(np.isinf(self.kernels)):
-        #     self.kernels[self.kernels == -np.inf] = -1.0
-        #     self.kernels[self.kernels == np.inf] = 1.0
-        # if np.any(np.isinf(self.biases)):
-        #     self.biases[self.biases == -np.inf] = -1.0
-        #     self.biases[self.biases == np.inf] = 1.0
             
-    
     def deepcopy(self):
         copy = Conv(self.id, None, self.input_shape, self.kernel_size, self.depth, self.act_fun, self.optimizer.getConv())
-        copy.is_ending = self.is_ending
+        if self.is_ending:
+            copy.set_as_ending()
+        if self.is_starting:
+            copy.set_as_starting()
         copy.input_layers_ids = self.input_layers_ids.copy()
         copy.output_layers_ids = self.output_layers_ids.copy()
         copy.f_input = self.f_input.copy()
@@ -880,24 +937,6 @@ class Conv(Layer):
     def __str__(self):
         return "[<layer: "+ str(self.id)+ " id: " + str(id(self)) + " model id: "+ str(id(self.model))+" in conn: "+ str(len(self.input_layers_ids)) +" out conn: "+ str(len(self.output_layers_ids))+ ">]"
 
-    
-def Reshape_forward_prop(x, output_size, resharper):
-    x_reshaped = np.zeros((output_size, x.shape[0]))
-    for i in range(0, x.shape[0]):
-        flatten_size = x[i].shape[0] * x[i].shape[1] * x[i].shape[2]
-        flatten = np.reshape(x[i], flatten_size)
-        identity = resharper
-        x_reshaped[:, i] = flatten.dot(identity)
-    return x_reshaped
-
-def Reshape_back_prop(E, input_shape, resharper):
-    E_reshaped = np.zeros((E.shape[1], input_shape[0], input_shape[1], input_shape[2]))
-    for i in range(0, E.shape[1]):
-        needed_shape = input_shape[0] * input_shape[1] * input_shape[2]
-        identity = resharper
-        x_reshaped = E[:, i].dot(identity)
-        E_reshaped[i, :, :, :] = np.reshape(x_reshaped, input_shape)
-    return E_reshaped
     
 def Resize(x, shape):
     if x[0].shape == shape:
@@ -957,6 +996,7 @@ class Storage:
         dict_main['id'] = str(layer.id)
         dict_main['act_fun'] = str(layer.act_fun.__name__)
         dict_main['is_ending'] = layer.is_ending
+        dict_main['is_starting'] = layer.is_starting
         dict_main['input_layers_ids'] = [str(i) for i in layer.input_layers_ids] 
         dict_main['output_layers_ids'] = [str(i) for i in layer.output_layers_ids]
         dict_main['optimizer'] = OptimizerFactory.ToDict(layer.optimizer)
@@ -1034,6 +1074,7 @@ class Storage:
         layer_id = str(layer_dict['id'])
         act_fun_name = layer_dict['act_fun']
         is_ending = layer_dict['is_ending']
+        is_starting = layer_dict['is_starting']
         input_layers_ids = layer_dict['input_layers_ids']
         output_layers_ids = layer_dict['output_layers_ids']
         reshapers = layer_dict['reshapers']
@@ -1054,7 +1095,8 @@ class Storage:
             neurons = layer_dict['neurons']
             layer = Layer(layer_id, model, input_size, neurons, act_fun, Layer_Type.RANDOM,  optimizer.getDense())
         
-        layer.is_ending = is_ending
+        if is_ending: layer.set_as_ending()
+        if is_starting : layer.set_as_starting()
         layer.input_layers_ids = input_layers_ids
         layer.output_layers_ids = output_layers_ids
         reshapers_dict = {}
