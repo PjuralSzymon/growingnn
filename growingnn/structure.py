@@ -288,8 +288,8 @@ class Layer:
             self.W = np.asarray(np.zeros((neurons, input_size)))
             self.B = np.asarray(np.zeros((neurons, 1)))
         else:
-            self.W = np.asarray(np.random.randn(neurons, input_size))
-            self.B = np.asarray(np.random.randn(neurons, 1))
+            self.W = np.clip(np.asarray(np.random.randn(neurons, input_size)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
+            self.B = np.clip(np.asarray(np.random.randn(neurons, 1)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
     
     def set_as_ending(self):
         self.is_ending = True
@@ -540,6 +540,7 @@ class Model:
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
         input_size = layer_from.get_output_size()
+        input_size = min(input_size, self.hidden_size)
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
@@ -554,6 +555,7 @@ class Model:
             input_size = layer_from.output_flatten
         elif type(layer_from) == Layer:
             input_size = layer_from.neurons
+        input_size = min(input_size, self.hidden_size)
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
@@ -816,8 +818,8 @@ class Conv(Layer):
         self.output_flatten = int(self.output_shape[0] * self.output_shape[1] * self.output_shape[2])
         self.kernels_shape = (int(self.depth), int(self.input_depth), int(kernel_size), int(kernel_size)) 
         self.reshspers = {}
-        self.kernels = np.array(numpy.random.randn(*self.kernels_shape) - 0.5)
-        self.biases = np.array(numpy.random.randn(*self.output_shape) - 0.5)
+        self.kernels =  np.clip(np.array(numpy.random.randn(*self.kernels_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
+        self.biases = np.clip(np.array(numpy.random.randn(*self.output_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
         self.optimizer = _optimizer
 
     def get_output_size(self):
