@@ -1,8 +1,10 @@
 from numba import jit
 import numpy as np
 
+from growingnn.config import WEIGHTS_CLIP_RANGE
+
 class Optimizer:
-    def __init__(self, weights_clip_range=1.0):
+    def __init__(self, weights_clip_range=WEIGHTS_CLIP_RANGE):
         self.weights_clip_range = weights_clip_range
         self.updateType("SGD", "Dense")
 
@@ -11,8 +13,8 @@ class Optimizer:
         self.layerType = _layerType
         pass
 
-    @staticmethod
-    @jit(nopython=True)
+    #@staticmethod
+    #@jit(nopython=True)
     def clip_and_fix(params, clip_range):
         params = np.clip(params, -clip_range, clip_range)
         params = np.nan_to_num(params, nan=np.nanmean(params))
@@ -35,7 +37,7 @@ class Optimizer:
 
 class SGDOptimizer(Optimizer):
 
-    def __init__(self, weights_clip_range=1.0):
+    def __init__(self, weights_clip_range=WEIGHTS_CLIP_RANGE):
         super().__init__(weights_clip_range)
         self.updateType("SGD", "Dense")
         
@@ -56,7 +58,7 @@ class SGDOptimizer(Optimizer):
     
     def update(self, params, grads, alpha):
         return SGDOptimizer.clip_and_fix(SGDOptimizer.sgd_update(params, grads, alpha), 
-                                         self.weights_clip_range)
+                                         WEIGHTS_CLIP_RANGE)
     
     def getDense(self):
         return self
@@ -65,7 +67,7 @@ class SGDOptimizer(Optimizer):
         return ConvSGDOptimizer(self.weights_clip_range)
 
 class AdamOptimizer(Optimizer):
-    def __init__(self, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=1.0):
+    def __init__(self, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=WEIGHTS_CLIP_RANGE):
         super().__init__(weights_clip_range)
         self.beta1 = beta1
         self.beta2 = beta2
@@ -120,7 +122,7 @@ class AdamOptimizer(Optimizer):
     
 class ConvSGDOptimizer(Optimizer):
 
-    def __init__(self, weights_clip_range=1.0):
+    def __init__(self, weights_clip_range=WEIGHTS_CLIP_RANGE):
         super().__init__(weights_clip_range)
         self.updateType("SGD", "Conv")
 
@@ -154,7 +156,7 @@ class ConvSGDOptimizer(Optimizer):
         return self
     
 class ConvAdamOptimizer(Optimizer):
-    def __init__(self, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=1.0):
+    def __init__(self, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=WEIGHTS_CLIP_RANGE):
         super().__init__(weights_clip_range)
         self.beta1 = beta1
         self.beta2 = beta2
@@ -227,7 +229,7 @@ class OptimizerFactory:
     SGD = "SGD"
     Adam = "Adam"
 
-    def __init__(self, weights_clip_range=1.0, **kwargs):
+    def __init__(self, weights_clip_range=WEIGHTS_CLIP_RANGE, **kwargs):
         self.weights_clip_range = weights_clip_range
         self.kwargs = kwargs
 
