@@ -672,7 +672,7 @@ class Model:
             thread.join()
         self.bacward_threads.clear()
     
-    def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True):
+    def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, path="."):
         if not isinstance(X, np.ndarray): X = np.array(X)
         if not isinstance(Y, np.ndarray): Y = np.array(Y)
         if one_hot_needed: one_hot_Y = one_hot(Y)
@@ -705,6 +705,7 @@ class Model:
                 predictions.append(A)
                 expectations.append(np.take(Y, batch_indexes, 0))
             random.shuffle(indexes)
+            Storage.saveModel(self, path + "epoch_" + str(i) + "save.json")
            
             acc = Model.get_accuracy(Model.get_predictions(np.concatenate(predictions, axis=1)), np.concatenate(expectations, axis=0))
             history.append('accuracy', acc)

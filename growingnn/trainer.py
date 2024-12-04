@@ -33,7 +33,7 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
     sim_x, sim_y = sim_set_generator(x_train, y_train, simulation_set_size)
     draw(M, model_path+ 'cifar_init.html')
     for i in range(0,generations):
-        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, False, True)
+        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, False, True, model_path+"_gen_"+str(i))
         hist_detail.merge(new_hist)
         hist_detail.append('iteration_acc_train', new_acc)
         hist_detail.append('iteration_acc_test', M.evaluate(x_test, y_test))
