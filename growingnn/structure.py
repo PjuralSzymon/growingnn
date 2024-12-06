@@ -486,7 +486,9 @@ class Layer:
         return "W: "+str(np.mean(self.W))+ " B: "+ str(np.mean(self.B))
     
     def get_paint_label(self):
-            return str(self.id) + "[" +str(self.input_size)+","+str(self.neurons)+"]"
+            # self.W.shape[1] -> connections/input size
+            # self.W.shape[0] -> neurons/outpu size
+            return str(self.id) + "[" +str(self.W.shape[1])+","+str(self.W.shape[0])+"]"
 
     def __str__(self):
         return "[<layer: "+ str(self.id)+ " id: " + str(id(self)) + " model id: "+ str(id(self.model))+" in conn: "+ str(len(self.input_layers_ids)) +" out conn: "+ str(len(self.output_layers_ids))+ ">]" 
@@ -540,7 +542,7 @@ class Model:
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
         input_size = layer_from.get_output_size()
-        input_size = min(input_size, self.hidden_size)
+        #input_size = min(input_size, self.hidden_size)
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
@@ -555,7 +557,7 @@ class Model:
             input_size = layer_from.output_flatten
         elif type(layer_from) == Layer:
             input_size = layer_from.neurons
-        input_size = min(input_size, self.hidden_size)
+        #input_size = min(input_size, self.hidden_size)
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
         self.add_connection(layer_from_id, new_layer.id)
