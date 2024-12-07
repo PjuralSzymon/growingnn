@@ -288,6 +288,8 @@ class Layer:
             self.W = np.asarray(np.zeros((neurons, input_size)))
             self.B = np.asarray(np.zeros((neurons, 1)))
         else:
+            #self.W = np.asarray(np.random.randn(neurons, input_size))
+            #self.B = np.asarray(np.random.randn(neurons, 1))
             #self.W = np.clip(np.asarray(np.random.randn(neurons, input_size)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
             #self.B = np.clip(np.asarray(np.random.randn(neurons, 1)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
             self.W = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=(neurons, input_size))  # Extremely large values
@@ -712,6 +714,7 @@ class Model:
                 expectations.append(np.take(Y, batch_indexes, 0))
             random.shuffle(indexes)
             Storage.saveModel(self, path + "epoch_" + str(i) + "save.json")
+            draw(self, path + "epoch_" + str(i) +".html")
            
             acc = Model.get_accuracy(Model.get_predictions(np.concatenate(predictions, axis=1)), np.concatenate(expectations, axis=0))
             history.append('accuracy', acc)
@@ -822,6 +825,9 @@ class Conv(Layer):
         self.output_flatten = int(self.output_shape[0] * self.output_shape[1] * self.output_shape[2])
         self.kernels_shape = (int(self.depth), int(self.input_depth), int(kernel_size), int(kernel_size)) 
         self.reshspers = {}
+        #self.kernels =  np.array(numpy.random.randn(*self.kernels_shape) - 0.5)
+        #self.biases = np.array(numpy.random.randn(*self.output_shape) - 0.5)
+        
         #self.kernels =  np.clip(np.array(numpy.random.randn(*self.kernels_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
         #self.biases = np.clip(np.array(numpy.random.randn(*self.output_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
         
