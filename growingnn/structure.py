@@ -288,8 +288,10 @@ class Layer:
             self.W = np.asarray(np.zeros((neurons, input_size)))
             self.B = np.asarray(np.zeros((neurons, 1)))
         else:
-            self.W = np.clip(np.asarray(np.random.randn(neurons, input_size)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
-            self.B = np.clip(np.asarray(np.random.randn(neurons, 1)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
+            #self.W = np.clip(np.asarray(np.random.randn(neurons, input_size)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
+            #self.B = np.clip(np.asarray(np.random.randn(neurons, 1)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
+            self.W = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=(neurons, input_size))  # Extremely large values
+            self.B = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=(neurons, 1))  # Extremely large values
     
     def set_as_ending(self):
         self.is_ending = True
@@ -820,8 +822,12 @@ class Conv(Layer):
         self.output_flatten = int(self.output_shape[0] * self.output_shape[1] * self.output_shape[2])
         self.kernels_shape = (int(self.depth), int(self.input_depth), int(kernel_size), int(kernel_size)) 
         self.reshspers = {}
-        self.kernels =  np.clip(np.array(numpy.random.randn(*self.kernels_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
-        self.biases = np.clip(np.array(numpy.random.randn(*self.output_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
+        #self.kernels =  np.clip(np.array(numpy.random.randn(*self.kernels_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
+        #self.biases = np.clip(np.array(numpy.random.randn(*self.output_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
+        
+        self.kernels = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=self.kernels_shape)  # Extremely large values
+        self.biases = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=self.output_shape)  # Extremely large values
+      
         self.optimizer = _optimizer
 
     def get_output_size(self):
