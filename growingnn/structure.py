@@ -288,13 +288,23 @@ class Layer:
             self.W = np.asarray(np.zeros((neurons, input_size)))
             self.B = np.asarray(np.zeros((neurons, 1)))
         else:
-            #self.W = np.asarray(np.random.randn(neurons, input_size))
-            #self.B = np.asarray(np.random.randn(neurons, 1))
-            #self.W = np.clip(np.asarray(np.random.randn(neurons, input_size)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
-            #self.B = np.clip(np.asarray(np.random.randn(neurons, 1)), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
-            self.W = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=(neurons, input_size))  # Extremely large values
-            self.B = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=(neurons, 1))  # Extremely large values
-    
+            if WEIGHT_DISTRIBUTION_MODE == DistributionMode.UNIFORM:
+                self.W = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=(neurons, input_size))
+                self.B = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=(neurons, 1))
+            elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.NORMAL:
+                self.W = np.random.normal(loc=0.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
+                self.B = np.random.normal(loc=0.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
+            elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.GAMMA:
+                # Using shape=2 and scale=WEIGHTS_CLIP_RANGE for Gamma distribution.
+                self.W = np.random.gamma(shape=2.0, scale=WEIGHTS_CLIP_RANGE, size=(neurons, input_size))
+                self.B = np.random.gamma(shape=2.0, scale=WEIGHTS_CLIP_RANGE, size=(neurons, 1))
+            elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.REVERSED_GAUSSIAN:
+                # Shifting the mean to negative, and controlling spread with WEIGHTS_CLIP_RANGE
+                self.W = get_reverse_normal_distribution(WEIGHTS_CLIP_RANGE/3, (neurons, input_size))
+                self.B = get_reverse_normal_distribution(WEIGHTS_CLIP_RANGE/3, (neurons, 1))
+            else:
+                raise ValueError(f"Unsupported distribution mode: {WEIGHT_DISTRIBUTION_MODE}")
+            
     def set_as_ending(self):
         self.is_ending = True
         #self.done_event = threading.Event()
@@ -825,16 +835,27 @@ class Conv(Layer):
         self.output_flatten = int(self.output_shape[0] * self.output_shape[1] * self.output_shape[2])
         self.kernels_shape = (int(self.depth), int(self.input_depth), int(kernel_size), int(kernel_size)) 
         self.reshspers = {}
-        #self.kernels =  np.array(numpy.random.randn(*self.kernels_shape) - 0.5)
-        #self.biases = np.array(numpy.random.randn(*self.output_shape) - 0.5)
-        
-        #self.kernels =  np.clip(np.array(numpy.random.randn(*self.kernels_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
-        #self.biases = np.clip(np.array(numpy.random.randn(*self.output_shape) - 0.5), -WEIGHTS_CLIP_RANGE, WEIGHTS_CLIP_RANGE)
-        
-        self.kernels = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=self.kernels_shape)  # Extremely large values
-        self.biases = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=self.output_shape)  # Extremely large values
-      
         self.optimizer = _optimizer
+        if WEIGHT_DISTRIBUTION_MODE == DistributionMode.UNIFORM:
+            # Uniform Distribution: Generate values in range (-1, 1) and shift by -0.5
+            self.kernels = np.array(np.random.uniform(low=-1.0, high=1.0, size=self.kernels_shape) - 0.5)
+            self.biases = np.array(np.random.uniform(low=-1.0, high=1.0, size=self.output_shape) - 0.5)
+        elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.NORMAL:
+            # Normal Distribution: Generate values from normal distribution and shift by -0.5
+            self.kernels = np.array(np.random.randn(*self.kernels_shape) - 0.5)
+            self.biases = np.array(np.random.randn(*self.output_shape) - 0.5)
+        elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.GAMMA:
+            # Gamma Distribution: Generate values from Gamma distribution and shift by -0.5
+            self.kernels = np.array(np.random.gamma(shape=2.0, scale=1.0, size=self.kernels_shape) - 0.5)
+            self.biases = np.array(np.random.gamma(shape=2.0, scale=1.0, size=self.output_shape) - 0.5)
+        elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.REVERSED_GAUSSIAN:
+            # Reversed Gaussian: Generate values from normal distribution, shift by -0.5, and reverse by multiplying by -1
+            self.kernels = np.array(-(np.random.randn(*self.kernels_shape) - 0.5))
+            self.biases = np.array(-(np.random.randn(*self.output_shape) - 0.5))
+        else:
+            raise ValueError(f"Unsupported distribution mode: {WEIGHT_DISTRIBUTION_MODE}")
+
+        
 
     def get_output_size(self):
         return self.output_flatten
@@ -866,6 +887,8 @@ class Conv(Layer):
                 new_input = Resize(self.A.copy(), layer.input_shape)
             elif type(layer) == Layer:
                 new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, get_reshsper(self.output_flatten, layer.input_size))         
+            else:
+                raise ValueError(f"Unsupported layer type: {type(layer)}")
             
             if layer.should_thread_forward():
                 thread = threading.Thread(
@@ -875,7 +898,7 @@ class Conv(Layer):
                 self.model.forward_threads.append(thread)
             else:
                 #print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
-                layer.forward_prop(new_input, deepth + 1)
+                layer.forward_prop(new_input.copy(), deepth + 1)
         self.f_input = []
 
     def back_prop(self, E, m, alpha):
