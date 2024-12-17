@@ -289,21 +289,22 @@ class Layer:
             self.B = np.asarray(np.zeros((neurons, 1)))
         else:
             if WEIGHT_DISTRIBUTION_MODE == DistributionMode.UNIFORM:
-                self.W = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=(neurons, input_size))
-                self.B = np.random.uniform(low=-WEIGHTS_CLIP_RANGE, high=WEIGHTS_CLIP_RANGE, size=(neurons, 1))
+                self.W = np.random.uniform(low=-WEIGHTS_CLIP_RANGE/3, high=WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
+                self.B = np.random.uniform(low=-WEIGHTS_CLIP_RANGE/3, high=WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
             elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.NORMAL:
                 self.W = np.random.normal(loc=0.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
                 self.B = np.random.normal(loc=0.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
             elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.GAMMA:
                 # Using shape=2 and scale=WEIGHTS_CLIP_RANGE for Gamma distribution.
-                self.W = np.random.gamma(shape=2.0, scale=WEIGHTS_CLIP_RANGE, size=(neurons, input_size))
-                self.B = np.random.gamma(shape=2.0, scale=WEIGHTS_CLIP_RANGE, size=(neurons, 1))
+                self.W = np.random.gamma(shape=2.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
+                self.B = np.random.gamma(shape=2.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
             elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.REVERSED_GAUSSIAN:
                 # Shifting the mean to negative, and controlling spread with WEIGHTS_CLIP_RANGE
                 self.W = get_reverse_normal_distribution(WEIGHTS_CLIP_RANGE/3, (neurons, input_size))
                 self.B = get_reverse_normal_distribution(WEIGHTS_CLIP_RANGE/3, (neurons, 1))
             else:
                 raise ValueError(f"Unsupported distribution mode: {WEIGHT_DISTRIBUTION_MODE}")
+            
             
     def set_as_ending(self):
         self.is_ending = True
@@ -842,16 +843,16 @@ class Conv(Layer):
             self.biases = np.array(np.random.uniform(low=-1.0, high=1.0, size=self.output_shape) - 0.5)
         elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.NORMAL:
             # Normal Distribution: Generate values from normal distribution and shift by -0.5
-            self.kernels = np.array(np.random.randn(*self.kernels_shape) - 0.5)
-            self.biases = np.array(np.random.randn(*self.output_shape) - 0.5)
+            self.kernels = np.array(np.random.normal(loc=0.0, scale=1/3, size=self.kernels_shape) - 0.5)
+            self.biases = np.array(np.random.normal(loc=0.0, scale=1/3, size=self.output_shape) - 0.5)
         elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.GAMMA:
             # Gamma Distribution: Generate values from Gamma distribution and shift by -0.5
             self.kernels = np.array(np.random.gamma(shape=2.0, scale=1.0, size=self.kernels_shape) - 0.5)
             self.biases = np.array(np.random.gamma(shape=2.0, scale=1.0, size=self.output_shape) - 0.5)
         elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.REVERSED_GAUSSIAN:
             # Reversed Gaussian: Generate values from normal distribution, shift by -0.5, and reverse by multiplying by -1
-            self.kernels = np.array(-(np.random.randn(*self.kernels_shape) - 0.5))
-            self.biases = np.array(-(np.random.randn(*self.output_shape) - 0.5))
+            self.kernels = np.array(get_reverse_normal_distribution(1/3, self.kernels_shape) - 0.5)
+            self.biases = np.array(get_reverse_normal_distribution(1/3, self.output_shape) - 0.5)
         else:
             raise ValueError(f"Unsupported distribution mode: {WEIGHT_DISTRIBUTION_MODE}")
 
