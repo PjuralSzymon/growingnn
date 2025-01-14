@@ -20,14 +20,14 @@ class Action:
         adding_layer_conv_seq_actions = Add_Seq_Conv_Layer.generate_all_actions(Model)
         adding_layer_conv_res_actions = Add_Res_Conv_Layer.generate_all_actions(Model)
         delete_layer_actions = Del_Layer.generate_all_actions(Model)
-        empty_action = Empty.generate_all_actions(Model)
+        #empty_action = Empty.generate_all_actions(Model)
         
         result += adding_layer_seq_actions
         result += adding_layer_res_actions
         result += adding_layer_conv_seq_actions
         result += adding_layer_conv_res_actions
         result += delete_layer_actions
-        result += empty_action
+        #result += empty_action
         return result
 
 class Add_Seq_Layer(Action):
