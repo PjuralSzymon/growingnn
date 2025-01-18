@@ -47,6 +47,7 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
             hist_detail.description += action_desc+"\n"
             action.execute(M)
         hist_detail.save(hist_path)
+        Storage.saveModel(M, model_path + "epoch_" + str(i) + "save.json")
         draw(M, model_path+'_graph_'+ str(hist_detail.last_img_id)+".html")
         hist_detail.last_img_id += 1
         hist_detail.draw_hist(model_path+"_history_detail", ".")

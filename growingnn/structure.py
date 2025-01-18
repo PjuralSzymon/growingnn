@@ -724,8 +724,8 @@ class Model:
                 predictions.append(A)
                 expectations.append(np.take(Y, batch_indexes, 0))
             random.shuffle(indexes)
-            Storage.saveModel(self, path + "epoch_" + str(i) + "save.json")
-            draw(self, path + "epoch_" + str(i) +".html")
+            #Storage.saveModel(self, path + "epoch_" + str(i) + "save.json")
+            #draw(self, path + "epoch_" + str(i) +".html")
            
             acc = Model.get_accuracy(Model.get_predictions(np.concatenate(predictions, axis=1)), np.concatenate(expectations, axis=0))
             history.append('accuracy', acc)
