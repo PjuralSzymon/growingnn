@@ -7,7 +7,7 @@ class DistributionMode(Enum):
     GAMMA = 'gamma'
     REVERSED_GAUSSIAN = 'reversed_gaussian'
     
-WEIGHT_DISTRIBUTION_MODE = DistributionMode.REVERSED_GAUSSIAN
+WEIGHT_DISTRIBUTION_MODE = DistributionMode.NORMAL
 error_clip_range = 600 # In back propagation we are clipping the error range to prevent exploding gradients
 WEIGHTS_CLIP_RANGE = 3 # After weight update we are clipping all weights to prevent exploding gradients
 weights_clip_range = 400 # After weight update we are clipping all weights to prevent exploding gradients

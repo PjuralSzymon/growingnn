@@ -369,10 +369,24 @@ class Layer:
             return False
         return True
     
-    def forward_prop(self, X, deepth = 0):
-        self.f_input.append(X)
-        if len(self.f_input) < len(self.input_layers_ids): 
-            return None
+    def append_to_f_input(self, X, sender_id):
+        if sender_id == -1:
+            self.f_input = [X]
+        else:
+            if sender_id not in self.input_layers_ids:
+                #return None
+                raise ValueError(f"Sender ID {sender_id} is not in the input layers IDs {self.input_layers_ids}")
+            while len(self.f_input) < len(self.input_layers_ids):
+                self.f_input.append(None)  # Uzupełniamy miejsce, jeśli f_input jest krótsze niż input_layers_ids
+            self.f_input[self.input_layers_ids.index(sender_id)] = X
+        
+    def forward_prop(self, X, sender_id, deepth = 0):
+        #self.f_input.append(X)
+        self.append_to_f_input(X, sender_id)
+        if any(x is None for x in self.f_input):
+                return None
+        #if len(self.f_input) < len(self.input_layers_ids): 
+        #    return None
         input_list = []
         for layer_input in self.f_input:
             input_list.append(layer_input)  # Zbiera dane wejściowe
@@ -390,13 +404,13 @@ class Layer:
             #TODO: new_input CAN BE SEND BEFORE ASSIGMENT WHY ?
             if layer.should_thread_forward():
                 thread = threading.Thread(
-                    target=lambda: self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1),
+                    target=lambda: self.model.get_layer(layer_id).forward_prop(new_input, self.id, deepth + 1),
                 )
                 thread.start()
                 self.model.forward_threads.append(thread)
             else:
                 #print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
-                self.model.get_layer(layer_id).forward_prop(new_input, deepth + 1)
+                self.model.get_layer(layer_id).forward_prop(new_input, self.id, deepth + 1)
         self.f_input = []
 
 
@@ -666,10 +680,10 @@ class Model:
         self.output_layer.A = None
         self.output_layer.set_as_ending()
         if len(self.input_layers) == 1:
-            self.input_layers[0].forward_prop(input, 0)
+            self.input_layers[0].forward_prop(input, -1,  0)
         else:
             for i in range(0, len(self.input_layers)):
-                self.input_layers[i].forward_prop(input[i], 0)
+                self.input_layers[i].forward_prop(input[i], -1,  0)
         
         #self.output_layer.done_event.wait()
         for thread in self.forward_threads:
@@ -866,10 +880,15 @@ class Conv(Layer):
             self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
         return self.reshspers[(size_from, size_to)]
 
-    def forward_prop(self, X, deepth = 0):
-        self.f_input.append(X)
-        if len(self.f_input) < len(self.input_layers_ids): 
-            return None
+    def forward_prop(self, X, sender_id, deepth = 0):
+        #self.f_input.append(X)
+        
+        self.append_to_f_input(X, sender_id)
+        if any(x is None for x in self.f_input):
+                return None
+        
+        #if len(self.f_input) < len(self.input_layers_ids): 
+        #    return None
         self.I = mean_n_conv(self.f_input, self.input_shape)
         self.Z = np.zeros((self.I.shape[0], self.output_shape[0], self.output_shape[1], self.output_shape[2]))
         for img_id in range(0, self.I.shape[0]):
@@ -893,13 +912,13 @@ class Conv(Layer):
             
             if layer.should_thread_forward():
                 thread = threading.Thread(
-                    target=lambda: layer.forward_prop(new_input.copy(), deepth + 1),
+                    target=lambda: layer.forward_prop(new_input.copy(), self.id, deepth + 1),
                 )
                 thread.start()
                 self.model.forward_threads.append(thread)
             else:
                 #print(f"No available threads, continuing in the current thread: {threading.current_thread().name}")
-                layer.forward_prop(new_input.copy(), deepth + 1)
+                layer.forward_prop(new_input.copy(), self.id, deepth + 1)
         self.f_input = []
 
     def back_prop(self, E, m, alpha):
