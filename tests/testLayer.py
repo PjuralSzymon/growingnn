@@ -57,8 +57,8 @@ class TestLayer(unittest.TestCase):
     def test_forward_prop(self):
         self.layer.input_layers_ids = [2, 3]
         self.layer.model = MagicMock()
-        self.layer.forward_prop(gnn.np.ones((10, 1)))
-        self.layer.forward_prop(gnn.np.ones((10, 1)))
+        self.layer.forward_prop(gnn.np.ones((10, 1)), -1)
+        self.layer.forward_prop(gnn.np.ones((10, 1)), -1)
         result2 = self.layer.A
         self.assertIsNotNone(result2)
         self.assertEqual(len(self.layer.f_input), 0)
@@ -70,7 +70,7 @@ class TestLayer(unittest.TestCase):
         self.layer.E = gnn.np.ones((5, 1))
         self.layer.b_input = [gnn.np.ones((5, 1)), gnn.np.ones((5, 1))]
 
-        self.layer.forward_prop(gnn.np.ones((10, 1)))
+        self.layer.forward_prop(gnn.np.ones((10, 1)), -1)
         self.layer.back_prop(gnn.np.ones((5, 1)), 1, 0.01)
 
         self.assertEqual(len(self.layer.b_input), 0)
