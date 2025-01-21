@@ -32,7 +32,7 @@ class Action:
 
 class Add_Seq_Layer(Action):
     def execute(self, Model):
-        Model.add_norm_layer(self.params[0], self.params[1])
+        Model.add_norm_layer(self.params[0], self.params[1], self.params[2])
     
     def can_be_infulenced(self, by_action):
         if type(by_action) is Del_Layer:
@@ -46,7 +46,7 @@ class Add_Seq_Layer(Action):
         actions = []
         for pair in pairs:
             if type(Model.get_layer(pair[1])) != Conv:
-                actions.append(Add_Seq_Layer(pair))
+                actions.append(Add_Seq_Layer([pair[0], pair[1], Layer_Type.EYE]))
         return actions
     
     def __str__(self):
@@ -82,12 +82,12 @@ class Add_Res_Layer(Action):
         for pair in pairs:
             if type(Model.get_layer(pair[1])) != Conv:
                 actions.append(Add_Res_Layer([pair[0], pair[1], Layer_Type.ZERO]))
-        # for pair in pairs:
-        #     if type(Model.get_layer(pair[1])) != Conv:
-        #         actions.append(Add_Res_Layer([pair[0], pair[1], Layer_Type.RANDOM]))
-        # for pair in pairs:
-        #     if type(Model.get_layer(pair[1])) != Conv:
-        #         actions.append(Add_Res_Layer([pair[0], pair[1], Layer_Type.EYE]))
+        for pair in pairs:
+            if type(Model.get_layer(pair[1])) != Conv:
+                actions.append(Add_Res_Layer([pair[0], pair[1], Layer_Type.RANDOM]))
+        for pair in pairs:
+            if type(Model.get_layer(pair[1])) != Conv:
+                actions.append(Add_Res_Layer([pair[0], pair[1], Layer_Type.EYE]))
         return actions
     
     def __str__(self):
