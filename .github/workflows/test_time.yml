@@ -1,4 +1,4 @@
-name: Python application
+name: Check algrotihm timing / optimization
 
 on:
   push:
