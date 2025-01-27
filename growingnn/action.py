@@ -1,4 +1,3 @@
-#import helpers
 from .structure import *
 import numpy as np
 import math
@@ -20,19 +19,20 @@ class Action:
         adding_layer_res_actions = Add_Res_Layer.generate_all_actions(Model)
         adding_layer_conv_seq_actions = Add_Seq_Conv_Layer.generate_all_actions(Model)
         adding_layer_conv_res_actions = Add_Res_Conv_Layer.generate_all_actions(Model)
-        #adding_layer_seq_output_action = Add_seq_output_layer.generate_all_actions(Model)
         delete_layer_actions = Del_Layer.generate_all_actions(Model)
-        #result += adding_layer_seq_output_action
+        #empty_action = Empty.generate_all_actions(Model)
+        
         result += adding_layer_seq_actions
         result += adding_layer_res_actions
         result += adding_layer_conv_seq_actions
         result += adding_layer_conv_res_actions
         result += delete_layer_actions
+        #result += empty_action
         return result
 
 class Add_Seq_Layer(Action):
     def execute(self, Model):
-        Model.add_norm_layer(self.params[0], self.params[1])
+        Model.add_norm_layer(self.params[0], self.params[1], self.params[2])
     
     def can_be_infulenced(self, by_action):
         if type(by_action) is Del_Layer:
@@ -46,24 +46,24 @@ class Add_Seq_Layer(Action):
         actions = []
         for pair in pairs:
             if type(Model.get_layer(pair[1])) != Conv:
-                actions.append(Add_Seq_Layer(pair))
+                actions.append(Add_Seq_Layer([pair[0], pair[1], Layer_Type.EYE]))
         return actions
     
     def __str__(self):
         return " ( Add Seq Layer Action: " + str(self.params) + " ) "
 
-class Add_seq_output_layer(Action):
+class Empty(Action):
     def execute(self, Model):
-        Model.add_sequential_output_Layer()
+        pass
 
     def can_be_infulenced(self, by_action):
         return False
 
     def generate_all_actions(Model):
-        return [Add_seq_output_layer(None)]
+        return [Empty(None)]
 
     def __str__(self):
-        return " ( Add sequential output Action )"
+        return " ( Empty Action )"
     
 class Add_Res_Layer(Action):
     def execute(self, Model):

@@ -1,0 +1,32 @@
+name: Check algrotihm timing / optimization
+
+on:
+  push:
+    branches-ignore:
+      - '*'
+  pull_request:
+    branches-ignore:
+      - '*'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'  # Używamy ogólnej wersji Pythona 3.9
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt || echo "Failed to install dependencies"
+
+    - name: Check algrotihm timing / optimization
+      run: |
+        python tests/flowcheck_speed.py

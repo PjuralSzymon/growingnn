@@ -37,13 +37,13 @@ class TreeNode:
             new_node = TreeNode(self, action, M_copy, self.epochs, self.X_train, self.Y_train, self.simulation_score)
             self.childNodes.append(new_node)
 
-    def scoreFun(M, epochs, X_train, Y_train, simulation_score):
-        #print("X_train: ", X_train.shape)
-        #print("Y_train: ", Y_train.shape)
-        acc, history = M.gradient_descent(X_train, Y_train, epochs, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.1) , True)
-        #print("loss in MCTS: ", history.get_last('loss'), " off: ", max_loss - history.get_last('loss'))
-        #return max(1.e-17, max_loss - history.get_last('loss'))
-        return simulation_score.grade(acc, history)
+    # def scoreFun(M, epochs, X_train, Y_train, simulation_score):
+    #     #print("X_train: ", X_train.shape)
+    #     #print("Y_train: ", Y_train.shape)
+    #     acc, history = M.gradient_descent(X_train, Y_train, epochs, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.1) , True)
+    #     #print("loss in MCTS: ", history.get_last('loss'), " off: ", max_loss - history.get_last('loss'))
+    #     #return max(1.e-17, max_loss - history.get_last('loss'))
+    #     return simulation_score.grade(acc, history)
     
     def rollout(self): 
         M_copy = self.M.deepcopy()
@@ -65,7 +65,7 @@ class TreeNode:
             all_action_seq = new_action_seq
             deepth -= 1
 
-        score = TreeNode.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train, self.simulation_score)
+        score = self.simulation_score.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
         return score
 
     def get_best_child(self):

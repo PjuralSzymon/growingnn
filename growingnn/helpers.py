@@ -1,22 +1,11 @@
-#import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
+from numba import jit
 import cv2 as cv
 import json
 import random
 import numpy
-#import cupy as cp
-
-IS_CUPY = False
-LARGE_MAX = 2**128
-
-try:
-    smt =1 / 0 
-    import cupy as np
-    IS_CUPY = True
-except Exception as e:
-    import numpy as np
-    IS_CUPY = False
-    print(f"Unexpected error occured: {e} while loading cupy library, switching to CPU")
 
 class NumpyArrayEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -25,7 +14,54 @@ class NumpyArrayEncoder(json.JSONEncoder):
         if isinstance(obj, np.int32):
             return int(obj)
         return json.JSONEncoder.default(self, obj)
+
+def get_reverse_normal_distribution(clip_range, shape):
+    tmp = np.random.normal(loc=0.0, scale=clip_range, size=shape)
+    tmp_right = tmp + 2.2 * clip_range
+    tmp_left = tmp - 2.2 * clip_range
+    # Ensure we have enough samples for the desired shape
+    num_samples = np.prod(shape)  # Total number of samples needed
+    half_samples = num_samples // 2  # Half for left, half for right
     
+    # Randomly choose samples for left and right sides
+    left_selected = np.random.choice(tmp_left.flatten(), half_samples, replace=True)
+    right_selected = np.random.choice(tmp_right.flatten(), half_samples, replace=True)
+    
+    # Merge left and right samples
+    merged = np.concatenate((left_selected, right_selected))
+    
+    # Shuffle the merged array to avoid order bias
+    np.random.shuffle(merged)
+    
+    # Reshape to the desired shape
+    return merged.reshape(shape)
+
+def switch_to_gpu():
+    #print(" helper: switch_to_gpu")
+    global np, IS_CUPY
+    import cupy as np
+    IS_CUPY = True
+
+def switch_to_cpu():
+    #print(" helper: switch_to_cpu")
+    global np, IS_CUPY
+    import numpy as np
+    IS_CUPY = False
+    
+def clip(X, min, max):
+    return np.array(fastclip(get_numpy_array(X), min, max))
+    return np.array(np.clip(get_numpy_array(X), min, max))
+
+@jit(nopython=True)
+def fastclip(X : numpy, min : int, max : int):
+    return np.clip(X, min, max)
+
+def argmax(X, axis):
+    return np.array(numpy.argmax(get_numpy_array(X), axis))
+
+def randn(shape):
+        return np.array(numpy.random.randn(shape))
+
 def get_list_as_numpy_array(X):
     for i in range(0, len(X)):
         X[i] = get_numpy_array(X[i])
@@ -33,7 +69,8 @@ def get_list_as_numpy_array(X):
     
 def get_numpy_array(X):
     if IS_CUPY == True:
-        if isinstance(X, np.ndarray):
+        import cupy
+        if isinstance(X, cupy.ndarray):
             return X.get()
         else:
             return numpy.array(X)
@@ -52,17 +89,20 @@ def one_hot(Y, Y_max = 0):
     one_hot_Y = one_hot_Y.T
     return one_hot_Y
 
+#@jit(nopython=True)
 def add_n(array):
     sum = array[0]
     for i in range(1,len(array)): 
         sum += array[i]
     return sum
 
+#@jit(nopython=True)
 def mean_n(array):
     sum = add_n(array)
     div = float(len(array))
     return sum / div
 
+#@jit(nopython=True)
 def mean_n_conv(array, shape):
     sum = array[0]
     for i in range(1,len(array)): 
@@ -77,9 +117,7 @@ def delete_repetitions(array):
             result.append(obj)
     return result
 
-def eye_stretch(a,b):
-    A = np.eye(max(a,b))
-    return np.array(cv.resize(get_numpy_array(A), (a,b))).T
+
 
 def strech(x, shape):
     result = np.zeros((shape[0], shape[1], x.shape[2]))
@@ -120,12 +158,6 @@ def protected_sampling(x, y, n):
     for cls in unique_classes:
         class_indices = np.where(y == cls)[0]
         selected_indices.extend(np.random.choice(class_indices, size=min(samples_per_class, len(class_indices))))
-    #remaining_samples = n - len(selected_indices)
-    # if remaining_samples > 0:
-    #     all_indices = np.arange(len(x))
-    #     available_indices = np.setdiff1d(all_indices, selected_indices)
-    #     additional_indices = np.random.choice(available_indices, size=remaining_samples, replace=False)
-    #     selected_indices.extend(additional_indices)
     return select_data_at_indices(x, y, selected_indices)
 
 def select_data_at_indices(x, y, selected_indices):

@@ -1,3 +1,4 @@
+from .ScoreFunctions import *
 from .greedy_alg import *
 from .montecarlo_alg import *
 from .Qlearning_alg import *

@@ -56,22 +56,6 @@ gnn.trainer.train(
 ```
 This code trains a simple network on the MNIST dataset
 
-## Structure
-History of resulting optimal structure created for MNIST dataset:
-
-1. ![Screenshot](./docs/model_arch_1.png)
-
-2. ![Screenshot](./docs/model_arch_2.png)
-
-3. ![Screenshot](./docs/model_arch_3.png)
-
-4. ![Screenshot](./docs/model_arch_4.png)
-
-History of training for mnist and fmnist dataset:
-![Screenshot](./docs/montecarlo_alg.png)
-
-
-
 
 # Credits
 
