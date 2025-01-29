@@ -1,4 +1,4 @@
-# Training Function Documentation
+# Training Function
 
 ## Overview
 

@@ -1,4 +1,4 @@
-# Layer Class Documentation
+# Layers
 
 The `Layer` class is a core component in a neural network architecture, representing an individual computational layer within a larger model. Each layer is responsible for managing its weights, biases, and activation functions while orchestrating forward and backward propagation through its connections with other layers.
 

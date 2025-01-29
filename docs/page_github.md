@@ -1,4 +1,4 @@
-# Version History and GitHub Repository
+# Versions and GitHub
 
 ## Releases Overview
 

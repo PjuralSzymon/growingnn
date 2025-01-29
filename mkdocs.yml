@@ -11,6 +11,9 @@ theme:
     - content.tabs.link
     - content.code.annotation
     - content.code.copy
+  toc:
+    permalink: true
+    max_depth: 3  # Limit to H3 (###)    
   language: en
   palette:
     - scheme: default

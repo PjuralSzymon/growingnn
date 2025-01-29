@@ -1,4 +1,4 @@
-# Action Module Documentation
+# Actions
 
 ## Overview
 

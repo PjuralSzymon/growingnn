@@ -1,4 +1,4 @@
-# Examples of Usage
+# Examples
 
 This page provides examples of how to use the `growingnn` library for training and evaluating neural network models. The examples progress from simple to more complex use cases.
 
