@@ -248,49 +248,10 @@ print("Model successfully saved and loaded.")
 These examples cover the fundamental usage of `growingnn`, progressing from simple training to more advanced features like convolution, residual layers, and model storage.
 
 
-## Examples with training a model
+## Examples with training a model with trainer
 
 
-# Examples of Usage
-
-This page provides a range of examples for using the Growing Neural Networks (GNN) framework. It starts with basic operations such as creating a model and defining layers, then progresses to more complex training scenarios.
-
----
-
-## 1. Creating a Basic Model
-
-To start, you need to define a simple model in GNN. Here’s how you create a basic feedforward neural network:
-
-```python
-import growingnn as gnn
-
-# Define model
-model = gnn.Model()
-
-# Add layers
-model.add_layer(gnn.DenseLayer(input_size=10, output_size=20, activation='relu'))
-model.add_layer(gnn.DenseLayer(input_size=20, output_size=3, activation='softmax'))
-```
-
-This example initializes a model and adds two dense layers: one with 10 input neurons and 20 hidden neurons, and another that maps to three output classes using a softmax activation function.
-
----
-
-## 2. Setting Up an Optimizer
-
-Before training a model, you need to define an optimizer. GNN supports multiple optimizers:
-
-```python
-# Using Stochastic Gradient Descent (SGD)
-optimizer = gnn.SGDOptimizer(learning_rate=0.01)
-
-# Using Adam Optimizer
-optimizer = gnn.AdamOptimizer(learning_rate=0.001)
-```
-
----
-
-## 3. Training a Dense Network
+### 1. Training a Dense Network
 
 This example demonstrates training a dense network with a small dataset:
 
@@ -323,7 +284,7 @@ This example trains a simple dense network for 5 epochs with 3 generations of ev
 
 ---
 
-## 4. Training a Convolutional Neural Network (CNN)
+### 2. Training a Convolutional Neural Network (CNN)
 
 For image-like data, a convolutional neural network can be used:
 
@@ -354,9 +315,7 @@ trained_cnn = gnn.trainer.train(
 
 ---
 
-## 5. Using Different Training Strategies
-
-### Monte Carlo Simulation Training
+### 3. Training with Monte Carlo Simulation
 
 ```python
 # Configure Monte Carlo Simulation
@@ -385,49 +344,3 @@ trained_model = gnn.trainer.train(
 ```
 
 This example enables Monte Carlo simulation during training to explore different evolutionary paths.
-
----
-
-## 6. Comparing Optimizers: Adam vs. SGD
-
-```python
-# Train using Adam optimizer
-optimizer = gnn.AdamOptimizer()
-model_adam = gnn.trainer.train(
-    x_train=x_train,
-    y_train=y_train,
-    x_test=x_test,
-    y_test=y_test,
-    labels=range(3),
-    epochs=5,
-    generations=3,
-    optimizer=optimizer
-)
-
-# Train using SGD optimizer
-optimizer = gnn.SGDOptimizer()
-model_sgd = gnn.trainer.train(
-    x_train=x_train,
-    y_train=y_train,
-    x_test=x_test,
-    y_test=y_test,
-    labels=range(3),
-    epochs=5,
-    generations=3,
-    optimizer=optimizer
-)
-
-# Compare accuracies
-acc_adam = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_adam.forward_prop(x_train)), y_train)
-acc_sgd = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_sgd.forward_prop(x_train)), y_train)
-
-print(f"Adam Optimizer Accuracy: {acc_adam}")
-print(f"SGD Optimizer Accuracy: {acc_sgd}")
-```
-
-This example compares the performance of the Adam and SGD optimizers.
-
----
-
-These examples cover a broad range of use cases for GNN, from basic model creation to advanced training techniques using different strategies and optimizers.
-
