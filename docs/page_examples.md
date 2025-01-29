@@ -250,236 +250,184 @@ These examples cover the fundamental usage of `growingnn`, progressing from simp
 
 ## Examples with training a model
 
-### **1. Training a Model with Stochastic Gradient Descent (SGD)**  
 
-###### **Description**  
-This example demonstrates how to train a simple neural network using **SGDOptimizer** with a **multiclass cross-entropy loss function** and **Sigmoid activation**.  
+# Examples of Usage
 
-###### **Example Code**  
+This page provides a range of examples for using the Growing Neural Networks (GNN) framework. It starts with basic operations such as creating a model and defining layers, then progresses to more complex training scenarios.
+
+---
+
+## 1. Creating a Basic Model
+
+To start, you need to define a simple model in GNN. Here’s how you create a basic feedforward neural network:
+
 ```python
-import numpy as np
 import growingnn as gnn
 
-# Define model parameters
-shape = 20
-epochs = 5
+# Define model
+model = gnn.Model()
 
-# Create a model
-model = gnn.structure.Model(
-    input_size=shape,
-    hidden_size=shape,
-    output_size=2,
-    loss_function=gnn.structure.Loss.multiclass_cross_entropy,
-    activation_function=gnn.structure.Activations.Sigmoid,
-    deepth=1,
-    optimizer=gnn.optimizers.SGDOptimizer()
-)
+# Add layers
+model.add_layer(gnn.DenseLayer(input_size=10, output_size=20, activation='relu'))
+model.add_layer(gnn.DenseLayer(input_size=20, output_size=3, activation='softmax'))
+```
 
-# Generate random training data
-x_train = np.random.rand(shape, shape)
-y_train = np.random.randint(2, size=(shape,))
+This example initializes a model and adds two dense layers: one with 10 input neurons and 20 hidden neurons, and another that maps to three output classes using a softmax activation function.
 
-# Define learning rate scheduler
-lr_scheduler = gnn.structure.LearningRateScheduler(
-    gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8
-)
+---
 
-# Train the model
-accuracy, _ = model.gradient_descent(x_train, y_train, epochs, lr_scheduler)
+## 2. Setting Up an Optimizer
 
-# Print the final accuracy
-print(f"Final Training Accuracy: {accuracy:.2f}")
+Before training a model, you need to define an optimizer. GNN supports multiple optimizers:
+
+```python
+# Using Stochastic Gradient Descent (SGD)
+optimizer = gnn.SGDOptimizer(learning_rate=0.01)
+
+# Using Adam Optimizer
+optimizer = gnn.AdamOptimizer(learning_rate=0.001)
 ```
 
 ---
 
-### **2. Training a Model with Adam Optimizer**  
+## 3. Training a Dense Network
 
-###### **Description**  
-This example shows how to train a model using **AdamOptimizer**, which typically results in faster convergence than SGD.  
+This example demonstrates training a dense network with a small dataset:
 
-###### **Example Code**  
 ```python
 import numpy as np
-import growingnn as gnn
 
-shape = 20
-epochs = 5
+# Generate synthetic data
+x_train = np.random.random((10, 20))
+y_train = np.random.randint(3, size=(20,))
+x_test = np.random.random((10, 10))
+y_test = np.random.randint(3, size=(10,))
 
-model = gnn.structure.Model(
-    shape, shape, 2,
-    gnn.structure.Loss.multiclass_cross_entropy,
-    gnn.structure.Activations.Sigmoid,
-    1, gnn.optimizers.AdamOptimizer()
+# Train model
+trained_model = gnn.trainer.train(
+    x_train=x_train,
+    y_train=y_train,
+    x_test=x_test,
+    y_test=y_test,
+    labels=range(3),
+    epochs=5,
+    generations=3,
+    input_size=10,
+    hidden_size=20,
+    output_size=3,
+    optimizer=optimizer
 )
+```
 
-x_train = np.random.rand(shape, shape)
-y_train = np.random.randint(2, size=(shape,))
+This example trains a simple dense network for 5 epochs with 3 generations of evolution using the selected optimizer.
 
-lr_scheduler = gnn.structure.LearningRateScheduler(
-    gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8
+---
+
+## 4. Training a Convolutional Neural Network (CNN)
+
+For image-like data, a convolutional neural network can be used:
+
+```python
+# Generate synthetic image data
+x_conv_train = np.random.random((20, 10, 10, 1))
+y_conv_train = np.random.randint(3, size=(20,))
+x_conv_test = np.random.random((10, 10, 10, 1))
+y_conv_test = np.random.randint(3, size=(10,))
+
+# Train convolutional model
+trained_cnn = gnn.trainer.train(
+    x_train=x_conv_train,
+    y_train=y_conv_train,
+    x_test=x_conv_test,
+    y_test=y_conv_test,
+    labels=range(3),
+    input_size=10,
+    hidden_size=10,
+    output_size=3,
+    input_shape=(10, 10, 1),
+    kernel_size=3,
+    optimizer=optimizer,
+    epochs=5,
+    generations=3
 )
-
-accuracy, _ = model.gradient_descent(x_train, y_train, epochs, lr_scheduler)
-print(f"Final Training Accuracy: {accuracy:.2f}")
 ```
 
 ---
 
-### **3. Adding a Residual Layer to a Model**  
+## 5. Using Different Training Strategies
 
-###### **Description**  
-This example demonstrates how to add a **residual layer** to a neural network model, which can help with training deeper networks.  
+### Monte Carlo Simulation Training
 
-###### **Example Code**  
 ```python
-import numpy as np
-import growingnn as gnn
-
-shape = 20
-
-model = gnn.structure.Model(
-    shape, shape, 2,
-    gnn.structure.Loss.multiclass_cross_entropy,
-    gnn.structure.Activations.Sigmoid,
-    1, gnn.optimizers.SGDOptimizer()
+# Configure Monte Carlo Simulation
+simulation_scheduler = gnn.structure.SimulationScheduler(
+    mode=gnn.structure.SimulationScheduler.PROGRESS_CHECK,
+    simulation_time=10,
+    simulation_epochs=2
 )
 
-# Add a residual layer
-model.add_res_layer('init_0', 1)
-
-# Generate random input data
-x = np.random.rand(shape, shape)
-
-# Perform forward propagation multiple times
-for _ in range(10):
-    output = model.forward_prop(x * float(np.random.rand(1)))
-
-print("Residual Layer Output Shape:", output.shape)
+# Train with Monte Carlo simulation
+trained_model = gnn.trainer.train(
+    x_train=x_train,
+    y_train=y_train,
+    x_test=x_test,
+    y_test=y_test,
+    labels=range(3),
+    epochs=5,
+    generations=3,
+    input_size=10,
+    hidden_size=20,
+    output_size=3,
+    optimizer=optimizer,
+    simulation_scheduler=simulation_scheduler,
+    simulation_alg=gnn.montecarlo_alg
+)
 ```
+
+This example enables Monte Carlo simulation during training to explore different evolutionary paths.
 
 ---
 
-### **4. Training a Convolutional Model with SGD**  
+## 6. Comparing Optimizers: Adam vs. SGD
 
-###### **Description**  
-This example shows how to define and train a **convolutional model** using **SGDOptimizer**.  
-
-###### **Example Code**  
 ```python
-import numpy as np
-import growingnn as gnn
-
-shape = 20
-
-# Create a convolutional model
-model = gnn.structure.Model(
-    shape, shape, shape,
-    gnn.structure.Loss.multiclass_cross_entropy,
-    gnn.structure.Activations.Sigmoid,
-    1, gnn.optimizers.SGDOptimizer()
+# Train using Adam optimizer
+optimizer = gnn.AdamOptimizer()
+model_adam = gnn.trainer.train(
+    x_train=x_train,
+    y_train=y_train,
+    x_test=x_test,
+    y_test=y_test,
+    labels=range(3),
+    epochs=5,
+    generations=3,
+    optimizer=optimizer
 )
 
-# Enable convolution mode
-model.set_convolution_mode((shape, shape, 1), shape, 1)
+# Train using SGD optimizer
+optimizer = gnn.SGDOptimizer()
+model_sgd = gnn.trainer.train(
+    x_train=x_train,
+    y_train=y_train,
+    x_test=x_test,
+    y_test=y_test,
+    labels=range(3),
+    epochs=5,
+    generations=3,
+    optimizer=optimizer
+)
 
-# Add a residual layer
-model.add_res_layer('init_0', 1)
+# Compare accuracies
+acc_adam = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_adam.forward_prop(x_train)), y_train)
+acc_sgd = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_sgd.forward_prop(x_train)), y_train)
 
-# Generate random input data
-x = np.random.random((shape, shape, shape, 1))
-
-# Perform forward propagation multiple times
-for _ in range(10):
-    output = model.forward_prop(x * float(np.random.rand(1)))
-
-print("Convolutional Model Output Shape:", output.shape)
+print(f"Adam Optimizer Accuracy: {acc_adam}")
+print(f"SGD Optimizer Accuracy: {acc_sgd}")
 ```
+
+This example compares the performance of the Adam and SGD optimizers.
 
 ---
 
-### **5. Saving and Loading a Model**  
+These examples cover a broad range of use cases for GNN, from basic model creation to advanced training techniques using different strategies and optimizers.
 
-###### **Description**  
-This example shows how to **save** a trained model and **load** it later for inference.  
-
-###### **Example Code**  
-```python
-import numpy as np
-import growingnn as gnn
-
-# Create a model
-model = gnn.structure.Model(
-    3, 3, 1,
-    gnn.structure.Loss.multiclass_cross_entropy,
-    gnn.structure.Activations.Sigmoid,
-    1
-)
-
-# Generate random input data
-x = np.random.rand(3, 3)
-
-# Forward propagate to get initial output
-output1 = model.forward_prop(x)
-
-# Save the model
-gnn.Storage.saveModel(model, "model.json")
-
-# Load the model
-loaded_model = gnn.Storage.loadModel("model.json")
-
-# Forward propagate using the loaded model
-output2 = loaded_model.forward_prop(x)
-
-# Check if outputs are the same
-print("Difference between original and loaded model outputs:", np.sum(output1 - output2))
-```
-
----
-
-### **6. Comparing Adam vs. SGD Optimizer Performance**  
-
-###### **Description**  
-This example trains the same model using both **AdamOptimizer** and **SGDOptimizer** and compares their accuracy.  
-
-###### **Example Code**  
-```python
-import numpy as np
-import growingnn as gnn
-
-shape = 20
-epochs = 5
-
-# Train with Adam
-model_adam = gnn.structure.Model(
-    shape, shape, 2,
-    gnn.structure.Loss.multiclass_cross_entropy,
-    gnn.structure.Activations.Sigmoid,
-    1, gnn.optimizers.AdamOptimizer()
-)
-
-x_train = np.random.rand(shape, shape)
-y_train = np.random.randint(2, size=(shape,))
-
-accuracy_adam, _ = model_adam.gradient_descent(x_train, y_train, epochs)
-print(f"Adam Optimizer Accuracy: {accuracy_adam:.2f}")
-
-# Train with SGD
-model_sgd = gnn.structure.Model(
-    shape, shape, 2,
-    gnn.structure.Loss.multiclass_cross_entropy,
-    gnn.structure.Activations.Sigmoid,
-    1, gnn.optimizers.SGDOptimizer()
-)
-
-accuracy_sgd, _ = model_sgd.gradient_descent(x_train, y_train, epochs)
-print(f"SGD Optimizer Accuracy: {accuracy_sgd:.2f}")
-
-# Compare performance
-if accuracy_adam > accuracy_sgd:
-    print("Adam performs better.")
-else:
-    print("SGD performs better.")
-```
-
----
