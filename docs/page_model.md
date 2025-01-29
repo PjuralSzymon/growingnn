@@ -1,4 +1,4 @@
-## Model Class Documentation
+# Model Class Documentation
 
 ### Overview
 
