@@ -269,7 +269,7 @@ class OptimizerFactory:
         return OptimizerFactory.FromDict(OptimizerFactory.ToDict(optimizer))
     
     def ToDict(optimizer):
-        return super().ToDict()
+        return optimizer.ToDict()
     
     def FromDict(dict):
         if dict["layerType"] ==  "Conv":
