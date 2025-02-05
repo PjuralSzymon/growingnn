@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from numba import jit
 import numpy as np
 
@@ -13,13 +14,10 @@ class Optimizer:
         self.layerType = _layerType
         pass
 
-    #@staticmethod
-    #@jit(nopython=True)
+    @staticmethod
     def clip_and_fix(params, clip_range):
         params = np.clip(params, -clip_range, clip_range)
         params = np.nan_to_num(params, nan=np.nanmean(params))
-        #params[params == -np.inf] = -1.0
-        #params[params == np.inf] = 1.0
         return params
 
     def ToDict(self):
@@ -32,10 +30,29 @@ class Optimizer:
     def FromDict(dict):
         return Optimizer(dict["weights_clip_range"])
     
+    @abstractmethod
     def update(self, params, grads, alpha):
         raise NotImplementedError("This method should be implemented by subclasses.")
 
-class SGDOptimizer(Optimizer):
+class DenseOptimizer(Optimizer):
+    def __init__(self, weights_clip_range=WEIGHTS_CLIP_RANGE):
+        super().__init__(weights_clip_range)
+
+    @abstractmethod
+    def update(self, params, grads, alpha):
+        raise NotImplementedError("This method should be implemented by subclasses.")
+
+class ConvOptimizer(Optimizer):
+    def __init__(self, weights_clip_range=WEIGHTS_CLIP_RANGE):
+        super().__init__(weights_clip_range)
+
+    @abstractmethod
+    def update(self, params, grads, alpha):
+        raise NotImplementedError("This method should be implemented by subclasses.")
+
+
+    
+class SGDOptimizer(DenseOptimizer):
 
     def __init__(self, weights_clip_range=WEIGHTS_CLIP_RANGE):
         super().__init__(weights_clip_range)
@@ -66,7 +83,7 @@ class SGDOptimizer(Optimizer):
     def getConv(self):
         return ConvSGDOptimizer(self.weights_clip_range)
 
-class AdamOptimizer(Optimizer):
+class AdamOptimizer(DenseOptimizer):
     def __init__(self, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=WEIGHTS_CLIP_RANGE):
         super().__init__(weights_clip_range)
         self.beta1 = beta1
@@ -120,7 +137,7 @@ class AdamOptimizer(Optimizer):
     def getConv(self):
         return ConvAdamOptimizer(self.beta1, self.beta2, self.epsilon, self.weights_clip_range)
     
-class ConvSGDOptimizer(Optimizer):
+class ConvSGDOptimizer(ConvOptimizer):
 
     def __init__(self, weights_clip_range=WEIGHTS_CLIP_RANGE):
         super().__init__(weights_clip_range)
@@ -155,7 +172,7 @@ class ConvSGDOptimizer(Optimizer):
     def getConv(self):
         return self
     
-class ConvAdamOptimizer(Optimizer):
+class ConvAdamOptimizer(ConvOptimizer):
     def __init__(self, beta1=0.9, beta2=0.999, epsilon=1e-8, weights_clip_range=WEIGHTS_CLIP_RANGE):
         super().__init__(weights_clip_range)
         self.beta1 = beta1
@@ -252,7 +269,7 @@ class OptimizerFactory:
         return OptimizerFactory.FromDict(OptimizerFactory.ToDict(optimizer))
     
     def ToDict(optimizer):
-        return optimizer.ToDict()
+        return super().ToDict()
     
     def FromDict(dict):
         if dict["layerType"] ==  "Conv":
