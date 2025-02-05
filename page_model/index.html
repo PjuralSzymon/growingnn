@@ -1,0 +1,1123 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../page_layerconv/">
+      
+      
+        <link rel="next" href="../page_train/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.2">
+    
+    
+      
+        <title>Model - growingnn</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.d7758b05.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#model" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="growingnn" class="md-header__button md-logo" aria-label="growingnn" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            growingnn
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Model
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+    
+  
+  Home Page
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_actions/" class="md-tabs__link">
+        
+  
+    
+  
+  Actions
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_examples/" class="md-tabs__link">
+        
+  
+    
+  
+  Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_github/" class="md-tabs__link">
+        
+  
+    
+  
+  Versions and GitHub
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_layer/" class="md-tabs__link">
+        
+  
+    
+  
+  Layers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_layerconv/" class="md-tabs__link">
+        
+  
+    
+  
+  Convolutional Layers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+    
+  
+  Model
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_train/" class="md-tabs__link">
+        
+  
+    
+  
+  Training Function
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="growingnn" class="md-nav__button md-logo" aria-label="growingnn" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    growingnn
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home Page
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_actions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Actions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_github/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Versions and GitHub
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_layer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Layers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_layerconv/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Convolutional Layers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Model
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Model
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#constructor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Constructor
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Constructor">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameters:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Key Attributes:
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      Methods
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#set_convolution_modeinput_shape-kernel_size-depth" class="md-nav__link">
+    <span class="md-ellipsis">
+      set_convolution_mode(input_shape, kernel_size, depth)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add_res_layerlayer_from_id-layer_to_id-layer_type-layer_typezero" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_res_layer(layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add_norm_layerlayer_from_id-layer_to_id-layer_type-layer_typerandom" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_norm_layer(layer_from_id, layer_to_id, layer_type = Layer_Type.RANDOM)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add_sequential_output_layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_sequential_output_Layer()
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add_conv_norm_layerlayer_from_id-layer_to_id-layer_type-layer_typerandom" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_conv_norm_layer(layer_from_id, layer_to_id, layer_type = Layer_Type.RANDOM)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add_conv_res_layerlayer_from_id-layer_to_id-layer_type-layer_typezero" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_conv_res_layer(layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add_connectionlayer_from_id-layer_to_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_connection(layer_from_id, layer_to_id)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_layerid" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_layer(id)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_predictionsa2" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_predictions(A2)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_accuracypredictions-y" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_accuracy(predictions, Y)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forward_propinput" class="md-nav__link">
+    <span class="md-ellipsis">
+      forward_prop(input)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#back_prope-m-alpha" class="md-nav__link">
+    <span class="md-ellipsis">
+      back_prop(E, m, alpha)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gradient_descentx-y-iterations-lr_scheduler-quiet-false-one_hot_needed-true-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      gradient_descent(X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, path=".")
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evaluatex-y" class="md-nav__link">
+    <span class="md-ellipsis">
+      evaluate(x, y)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#remove_layerlayer_id-preserve_flow-true" class="md-nav__link">
+    <span class="md-ellipsis">
+      remove_layer(layer_id, preserve_flow = True)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_all_childrens_connections" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_all_childrens_connections()
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deepcopy" class="md-nav__link">
+    <span class="md-ellipsis">
+      deepcopy()
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#is_cyclicadditional_pair" class="md-nav__link">
+    <span class="md-ellipsis">
+      is_cyclic(additional_pair)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_sequence_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_sequence_connection()
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_state_representation" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_state_representation()
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#show_connection_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      show_connection_table()
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_connection_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_connection_table()
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Notes
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_train/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Training Function
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="model">Model</h1>
+<h3 id="overview">Overview</h3>
+<p>The <code>Model</code> class implements a flexible neural network model with support for both feed-forward and convolutional architectures. It is designed to allow for dynamic creation of layers, forward and backward propagation, and the training process using gradient descent. The model supports multiple types of layers, including regular layers and convolutional layers, and provides various functionalities such as layer management, loss calculation, and accuracy evaluation.</p>
+<h3 id="constructor">Constructor</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Model</span><span class="p">:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="n">loss_function</span> <span class="o">=</span> <span class="n">Loss</span><span class="o">.</span><span class="n">multiclass_cross_entropy</span><span class="p">,</span> <span class="n">activation_fun</span> <span class="o">=</span> <span class="n">Activations</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">,</span> <span class="n">input_paths</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_optimizer</span> <span class="o">=</span> <span class="n">SGDOptimizer</span><span class="p">()):</span>
+</code></pre></div>
+<h4 id="parameters">Parameters:</h4>
+<ul>
+<li><code>input_size</code>: Integer specifying the size of the input layer.</li>
+<li><code>hidden_size</code>: Integer specifying the size of hidden layers.</li>
+<li><code>output_size</code>: Integer specifying the size of the output layer.</li>
+<li><code>loss_function</code>: The loss function used for training. Default is <code>Loss.multiclass_cross_entropy</code>.</li>
+<li><code>activation_fun</code>: The activation function used in the layers. Default is <code>Activations.Sigmoid</code>.</li>
+<li><code>input_paths</code>: Number of input paths. Default is <code>1</code>.</li>
+<li><code>_optimizer</code>: The optimizer used for training. Default is <code>SGDOptimizer()</code>.</li>
+</ul>
+<h3 id="key-attributes">Key Attributes:</h3>
+<ul>
+<li><code>batch_size</code>: The batch size used during training (default is 128).</li>
+<li><code>loss_function</code>: The loss function used for training.</li>
+<li><code>input_size</code>: The size of the input layer.</li>
+<li><code>hidden_size</code>: The size of the hidden layers.</li>
+<li><code>output_size</code>: The size of the output layer.</li>
+<li><code>hidden_layers</code>: A list of hidden layers in the model.</li>
+<li><code>avaible_id</code>: An identifier used for new layers.</li>
+<li><code>activation_fun</code>: The activation function used in layers.</li>
+<li><code>input_layers</code>: A list of input layers.</li>
+<li><code>optimizer</code>: The optimizer used for training.</li>
+<li><code>output_layer</code>: The output layer of the model.</li>
+</ul>
+<hr />
+<h3 id="methods">Methods</h3>
+<h4 id="set_convolution_modeinput_shape-kernel_size-depth"><code>set_convolution_mode(input_shape, kernel_size, depth)</code></h4>
+<p>Sets the model to use convolutional layers.</p>
+<ul>
+<li><code>input_shape</code>: Shape of the input for convolutional layers.</li>
+<li><code>kernel_size</code>: The size of the convolutional kernels.</li>
+<li><code>depth</code>: The number of convolutional kernels.</li>
+</ul>
+<p>This method converts the input layers to convolutional layers and adjusts their connections.</p>
+<h4 id="add_res_layerlayer_from_id-layer_to_id-layer_type-layer_typezero"><code>add_res_layer(layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO)</code></h4>
+<p>Adds a residual layer between two existing layers. This helps to improve training by allowing the model to learn residual functions.</p>
+<ul>
+<li><code>layer_from_id</code>: The ID of the starting layer.</li>
+<li><code>layer_to_id</code>: The ID of the ending layer.</li>
+<li><code>layer_type</code>: Type of the residual layer (default is <code>Layer_Type.ZERO</code>).</li>
+</ul>
+<p>Returns the ID of the new residual layer.</p>
+<h4 id="add_norm_layerlayer_from_id-layer_to_id-layer_type-layer_typerandom"><code>add_norm_layer(layer_from_id, layer_to_id, layer_type = Layer_Type.RANDOM)</code></h4>
+<p>Adds a normalization layer between two layers. This helps with the stability and performance of the training process.</p>
+<ul>
+<li><code>layer_from_id</code>: The ID of the starting layer.</li>
+<li><code>layer_to_id</code>: The ID of the ending layer.</li>
+<li><code>layer_type</code>: Type of normalization layer (default is <code>Layer_Type.RANDOM</code>).</li>
+</ul>
+<p>Returns the ID of the new normalization layer.</p>
+<h4 id="add_sequential_output_layer"><code>add_sequential_output_Layer()</code></h4>
+<p>Adds a sequential output layer to the model. This is typically used when the model has multiple output paths.</p>
+<p>Returns the ID of the newly added sequential output layer.</p>
+<h4 id="add_conv_norm_layerlayer_from_id-layer_to_id-layer_type-layer_typerandom"><code>add_conv_norm_layer(layer_from_id, layer_to_id, layer_type = Layer_Type.RANDOM)</code></h4>
+<p>Adds a convolutional normalization layer between two layers.</p>
+<ul>
+<li><code>layer_from_id</code>: The ID of the starting layer.</li>
+<li><code>layer_to_id</code>: The ID of the ending layer.</li>
+<li><code>layer_type</code>: Type of the normalization layer (default is <code>Layer_Type.RANDOM</code>).</li>
+</ul>
+<p>Returns the ID of the newly added convolutional normalization layer.</p>
+<h4 id="add_conv_res_layerlayer_from_id-layer_to_id-layer_type-layer_typezero"><code>add_conv_res_layer(layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO)</code></h4>
+<p>Adds a convolutional residual layer between two layers.</p>
+<ul>
+<li><code>layer_from_id</code>: The ID of the starting layer.</li>
+<li><code>layer_to_id</code>: The ID of the ending layer.</li>
+<li><code>layer_type</code>: Type of the residual layer (default is <code>Layer_Type.ZERO</code>).</li>
+</ul>
+<p>Returns the ID of the newly added convolutional residual layer.</p>
+<h4 id="add_connectionlayer_from_id-layer_to_id"><code>add_connection(layer_from_id, layer_to_id)</code></h4>
+<p>Adds a connection between two layers.</p>
+<ul>
+<li><code>layer_from_id</code>: The ID of the starting layer.</li>
+<li><code>layer_to_id</code>: The ID of the ending layer.</li>
+</ul>
+<h4 id="get_layerid"><code>get_layer(id)</code></h4>
+<p>Returns the layer with the specified ID.</p>
+<h4 id="get_predictionsa2"><code>get_predictions(A2)</code></h4>
+<p>Returns the predicted class for each sample.</p>
+<ul>
+<li><code>A2</code>: The output of the model's forward pass.</li>
+</ul>
+<h4 id="get_accuracypredictions-y"><code>get_accuracy(predictions, Y)</code></h4>
+<p>Calculates the accuracy of the model by comparing the predictions to the true values.</p>
+<ul>
+<li><code>predictions</code>: The predicted output.</li>
+<li><code>Y</code>: The true output.</li>
+</ul>
+<p>Returns the accuracy as a float.</p>
+<h4 id="forward_propinput"><code>forward_prop(input)</code></h4>
+<p>Performs forward propagation through the network, computing the output for the given input.</p>
+<ul>
+<li><code>input</code>: The input data to pass through the network.</li>
+</ul>
+<p>Returns the output of the network after forward propagation.</p>
+<h4 id="back_prope-m-alpha"><code>back_prop(E, m, alpha)</code></h4>
+<p>Performs backpropagation to adjust the weights based on the error.</p>
+<ul>
+<li><code>E</code>: The error signal.</li>
+<li><code>m</code>: The number of samples in the batch.</li>
+<li><code>alpha</code>: The learning rate.</li>
+</ul>
+<h4 id="gradient_descentx-y-iterations-lr_scheduler-quiet-false-one_hot_needed-true-path"><code>gradient_descent(X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, path=".")</code></h4>
+<p>Trains the model using gradient descent.</p>
+<ul>
+<li><code>X</code>: The input data.</li>
+<li><code>Y</code>: The true output.</li>
+<li><code>iterations</code>: The number of iterations for training.</li>
+<li><code>lr_scheduler</code>: A scheduler for adjusting the learning rate.</li>
+<li><code>quiet</code>: Whether to suppress the output during training (default is <code>False</code>).</li>
+<li><code>one_hot_needed</code>: Whether the output is one-hot encoded (default is <code>True</code>).</li>
+<li><code>path</code>: The path where the model should be saved.</li>
+</ul>
+<p>Returns the accuracy history for the last iteration.</p>
+<h4 id="evaluatex-y"><code>evaluate(x, y)</code></h4>
+<p>Evaluates the performance of the model on the given dataset.</p>
+<ul>
+<li><code>x</code>: The input data.</li>
+<li><code>y</code>: The true output.</li>
+</ul>
+<p>Returns the accuracy of the model.</p>
+<h4 id="remove_layerlayer_id-preserve_flow-true"><code>remove_layer(layer_id, preserve_flow = True)</code></h4>
+<p>Removes a layer from the model and adjusts the connections accordingly.</p>
+<ul>
+<li><code>layer_id</code>: The ID of the layer to remove.</li>
+<li><code>preserve_flow</code>: Whether to preserve the flow of connections (default is <code>True</code>).</li>
+</ul>
+<h4 id="get_all_childrens_connections"><code>get_all_childrens_connections()</code></h4>
+<p>Returns a list of all connections in the model.</p>
+<h4 id="deepcopy"><code>deepcopy()</code></h4>
+<p>Creates a deep copy of the model.</p>
+<p>Returns the copied model.</p>
+<h4 id="is_cyclicadditional_pair"><code>is_cyclic(additional_pair)</code></h4>
+<p>Checks if adding a new connection would create a cycle in the network.</p>
+<ul>
+<li><code>additional_pair</code>: A tuple representing the new connection.</li>
+</ul>
+<p>Returns <code>True</code> if a cycle is detected, otherwise <code>False</code>.</p>
+<h4 id="get_sequence_connection"><code>get_sequence_connection()</code></h4>
+<p>Returns a list of all layer connections in sequence.</p>
+<h4 id="get_state_representation"><code>get_state_representation()</code></h4>
+<p>Returns a string representation of the model's current state.</p>
+<h4 id="show_connection_table"><code>show_connection_table()</code></h4>
+<p>Prints a table showing the layers and their connections.</p>
+<h4 id="get_connection_table"><code>get_connection_table()</code></h4>
+<p>Returns a string table showing the layers and their connections.</p>
+<hr />
+<h3 id="example-usage">Example Usage</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Initialize the model</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">input_size</span><span class="o">=</span><span class="mi">28</span><span class="o">*</span><span class="mi">28</span><span class="p">,</span> <span class="n">hidden_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Train the model</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">history</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">gradient_descent</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">lr_scheduler</span><span class="o">=</span><span class="n">my_lr_scheduler</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Evaluate the model</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">accuracy</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">Y_test</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h3 id="notes">Notes</h3>
+<ul>
+<li>The model supports both feed-forward and convolutional architectures.</li>
+<li>It supports dynamic layer creation, allowing for easy experimentation with different network structures.</li>
+<li>Various utility functions for training, evaluation, and model management are provided.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      &copy; 2024 <a href="https://github.com/PjuralSzymon/growingnn"  target="_blank" rel="noopener">Szymon Swiderski</a>
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/growingnn/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 404c11.1 0 20.1 9.1 20.1 20.3 0 11.3-9 20.4-20.1 20.4-11 0-20.1-9.2-20.1-20.4.1-11.3 9.1-20.3 20.1-20.3M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.7-142.6c-11.1 0-20.1-9.1-20.1-20.3.1-11.3 9-20.4 20.1-20.4 11 0 20.1 9.2 20.1 20.4s-9 20.3-20.1 20.3"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.f13b1293.min.js"></script>
+      
+    
+  </body>
+</html>
