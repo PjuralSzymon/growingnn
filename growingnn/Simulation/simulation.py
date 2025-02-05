@@ -1,6 +1,6 @@
-from ..helpers import *
-from ..action import *
-from ..structure import *
+from ..helpers import protected_sampling
+from ..action import Action
+#from ..structure import *
 #from sklearn.decomposition import PCA
 
 # Simulation set

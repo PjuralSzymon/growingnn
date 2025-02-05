@@ -1,7 +1,7 @@
 import time
 import random
 from ..action import Action
-from ..structure import *
+#from ..structure import *
 
 class QLearningAgent:
     def __init__(self, learning_rate=0.1, discount_factor=0.9, exploration_prob=0.3):

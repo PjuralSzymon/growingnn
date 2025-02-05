@@ -1,8 +1,8 @@
 import time
 import random
 import math
-from ..action import *
-from ..structure import *
+from ..action import Action
+#from ..structure import *
 
 UCB1_CONTS = 2
 DEEPTH = 2

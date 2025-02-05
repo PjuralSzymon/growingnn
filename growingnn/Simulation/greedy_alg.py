@@ -1,7 +1,7 @@
 import time
 import random
-from ..action import *
-from ..structure import *
+from ..action import Action
+#from ..structure import *
 
 # def scoreFun(M, epochs, X_train, Y_train, simulation_score):
 #     acc, history = M.gradient_descent(X_train, Y_train, epochs, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.1) , True)
