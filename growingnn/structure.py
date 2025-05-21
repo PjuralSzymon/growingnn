@@ -40,18 +40,21 @@ class Loss:
             return Y_pred - Y_true
     class multiclass_cross_entropy:
         __name__ = 'multiclass_cross_entropy'
-        
-        @staticmethod
-        @jit(nopython=True)
         def exe(Y_true, Y_pred):
-            # Vectorized implementation with Numba
-            return -np.sum(Y_true * np.log(Y_pred)) / Y_true.shape[1]
-            
-        @staticmethod
-        @jit(nopython=True)
+            error = 0.0
+            for i in range(0, Y_true.shape[1]):
+                error -= np.dot(Y_true[:,i].T, np.log(Y_pred[:,i]))
+            #print("Y_true.shape: ", Y_true.shape)
+            return error / Y_true.shape[1]
         def der(Y_true, Y_pred):
-            # Vectorized implementation with Numba
-            return Y_pred - Y_true
+            grad = np.zeros(Y_true.shape)
+            for i in range(0, Y_true.shape[1]):
+                #print("Y_true[:, i]: ", Y_true[:, i].shape)
+                #print("Y_pred[:, i]: ", Y_pred[:, i].shape)
+                partial_grad = -Y_true[:, i] / Y_pred[:, i]
+                A = np.tile(np.reshape(Y_pred[:, i], (Y_pred.shape[0], 1)), (1, Y_pred.shape[0]))
+                grad[:, i] = (A * (np.identity(Y_pred.shape[0]) - A.T)) @ partial_grad
+            return grad
 
 class Activations:
 
@@ -375,13 +378,12 @@ class Layer:
         current_weight_size = W.shape[1]
         if current_weight_size < input_size:
             # Dodawanie brakujących kolumn z zerami
-            extra_columns = input_size - current_weight_size
-            zero_padding = np.zeros((W.shape[0], extra_columns))
-            # Zamiast np.hstack używamy manualnej konkatenacji
-            W = np.concatenate((W, zero_padding), axis=1)
+            new_W = np.zeros((W.shape[0], input_size))
+            new_W[:, :current_weight_size] = W
+            return new_W
         elif current_weight_size > input_size:
             # Usuwanie niepotrzebnych kolumn
-            W = W[:, :input_size]
+            return W[:, :input_size]
         return W
     
     def should_thread_forward(self):
@@ -389,6 +391,8 @@ class Layer:
             return False
         if len(self.f_input) + 1 < len(self.input_layers_ids): 
             return False
+        print("BOB")
+        exit()
         return True
     
     def append_to_f_input(self, X, sender_id):
