@@ -8,6 +8,7 @@ import random
 import time
 import asyncio
 from testSuite import mode
+from testDataGenerator import TestDataGenerator
 
 class TestSimulationAlgorithms(unittest.TestCase):
     def setUp(self):
@@ -31,7 +32,8 @@ class TestSimulationAlgorithms(unittest.TestCase):
         
         # Create training data
         self.x_train = np.random.rand(20, self.input_size)
-        self.y_train = np.random.randint(0, self.output_size, size=(20,))
+        # Use TestDataGenerator to ensure all classes are represented
+        self.y_train = TestDataGenerator.generate_y_data(20, self.output_size)
         
         # Create simulation score
         self.simulation_score = gnn.Simulation_score(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)

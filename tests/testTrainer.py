@@ -7,6 +7,7 @@ import numpy as np
 import os
 import tempfile
 from testSuite import mode
+from testDataGenerator import TestDataGenerator
 
 class TestTrainer(unittest.TestCase):
     def setUp(self):
@@ -20,16 +21,17 @@ class TestTrainer(unittest.TestCase):
         self.datasize = 20
         self.datadimensionality = 5
         self.classes = 3
-        self.x_train = np.random.random((self.datadimensionality, self.datasize))
-        self.y_train = np.random.randint(self.classes, size=(self.datasize,))
-        self.x_test = np.random.random((self.datadimensionality, int(self.datasize / 2)))
-        self.y_test = np.random.randint(self.classes, size=(int(self.datasize / 2),))
+        self.x_train = TestDataGenerator.generate_x_data(self.datadimensionality, self.datasize)
+        # Use TestDataGenerator to ensure all classes are represented
+        self.y_train = TestDataGenerator.generate_y_data(self.datasize, self.classes)
+        self.x_test = TestDataGenerator.generate_x_data(self.datadimensionality, int(self.datasize / 2))
+        self.y_test = TestDataGenerator.generate_y_data(int(self.datasize / 2), self.classes)
         
         # Create convolutional data
-        self.x_conv_train = np.random.random((self.datasize, self.datadimensionality, self.datadimensionality, 1))
-        self.y_conv_train = np.random.randint(self.classes, size=(self.datasize,))
-        self.x_conv_test = np.random.random((int(self.datasize / 2), self.datadimensionality, self.datadimensionality, 1))
-        self.y_conv_test = np.random.randint(self.classes, size=(int(self.datasize / 2),))
+        self.x_conv_train = TestDataGenerator.generate_conv_x_data(self.datasize, self.datadimensionality)
+        self.y_conv_train = TestDataGenerator.generate_y_data(self.datasize, self.classes)
+        self.x_conv_test = TestDataGenerator.generate_conv_x_data(int(self.datasize / 2), self.datadimensionality)
+        self.y_conv_test = TestDataGenerator.generate_y_data(int(self.datasize / 2), self.classes)
         
         self.labels = range(0, self.classes)
         self.optimizer = gnn.SGDOptimizer()

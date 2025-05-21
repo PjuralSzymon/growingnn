@@ -8,6 +8,7 @@ import os
 import json
 import shutil
 from testSuite import mode
+from testDataGenerator import TestDataGenerator
 
 class TestingStorage(unittest.TestCase):
 
@@ -36,8 +37,8 @@ class TestingStorage(unittest.TestCase):
 
     def test_base_save_load(self):
         M = gnn.structure.Model(3, 3, 1, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
-        x = np.random.rand(3, 3)
-        y = np.random.randint(2, size=(50,))
+        x = TestDataGenerator.generate_x_data(3, 3)
+        y = TestDataGenerator.generate_y_data(50, 2)  # Binary classification
         output1 = M.forward_prop(x)
         gnn.Storage.saveModel(M, "here.json")
         M_loaded = gnn.Storage.loadModel("here.json")
@@ -61,9 +62,8 @@ class TestingStorage(unittest.TestCase):
         M.batch_size = 2
         
         # Generate simple data with consistent data types
-        x_train = np.random.rand(10, 10).astype(np.float64)
-        # Ensure y_train values are within the range [0, output_size-1]
-        y_train = np.random.randint(0, output_size, size=(10,)).astype(np.int32)
+        x_train = TestDataGenerator.generate_x_data(10, 10)
+        y_train = TestDataGenerator.generate_y_data(10, output_size)
         
         # Print shapes for debugging
         print(f"x_train shape: {x_train.shape}")
@@ -92,7 +92,7 @@ class TestingStorage(unittest.TestCase):
         # Test with a simple model
         model_path = os.path.join(self.test_dir, "simple_model.json")
         M = gnn.structure.Model(10, 5, 3, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
-        x = np.random.rand(10, 10)
+        x = TestDataGenerator.generate_x_data(10, 10)
         output1 = M.forward_prop(x)
         gnn.Storage.saveModel(M, model_path)
         M_loaded = gnn.Storage.loadModel(model_path)
@@ -121,7 +121,7 @@ class TestingStorage(unittest.TestCase):
     
     def test_save_load_with_different_optimizers(self):
         """Test saving and loading models with different optimizers"""
-        x = np.random.rand(10, 10)
+        x = TestDataGenerator.generate_x_data(10, 10)
         
         # Test with SGD optimizer
         model_path = os.path.join(self.test_dir, "sgd_model.json")
@@ -145,7 +145,7 @@ class TestingStorage(unittest.TestCase):
     
     def test_save_load_with_different_activation_functions(self):
         """Test saving and loading models with different activation functions"""
-        x = np.random.rand(10, 10)
+        x = TestDataGenerator.generate_x_data(10, 10)
         
         # Test with Sigmoid activation
         model_path = os.path.join(self.test_dir, "sigmoid_model.json")
@@ -176,7 +176,7 @@ class TestingStorage(unittest.TestCase):
     
     def test_save_load_with_different_loss_functions(self):
         """Test saving and loading models with different loss functions"""
-        x = np.random.rand(10, 10)
+        x = TestDataGenerator.generate_x_data(10, 10)
         
         # Test with multiclass_cross_entropy loss
         model_path = os.path.join(self.test_dir, "cross_entropy_model.json")
@@ -203,7 +203,7 @@ class TestingStorage(unittest.TestCase):
         M.set_convolution_mode((5, 5, 1), 3, 1)
         
         # Generate some dummy data
-        x = np.random.rand(5, 5, 5, 1)
+        x = TestDataGenerator.generate_conv_x_data(5, 5)
         
         # Forward propagate
         output1 = M.forward_prop(x)
@@ -234,8 +234,8 @@ class TestingStorage(unittest.TestCase):
         M.batch_size = 2
         
         # Generate some dummy data with consistent data types
-        x = np.random.rand(10, 10).astype(np.float64)
-        y = np.random.randint(3, size=(10,)).astype(np.int32)
+        x = TestDataGenerator.generate_x_data(10, 10)
+        y = TestDataGenerator.generate_y_data(10, 3)
         
         # Train the model
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
@@ -261,8 +261,8 @@ class TestingStorage(unittest.TestCase):
         M = gnn.structure.Model(10, 5, 3, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
         
         # Generate some dummy data
-        x = np.random.rand(10, 10)
-        y = np.random.randint(3, size=(10,))
+        x = TestDataGenerator.generate_x_data(10, 10)
+        y = TestDataGenerator.generate_y_data(10, 3)
         
         # Train the model and get history
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
@@ -290,12 +290,12 @@ class TestingStorage(unittest.TestCase):
         M.batch_size = 10
         
         # Generate training data with consistent data types
-        x_train = np.random.rand(100, 10).astype(np.float64)
-        y_train = np.random.randint(3, size=(100,)).astype(np.int32)
+        x_train = TestDataGenerator.generate_x_data(10, 100)
+        y_train = TestDataGenerator.generate_y_data(100, 3)
         
         # Generate test data with consistent data types
-        x_test = np.random.rand(50, 10).astype(np.float64)
-        y_test = np.random.randint(3, size=(50,)).astype(np.int32)
+        x_test = TestDataGenerator.generate_x_data(10, 50)
+        y_test = TestDataGenerator.generate_y_data(50, 3)
         
         # Train the model
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
@@ -393,7 +393,7 @@ class TestingStorage(unittest.TestCase):
         self.assertEqual(len(M.layers), len(M_loaded.layers))
         
         # Test forward propagation with both models
-        x = np.random.rand(10, 10)
+        x = TestDataGenerator.generate_x_data(10, 10)
         output1 = M.forward_prop(x)
         output2 = M_loaded.forward_prop(x)
         self.assertAlmostEqual(np.sum(output1 - output2), 0)
@@ -414,8 +414,8 @@ class TestingStorage(unittest.TestCase):
         M.batch_size = 2
         
         # Generate simple data with consistent data types
-        x_train = np.random.rand(10, 10).astype(np.float64)
-        y_train = np.random.randint(0, 2, size=(10,)).astype(np.int32)
+        x_train = TestDataGenerator.generate_x_data(10, 10)
+        y_train = TestDataGenerator.generate_y_data(10, 2)  # Binary classification
         
         # Train the model
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)

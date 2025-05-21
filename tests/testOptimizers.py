@@ -23,7 +23,7 @@ class TestingTrain(unittest.TestCase):
     def test_simple_SGD_train(self):
         M = gnn.structure.Model(shape,shape,2, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1, gnn.optimizers.SGDOptimizer())
         x = np.random.rand(shape, shape)
-        y = np.random.randint(2, size=(shape,))
+        y = np.array([0, 1] * (shape//2))  # Alternating 0s and 1s for binary classification
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
         gnn.painter.draw(M, "input_test.html")
         acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler)
@@ -32,7 +32,7 @@ class TestingTrain(unittest.TestCase):
     def test_simple_Adam_train(self):
         M = gnn.structure.Model(shape,shape,2, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1, gnn.optimizers.AdamOptimizer())
         x = np.random.rand(shape, shape)
-        y = np.random.randint(2, size=(shape,))
+        y = np.array([0, 1] * (shape//2))  # Alternating 0s and 1s for binary classification
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
         gnn.painter.draw(M, "input_test.html")
         acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler)
@@ -90,7 +90,7 @@ class TestOptimizers(unittest.TestCase):
         
         # Generate some dummy data
         X = np.random.rand(10, 10)
-        Y = np.random.randint(3, size=(10,))
+        Y = np.array([0, 1, 2, 0, 1, 2, 0, 1, 2, 0])  # All three classes in sequence
         
         # Train for a few iterations
         for _ in range(2):
@@ -107,7 +107,7 @@ class TestOptimizers(unittest.TestCase):
         
         # Generate some dummy data
         X = np.random.rand(10, 10)
-        Y = np.random.randint(3, size=(10,))
+        Y = np.array([0, 1, 2, 0, 1, 2, 0, 1, 2, 0])  # All three classes in sequence
         
         # Train for a few iterations
         for _ in range(2):
@@ -127,7 +127,7 @@ class TestOptimizers(unittest.TestCase):
         
         # Generate some dummy data with proper shapes
         X = np.random.random((5, 5, 5, 1))  # (batch_size, height, width, channels)
-        Y = np.random.randint(3, size=(5,))  # (batch_size,)
+        Y = np.array([0, 1, 2, 1, 0])  # All three classes present
         
         # Train for a few iterations
         for _ in range(2):
@@ -147,9 +147,7 @@ class TestOptimizers(unittest.TestCase):
         model.batch_size = 1
         # Generate some dummy data with proper shapes
         X = np.random.random((5, 5, 5, 1))  # (batch_size, height, width, channels)
-        
-        # Generate Y ensuring all classes (0,1,2) are present
-        Y = np.array([0, 1, 2, 1, 0])  # Guaranteed to have all three classes
+        Y = np.array([0, 1, 2, 1, 0])  # All three classes present
         
         # Train for a few iterations
         for _ in range(10):
