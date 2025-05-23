@@ -8,24 +8,28 @@ from .helpers import *
 
 RESHEPERS = {}
 
-def eye_stretch(a,b):
-    A = np.eye(max(a,b))
-    return np.ascontiguousarray(np.array(cv.resize(get_numpy_array(A), (a,b))).T)
+def eye_stretch(a, b):
+    if a == b:
+        return np.eye(a)
+    A = np.eye(max(a, b))
+    return np.ascontiguousarray(cv.resize(A, (a, b)).T)
 
 def get_reshsper(size_from, size_to):
     if size_from == size_to:
         return None
-    elif not (size_from, size_to) in RESHEPERS.keys():
-        RESHEPERS[(size_from, size_to)] = eye_stretch(size_from, size_to)
-    return RESHEPERS[(size_from, size_to)]
+    key = (size_from, size_to)
+    if key not in RESHEPERS:
+        RESHEPERS[key] = eye_stretch(size_from, size_to)
+    return RESHEPERS[key]
 
 def Reshape(x, output_size, QIdentity):
-    x_reshaped = np.zeros((output_size, x.shape[1]))
-    for i in range(0, x.shape[1]):
-        if QIdentity is None:
-            x_reshaped[:, i] = x[:, i]
-        else:
-            x_reshaped[:, i] = np.dot(x[:, i], QIdentity)
+    if QIdentity is None:
+        return x[:output_size, :]
+    
+    # Pre-allocate only if we need QIdentity
+    x_reshaped = np.empty((output_size, x.shape[1]))
+    for i in range(x.shape[1]):
+        x_reshaped[:, i] = np.dot(x[:, i], QIdentity)
     return x_reshaped
 
 def Reshape_forward_prop(x, output_size, QIdentity):
