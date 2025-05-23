@@ -1,8 +1,13 @@
+import sys
+sys.path.append('.')
+sys.path.append('../')
 import unittest
 import argparse
-import sys
 import os
 import glob
+import growingnn as gnn
+
+gnn.config.SAVE_PLOTS = False
 
 # Define the test file names
 test_files = [

@@ -248,8 +248,8 @@ class History:
     def get_last(self, key):
         return self.Y[key][-1]
     def draw_hist(self, label, path):
+        if not SAVE_PLOTS: return
         for key in self.Y.keys():
-            #print("len(self.Y[key]): ", len(self.Y[key]), type(self.Y[key][0]))
             xc = range(0, len(self.Y[key]))
             plt.figure()
             plt.plot(xc, get_list_as_numpy_array(self.Y[key]), label = key)
