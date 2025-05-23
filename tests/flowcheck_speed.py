@@ -8,9 +8,6 @@ from growingnn.structure import SimulationScheduler
 from testSuite import mode
 import time
 
-# Disable plot saving during tests
-growingnn.config.SAVE_PLOTS = False
-
 def get_dataset(datasize, datadimensionality, classes):
     x_conv_train = np.random.random((datasize, datadimensionality, datadimensionality, 1))
     y_conv_train = np.random.randint(classes, size=(datasize, ))
