@@ -110,10 +110,19 @@ class AdamOptimizer(DenseOptimizer):
     @staticmethod
     @jit(nopython=True)
     def adam_update(params, grads, m, v, t, alpha, beta1, beta2, epsilon):
-        m = np.copy(beta1 * m + (1 - beta1) * grads)
-        v = np.copy(beta2 * v + (1 - beta2) * (grads ** 2))
-        m_hat = m / (1 - beta1 ** t)
-        v_hat = v / (1 - beta2 ** t)
+        # Pre-calculate common terms
+        beta1_t = beta1 ** t
+        beta2_t = beta2 ** t
+        
+        # Update moments
+        m = beta1 * m + (1 - beta1) * grads
+        v = beta2 * v + (1 - beta2) * (grads ** 2)
+        
+        # Bias correction
+        m_hat = m / (1 - beta1_t)
+        v_hat = v / (1 - beta2_t)
+        
+        # Update parameters
         params = params - alpha * m_hat / (np.sqrt(v_hat) + epsilon)
         return params, m, v
 
@@ -156,9 +165,7 @@ class ConvSGDOptimizer(ConvOptimizer):
     @staticmethod
     @jit(nopython=True)
     def conv_sgd_update(kernels, kernel_grads, biases, bias_grads, alpha):
-        kernels = kernels - alpha * kernel_grads
-        biases = biases - alpha * bias_grads
-        return kernels, biases
+        return kernels - alpha * kernel_grads, biases - alpha * bias_grads
 
     def update(self, kernels, kernel_grads, biases, bias_grads, alpha):
         kernels, biases = self.conv_sgd_update(kernels, kernel_grads, biases, bias_grads, alpha)
@@ -201,18 +208,22 @@ class ConvAdamOptimizer(ConvOptimizer):
     @staticmethod
     @jit(nopython=True)
     def conv_adam_update(kernels, kernel_grads, biases, bias_grads, m_kernels, v_kernels, m_biases, v_biases, t, alpha, beta1, beta2, epsilon):
-        # Adam for kernels
+        # Pre-calculate common terms
+        beta1_t = beta1 ** t
+        beta2_t = beta2 ** t
+        
+        # Update kernel moments
         m_kernels = beta1 * m_kernels + (1 - beta1) * kernel_grads
         v_kernels = beta2 * v_kernels + (1 - beta2) * (kernel_grads ** 2)
-        m_hat_kernels = m_kernels / (1 - beta1 ** t)
-        v_hat_kernels = v_kernels / (1 - beta2 ** t)
+        m_hat_kernels = m_kernels / (1 - beta1_t)
+        v_hat_kernels = v_kernels / (1 - beta2_t)
         kernels = kernels - alpha * m_hat_kernels / (np.sqrt(v_hat_kernels) + epsilon)
         
         # Adam for biases
         m_biases = beta1 * m_biases + (1 - beta1) * bias_grads
         v_biases = beta2 * v_biases + (1 - beta2) * (bias_grads ** 2)
-        m_hat_biases = m_biases / (1 - beta1 ** t)
-        v_hat_biases = v_biases / (1 - beta2 ** t)
+        m_hat_biases = m_biases / (1 - beta1_t)
+        v_hat_biases = v_biases / (1 - beta2_t)
         biases = biases - alpha * m_hat_biases / (np.sqrt(v_hat_biases) + epsilon)
         
         return kernels, biases, m_kernels, v_kernels, m_biases, v_biases
