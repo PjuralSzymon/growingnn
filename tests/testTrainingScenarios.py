@@ -86,23 +86,33 @@ class TestTrainingScenarios(unittest.TestCase):
             
     def test_train_conv_CPU_Adam_vs_SGD(self):
         """Test performance comparison between Adam and SGD optimizers"""
-        gnn.switch_to_cpu()
+        # Create deterministic data
+        np.random.seed(42)  # Set random seed for reproducibility
+        x = np.random.rand(20, 20, 20, 1)  # Fixed size input
+        y = np.array([0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1])  # Fixed class distribution
         
-        # Train with Adam optimizer
-        self.optimizer = gnn.AdamOptimizer()
-        model_adam = self.train_dense()
+        # Create models with same architecture
+        model_sgd = gnn.structure.Model(20, 20, 3, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
+        model_adam = gnn.structure.Model(20, 20, 3, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
         
-        # Train with SGD optimizer
-        self.optimizer = gnn.SGDOptimizer()
-        model_sgd = self.train_dense()
+        # Set convolution mode
+        model_sgd.set_convolution_mode((20, 20, 1), 20, 1)
+        model_adam.set_convolution_mode((20, 20, 1), 20, 1)
         
-        # Compare accuracies
-        acc_adam = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_adam.forward_prop(self.x_train)), self.y_train)
-        acc_sgd = gnn.Model.get_accuracy(gnn.Model.get_predictions(model_sgd.forward_prop(self.x_train)), self.y_train)
+        # Set optimizers
+        model_sgd.optimizer = gnn.optimizers.SGDOptimizer()
+        model_adam.optimizer = gnn.optimizers.AdamOptimizer()
         
-        # Adam should perform at least 90% as well as SGD
-        self.assertGreaterEqual(acc_adam, acc_sgd * 0.8, 
-                               f"Adam optimizer should have better result than SGD: {acc_adam} > {acc_sgd * 0.9}")
+        # Use same learning rate scheduler for both
+        lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
+        
+        # Train both models
+        acc_sgd, _ = model_sgd.gradient_descent(x, y, 50, lr_scheduler)
+        acc_adam, _ = model_adam.gradient_descent(x, y, 50, lr_scheduler)
+        
+        # Adam should perform at least 80% as well as SGD
+        self.assertGreaterEqual(acc_adam, acc_sgd * 0.8,
+                              f"Adam optimizer should have better result than SGD: {acc_adam} > {acc_sgd * 0.8}")
         
     def test_train_dense_CPU_SGD_SIMULATION(self):
         """Test training dense model with SGD and longer simulation time"""
