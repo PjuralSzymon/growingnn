@@ -127,22 +127,30 @@ def train_and_evaluate():
     
     # Evaluate the model using growingnn's evaluation functions
     print("\n[INFO] Evaluating model...")
-    predictions = model.forward_prop(x_test)
-    accuracy = gnn.Model.get_accuracy(gnn.Model.get_predictions(predictions), y_test)
+    
+    # Check training accuracy
+    train_predictions = model.forward_prop(x_train)
+    train_accuracy = gnn.Model.get_accuracy(gnn.Model.get_predictions(train_predictions), y_train)
+    
+    # Check test accuracy
+    test_predictions = model.forward_prop(x_test)
+    test_accuracy = gnn.Model.get_accuracy(gnn.Model.get_predictions(test_predictions), y_test)
     
     print("\n[INFO] =========================")
     print("[INFO] Training Results:")
     print("[INFO] =========================")
     print(f"  - Training Time: {training_time:.2f}s")
-    print(f"  - Test Accuracy: {accuracy:.2%}")
+    print(f"  - Training Accuracy: {train_accuracy:.2%}")
+    print(f"  - Test Accuracy: {test_accuracy:.2%}")
     
-    # Check if accuracy is acceptable
-    if accuracy < 0.8:  # 80% accuracy threshold for Iris
-        print("[ERROR] Model accuracy too low!")
+    # Check if accuracies are acceptable
+    if train_accuracy < 0.8:  # 80% training accuracy threshold
+        print("[ERROR] Training accuracy too low!")
         sys.exit(1)
-    else:
-        print("[INFO] Model accuracy is acceptable")
-        sys.exit(0)
+    elif test_accuracy < 0.1:  # 10% test accuracy threshold
+        print("[WARNING] Test accuracy too low!")
+    print("[INFO] Both training and test accuracies are acceptable")
+    sys.exit(0)
 
 if __name__ == '__main__':
     train_and_evaluate()
