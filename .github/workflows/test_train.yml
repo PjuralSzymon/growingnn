@@ -1,4 +1,4 @@
-name: Check algrotihm timing / optimization
+name: Check algrotihm traing capability
 
 on:
   push:
