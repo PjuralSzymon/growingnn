@@ -1,4 +1,5 @@
-name: Run Unit tests
+name: Check algrotihm traing capability
+
 on:
   push:
     branches-ignore:
@@ -30,6 +31,6 @@ jobs:
       run: |
         sed -i 's/SAVE_PLOTS = True/SAVE_PLOTS = False/' growingnn/config.py
 
-    - name: Run test Suite CPU
+    - name: Check algrotihm timing / optimization
       run: |
-        python tests/testSuite.py --mode cpu
+        python tests/flowcheck_train.py
