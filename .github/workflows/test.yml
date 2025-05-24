@@ -4,8 +4,8 @@ on:
     branches-ignore:
       - '*'
   pull_request:
-    branches-ignore:
-      - '*'
+    branches:
+      - main
 
 jobs:
   build:
