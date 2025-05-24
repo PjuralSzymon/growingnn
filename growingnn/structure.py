@@ -387,40 +387,37 @@ class Layer:
         return W
     
     def should_thread_forward(self):
-        if threading.active_count() >= MAX_THREADS:
-            return False
-        if len(self.f_input) + 1 < len(self.input_layers_ids): 
-            return False
-        print("BOB")
-        exit()
-        return True
+        return (threading.active_count() < MAX_THREADS and 
+                len(self.f_input) + 1 >= len(self.input_layers_ids))
     
     def append_to_f_input(self, X, sender_id):
         if sender_id == -1:
             self.f_input = [X]
-        else:
-            if sender_id not in self.input_layers_ids:
-                #return None
-                raise ValueError(f"Sender ID {sender_id} is not in the input layers IDs {self.input_layers_ids}")
-            while len(self.f_input) < len(self.input_layers_ids):
-                self.f_input.append(None)  # Uzupełniamy miejsce, jeśli f_input jest krótsze niż input_layers_ids
-            self.f_input[self.input_layers_ids.index(sender_id)] = X
+            return
+            
+        if sender_id not in self.input_layers_ids:
+            raise ValueError(f"Sender ID {sender_id} is not in the input layers IDs {self.input_layers_ids}")
+            
+        # Pre-allocate if needed
+        if len(self.f_input) < len(self.input_layers_ids):
+            self.f_input.extend([None] * (len(self.input_layers_ids) - len(self.f_input)))
+            
+        self.f_input[self.input_layers_ids.index(sender_id)] = X
         
+
     def forward_prop(self, X, sender_id, deepth = 0):
         self.append_to_f_input(X, sender_id)
         if any(x is None for x in self.f_input):
                 return None
         
-        # Combine inputs more efficiently
         self.I = np.vstack(self.f_input)
         self.W = Layer.update_weights_shape(self.W, self.I.shape[0])
-        self.Z = np.dot(self.W, self.I) + self.B
+        self.Z = Layer.compute_forward(self.I, self.W, self.B)
         self.A = self.act_fun.exe(self.Z)
 
-        # Process outputs more efficiently
         for layer_id in self.output_layers_ids:
+            #Reshape calucualted signal to the input size of the next layer
             layer = self.model.get_layer(layer_id)
-            # Initialize new_input before it's used
             new_input = None
             if type(layer) == Layer:
                 new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
@@ -432,14 +429,15 @@ class Layer:
             if new_input is None:
                 raise ValueError("Failed to initialize new_input for layer")
 
+            #Forward prop using threads approach
             if layer.should_thread_forward():
-                # Create a copy of new_input to avoid the closure issue
                 input_copy = new_input.copy()
                 thread = threading.Thread(
                     target=lambda input_copy=input_copy: layer.forward_prop(input_copy, self.id, deepth + 1),
                 )
                 thread.start()
                 self.model.forward_threads.append(thread)
+            #Forward prop using single thread approach
             else:
                 layer.forward_prop(new_input, self.id, deepth + 1)
         self.f_input = []
@@ -487,6 +485,12 @@ class Layer:
         self.W = self.optimizer_W.update(self.W, self.dW, alpha)
         self.B = self.optimizer_B.update(self.B, self.dB, alpha)
 
+    @staticmethod
+    @jit(nopython=True)
+    def compute_forward(I, W, B):
+        Z = np.dot(W, I) + B
+        return Z
+    
     @staticmethod
     @jit(nopython=True)
     def calcuale_Z(W, I, B):
