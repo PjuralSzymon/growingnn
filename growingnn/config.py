@@ -19,7 +19,7 @@ VERSION = 'R3'
 THROW_EXCEPTION = True  # Set to False to handle errors silently
 
 # Progress printing configuration
-PROGRESS_PRINT_FREQUENCY = 10  # Print progress every N epochs
+PROGRESS_PRINT_FREQUENCY = 7  # Print progress every N epochs
 
 # Add this with other configuration constants
 SAVE_PLOTS = True  # Set to False in tests to disable plot saving
