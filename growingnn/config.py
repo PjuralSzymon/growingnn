@@ -24,3 +24,6 @@ PROGRESS_PRINT_FREQUENCY = 10  # Print progress every N epochs
 # Add this with other configuration constants
 SAVE_PLOTS = True  # Set to False in tests to disable plot saving
 
+ENABLE_CLIP_ON_OPTIMIZERS = False # Switch to True reduce a risk of exploding gradients but it will increase a time of training by 21%
+
+ENABLE_CLIP_ON_ACTIVATIONS = False # Switch to True reduce a risk of exploding gradients but it will increase a time of training by 21%

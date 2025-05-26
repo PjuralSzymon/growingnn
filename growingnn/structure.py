@@ -103,7 +103,10 @@ class Activations:
             # Vectorized implementation instead of loop
             exp_X = np.exp(X - np.max(X, axis=0))
             result = exp_X / np.sum(exp_X, axis=0)
-            return clip(result, 0.0001, 0.999)
+            if ENABLE_CLIP_ON_ACTIVATIONS:
+                return clip(result, 0.0001, 0.999)
+            else:
+                return result
         
         @staticmethod
         @jit(nopython=True)

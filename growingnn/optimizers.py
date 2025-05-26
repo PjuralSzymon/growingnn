@@ -2,7 +2,7 @@ from abc import abstractmethod
 from numba import jit
 import numpy as np
 
-from growingnn.config import WEIGHTS_CLIP_RANGE
+from growingnn.config import WEIGHTS_CLIP_RANGE, ENABLE_CLIP_ON_OPTIMIZERS
 
 class Optimizer:
     def __init__(self, weights_clip_range=WEIGHTS_CLIP_RANGE):
@@ -16,9 +16,12 @@ class Optimizer:
 
     @staticmethod
     def clip_and_fix(params, clip_range):
-        params = np.clip(params, -clip_range, clip_range)
-        params = np.nan_to_num(params, nan=np.nanmean(params))
-        return params
+        if ENABLE_CLIP_ON_OPTIMIZERS:
+            params = np.clip(params, -clip_range, clip_range)
+            params = np.nan_to_num(params, nan=np.nanmean(params))
+            return params
+        else:
+            return params
 
     def ToDict(self):
         dict = {}
