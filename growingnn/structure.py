@@ -234,8 +234,6 @@ class History:
         acc = self._calculate_accuracy(correct_predictions, total_samples)
         self.append('accuracy', acc)
         self.append('loss', total_loss)
-        if not quiet:
-            print(f"Epoch: {epoch} Accuracy: {round(float(acc), 3)} loss: {round(float(total_loss), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()}")
         return acc
 
     def get_length(self):
@@ -867,17 +865,17 @@ class Model:
                 self.back_prop(E, len(batch_indexes), current_alpha)
                 
                 # Calculate loss and accuracy
-                if i % PROGRESS_PRINT_FREQUENCY == 0 or i >= iterations - 2:
-                    batch_loss = self.loss_function.exe(batch_Y, A)
-                    total_loss += batch_loss
-                    correct_predictions += np.sum(Model.get_predictions(A) == np.argmax(batch_Y, axis=0))
+                batch_loss = self.loss_function.exe(batch_Y, A)
+                total_loss += batch_loss
+                correct_predictions += np.sum(Model.get_predictions(A) == np.argmax(batch_Y, axis=0))
             
             # Shuffle indexes for next iteration
             np.random.shuffle(indexes)
 
-            # Print progress if not quiet and at the configured frequency or last iteration
-            if i % PROGRESS_PRINT_FREQUENCY == 0 or i >= iterations - 2:
-                history.update_training_progress(correct_predictions, total_samples, total_loss, i, current_alpha, quiet)
+            history.update_training_progress(correct_predictions, total_samples, total_loss, i, current_alpha, quiet)
+
+            if i % PROGRESS_PRINT_FREQUENCY == 0 and not quiet:
+                print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()}")
 
         return history.get_last('accuracy'), history
 
