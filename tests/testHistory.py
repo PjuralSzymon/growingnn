@@ -54,14 +54,12 @@ class TestHistory(unittest.TestCase):
         
     def test_learning_capable_above_threshold(self):
         # Test when loss is above threshold (0.1)
-        self.history.Y['loss'] = [0.2] * 10
+        self.history.Y['accuracy'] = [0.2] * 25
         self.assertFalse(self.history.learning_capable())
         
     def test_learning_capable_insufficient_data(self):
-        # Test when there's not enough data points
-        self.history.Y['loss'] = [0.1] * 5
-        # The function returns True when there are fewer data points than patience
-        self.assertTrue(self.history.learning_capable(patience=10, verbose=0.1))
+        self.history.Y['accuracy'] = [0.1] * 5
+        self.assertFalse(self.history.learning_capable())
         
     def test_append_multiple_values(self):
         # Test appending multiple values to the same key
@@ -139,11 +137,11 @@ class TestHistory(unittest.TestCase):
         self.history.Y['accuracy'] = [0.6, 0.65, 0.7, 0.75, 0.8, 0.82, 0.85, 0.87, 0.88, 0.89]
         
         # Test learning_capable with decreasing loss
-        self.assertTrue(self.history.learning_capable(patience=5, verbose=0.1))
+        self.assertTrue(self.history.learning_capable())
         
         # Test with plateauing loss
-        self.history.Y['loss'] = [0.5, 0.4, 0.3, 0.25, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
-        self.assertFalse(self.history.learning_capable(patience=5, verbose=0.1))
+        self.history.Y['accuracy'] = [0.18, 0.19, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
+        self.assertFalse(self.history.learning_capable())
         
     def test_history_with_fluctuating_data(self):
         # Test history with fluctuating data (common in training)
@@ -151,7 +149,7 @@ class TestHistory(unittest.TestCase):
         self.history.Y['accuracy'] = [0.6, 0.65, 0.63, 0.68, 0.65, 0.7, 0.72, 0.7, 0.75, 0.78]
         
         # Even with fluctuations, if there's overall improvement, it should be learning capable
-        self.assertTrue(self.history.learning_capable(patience=5, verbose=0.1))
+        self.assertTrue(self.history.learning_capable())
         
     def test_history_with_iteration_acc(self):
         # Test history with iteration accuracy data (used in training)
