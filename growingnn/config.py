@@ -1,5 +1,6 @@
 import os
 from enum import Enum
+import numpy
 
 class DistributionMode(Enum):
     UNIFORM = 'uniform'
@@ -14,6 +15,7 @@ weights_clip_range = 400 # After weight update we are clipping all weights to pr
 LARGE_MAX = 2**128
 MAX_THREADS = 1#max(1, int(os.cpu_count() * 0.5))
 VERSION = 'R3'
+FLOAT_TYPE = numpy.float64
 
 # Exception handling configuration
 THROW_EXCEPTION = True  # Set to False to handle errors silently

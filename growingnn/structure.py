@@ -181,7 +181,7 @@ class SimulationScheduler:
         self.flatten_check_length = 20
         self.progres_delta = 0.01
 
-    def can_simulate(self, i, hist_detail):
+    def can_simulate(self, i, hist_detail, epochsInGeneration=20):
         new_acc = 0#hist_detail.Y['iteration_acc_train'][-1]
         prev_acc = 0#hist_detail.Y['iteration_acc_train'][-2]
         if len(hist_detail.Y['iteration_acc_train']) > 0: new_acc = hist_detail.Y['iteration_acc_train'][-1]
@@ -199,11 +199,11 @@ class SimulationScheduler:
                 print("[iteration: "+str(i)+"] correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") training continues.")
                 return False
         elif self.mode == SimulationScheduler.OVERFIT_CHECK:
-            if hist_detail.learning_capable():
-                print("[iteration: "+str(i)+"] Overfit detected: " + str(new_acc)+ " starting simulation."  )
+            if not hist_detail.learning_capable(epochsInGeneration):
+                print("[iteration: "+str(i)+"] Model not learning capable: " + str(new_acc)+ " starting simulation."  )
                 return True
             else:
-                print("[iteration: "+str(i)+"] No overfit detected: " + str(new_acc)+ " training continues.")
+                print("[iteration: "+str(i)+"] Model is learning capable: " + str(new_acc)+ " training continues.")
                 return False
         return False
     
@@ -249,28 +249,56 @@ class History:
             if key in self.Y.keys() and key in new_hist.Y.keys():
                 self.Y[key] += new_hist.Y[key]
 
-    @staticmethod
-    @jit(nopython=True)
-    def _check_learning_capability(recent_losses, patience, verbose):
-        """Check if model is still learning using Numba JIT"""
-        if len(recent_losses) < patience:
-            return True
-            
-        min_loss = np.min(recent_losses)
-        max_loss = np.max(recent_losses)
+    def _check_learning_capability(accuracies, patience=15, verbose=0.3): #0.425
+        """
+        Determine if a model is still learning based on recent accuracy values.
+        Returns True if the model is still learning (significant upward trend), 
+        or False if learning has plateaued or stalled.
+        """
+        import numpy as np
         
-        if max_loss - min_loss < verbose and recent_losses[-1] >= recent_losses[0]:
-            return False
-            
+        # If not enough data points, assume the model can still learn
+        if len(accuracies) < 2:
+            return True
+        
+        # Consider only the most recent `patience` accuracy values
+        recent_values = accuracies[-patience:] if patience > 0 else accuracies
+        if len(recent_values) < 2:
+            # Not enough values in the window to determine a trend
+            return True
+        
+        # Calculate the overall slope as the difference between the last and first accuracy in the window
+        net_improvement = recent_values[-1] - recent_values[0]
+        # Calculate the standard deviation of accuracies in the window to gauge fluctuations
+        std_dev = float(np.std(recent_values))
+        
+        # Define a small improvement threshold based on the verbose (sensitivity) parameter
+        # Lower verbose => more sensitive (higher threshold required), higher verbose => less sensitive (lower threshold)
+        if verbose <= 0:
+            verbose = 1  # avoid division by zero, treat non-positive verbose as most sensitive
+        threshold = 0.01 / verbose  # e.g., verbose=1 -> 0.01 (1% accuracy), verbose=2 -> 0.005, verbose=10 -> 0.001
+        
+        # Check conditions for learning capability
+        # Condition 1: If net improvement is below the threshold (no significant upward trend)
+        if net_improvement <= threshold:
+            return False  # No meaningful overall improvement (plateau or very slow progress)
+        # Condition 2: If accuracy fluctuates a lot without a clear upward trend (improvement overshadowed by noise)
+        if net_improvement > 0 and std_dev > net_improvement:
+            return False  # Variations are larger than the overall improvement (no clear upward trend)
+        
+        # If neither condition triggered, the model is likely still learning (trend is upward)
         return True
 
-    def learning_capable(self, patience=10, verbose=0.5):
-        """Check if the model is still capable of learning based on loss history"""
-        if 'loss' not in self.Y or len(self.Y['loss']) < patience:
+
+    def learning_capable(self, epochsInGeneration=50):
+        """Check if the model is still capable of learning based on accuracy history"""
+        if 'accuracy' not in self.Y or len(self.Y['accuracy']) == 0:
+            print("No accuracy data available")
             return True
             
-        recent_losses = np.array(self.Y['loss'][-patience:])
-        return self._check_learning_capability(recent_losses, patience, verbose)
+        # Use all available data points up to patience
+        recent_accuracies = np.array(self.Y['accuracy'][-min(len(self.Y['accuracy']), epochsInGeneration):])
+        return History._check_learning_capability(recent_accuracies)
 
     def get_last(self, key):
         return self.Y[key][-1]
@@ -357,7 +385,8 @@ class Layer:
                 self.B = get_reverse_normal_distribution(WEIGHTS_CLIP_RANGE/3, (neurons, 1))
             else:
                 raise ValueError(f"Unsupported distribution mode: {WEIGHT_DISTRIBUTION_MODE}")
-            
+        self.W =  np.ascontiguousarray(self.W, dtype=FLOAT_TYPE)
+        self.B =  np.ascontiguousarray(self.B, dtype=FLOAT_TYPE)
             
     def set_as_ending(self):
         self.is_ending = True
@@ -522,20 +551,19 @@ class Layer:
         self.B = self.optimizer_B.update(self.B, self.dB, alpha)
 
     @staticmethod
-    @jit(nopython=True)
-    def compute_forward(I, W, B):
+    @jit(nopython=True, cache=False)
+    def compute_forward(I: FLOAT_TYPE, W: FLOAT_TYPE, B: FLOAT_TYPE):
         """Compute forward pass with optimized array contiguity"""
-        # Make arrays contiguous in a Numba-compatible way
         Z = np.dot(W, I) + B
         return Z
     
     @staticmethod
-    @jit(nopython=True)
+    @jit(nopython=True, cache=False)
     def calcuale_Z(W, I, B):
         return np.dot(W, I) + B
 
     @staticmethod
-    @jit(nopython=True)
+    @jit(nopython=True, cache=False)
     def calcuale_dW(m, dZ, I):
         return 1 / m * dZ @ I.T
 
@@ -779,7 +807,8 @@ class Model:
             raise ValueError("Input array is empty")
         if len(self.input_layers) == 0:
             raise ValueError("Model has no input layers")
-            
+
+        input = np.ascontiguousarray(input, dtype=FLOAT_TYPE)
         self.output_layer.A = None
         self.output_layer.set_as_ending()
         if len(self.input_layers) == 1:
@@ -821,7 +850,7 @@ class Model:
             raise ValueError("Learning rate scheduler cannot be None")
         if self.batch_size <= 0:
             raise ValueError("Batch size must be positive")
-
+        X = np.ascontiguousarray(X, dtype=FLOAT_TYPE)
             
         if one_hot_needed: 
             one_hot_Y = one_hot(Y)
