@@ -16,7 +16,8 @@ LARGE_MAX = 2**128
 MAX_THREADS = 1#max(1, int(os.cpu_count() * 0.5))
 VERSION = 'R3'
 FLOAT_TYPE = numpy.float64
-
+MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
+MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
 # Exception handling configuration
 THROW_EXCEPTION = True  # Set to False to handle errors silently
 
