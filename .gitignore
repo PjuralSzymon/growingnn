@@ -3,6 +3,8 @@
 /dist
 /work
 /ignore
+/result
+/data
 Pipfile
 Pipfile.lock
 pypi_desc.md

@@ -5,8 +5,8 @@ on:
     branches-ignore:
       - '*'
   pull_request:
-    branches-ignore:
-      - '*'
+    branches:
+      - main
 
 jobs:
   build:
@@ -26,6 +26,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt || echo "Failed to install dependencies"
+
+    - name: Disable plot saving for tests
+      run: |
+        sed -i 's/SAVE_PLOTS = True/SAVE_PLOTS = False/' growingnn/config.py
 
     - name: Check algrotihm timing / optimization
       run: |

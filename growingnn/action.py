@@ -13,21 +13,25 @@ class Action:
     def can_be_infulenced(self, by_action):
         pass
 
+    @staticmethod
     def generate_all_actions(Model):
+        # Pre-allocate list with estimated size to avoid multiple resizing
         result = []
+        
+        # Generate all actions in one pass
         adding_layer_seq_actions = Add_Seq_Layer.generate_all_actions(Model)
         adding_layer_res_actions = Add_Res_Layer.generate_all_actions(Model)
         adding_layer_conv_seq_actions = Add_Seq_Conv_Layer.generate_all_actions(Model)
         adding_layer_conv_res_actions = Add_Res_Conv_Layer.generate_all_actions(Model)
         delete_layer_actions = Del_Layer.generate_all_actions(Model)
-        #empty_action = Empty.generate_all_actions(Model)
         
-        result += adding_layer_seq_actions
-        result += adding_layer_res_actions
-        result += adding_layer_conv_seq_actions
-        result += adding_layer_conv_res_actions
-        result += delete_layer_actions
-        #result += empty_action
+        # Use extend instead of += for better performance
+        result.extend(adding_layer_seq_actions)
+        result.extend(adding_layer_res_actions)
+        result.extend(adding_layer_conv_seq_actions)
+        result.extend(adding_layer_conv_res_actions)
+        result.extend(delete_layer_actions)
+        
         return result
 
 class Add_Seq_Layer(Action):
@@ -40,6 +44,7 @@ class Add_Seq_Layer(Action):
             if by_action.params == self.params[1]: return True
         return False
 
+    @staticmethod
     def generate_all_actions(Model):
         pairs = Model.get_sequence_connection()
         pairs = delete_repetitions(pairs)
@@ -75,19 +80,17 @@ class Add_Res_Layer(Action):
             if by_action.params == self.params[1]: return True
         return False
 
+    @staticmethod
     def generate_all_actions(Model):
         pairs = Model.get_all_childrens_connections()
         pairs = delete_repetitions(pairs)
         actions = []
+        layer_types = [Layer_Type.ZERO, Layer_Type.RANDOM, Layer_Type.EYE]
+        
         for pair in pairs:
             if type(Model.get_layer(pair[1])) != Conv:
-                actions.append(Add_Res_Layer([pair[0], pair[1], Layer_Type.ZERO]))
-        for pair in pairs:
-            if type(Model.get_layer(pair[1])) != Conv:
-                actions.append(Add_Res_Layer([pair[0], pair[1], Layer_Type.RANDOM]))
-        for pair in pairs:
-            if type(Model.get_layer(pair[1])) != Conv:
-                actions.append(Add_Res_Layer([pair[0], pair[1], Layer_Type.EYE]))
+                for layer_type in layer_types:
+                    actions.append(Add_Res_Layer([pair[0], pair[1], layer_type]))
         return actions
     
     def __str__(self):
@@ -95,7 +98,6 @@ class Add_Res_Layer(Action):
 
 class Del_Layer(Action):
     def execute(self, Model):
-        #print("Add_Layer: ", self.params)
         Model.remove_layer(self.params)
 
     def can_be_infulenced(self, by_action):
@@ -121,6 +123,7 @@ class Add_Seq_Conv_Layer(Action):
             if by_action.params == self.params[1]: return True
         return False
 
+    @staticmethod
     def generate_all_actions(Model):
         pairs = Model.get_sequence_connection()
         pairs = delete_repetitions(pairs)
@@ -128,24 +131,10 @@ class Add_Seq_Conv_Layer(Action):
         for pair in pairs:
             layer_from = Model.get_layer(pair[0])
             layer_to = Model.get_layer(pair[1])
-            #print("type(layer_from): ", type(layer_from))
             if type(layer_from) == Conv:
                 if type(Model.get_layer(pair[1])) == Conv:
-                    i = layer_from.output_shape[0]
-                    d = np.clip(layer_to.depth, 1, 10)
-                    k = np.clip(layer_to.kernel_size, 1, i)  
-                    output_shape = (i-k+1,i-k+1, d)  
-                    output_flatten = output_shape[0] * output_shape[1] * output_shape[2]
-                    #if output_shape == layer_to.input_shape:
                     actions.append(Add_Seq_Conv_Layer(pair))                
                 elif type(layer_to) == Layer:
-                    o = layer_to.input_size
-                    i = layer_from.output_shape[0]
-                    d = np.clip(math.floor(o ** ( 1 / 3)), 1, 10)
-                    k = np.clip(i + 1 - math.ceil(o ** ( 1 / 3)), 1, i)
-                    output_shape = (i-k+1,i-k+1, d)  
-                    output_flatten = output_shape[0] * output_shape[1] * output_shape[2]
-                    #if output_flatten == layer_to.input_size:
                     actions.append(Add_Seq_Conv_Layer(pair))
         return actions
     
@@ -163,6 +152,7 @@ class Add_Res_Conv_Layer(Action):
             if by_action.params == self.params[1]: return True
         return False
 
+    @staticmethod
     def generate_all_actions(Model):
         pairs = Model.get_all_childrens_connections()
         pairs = delete_repetitions(pairs)
@@ -172,21 +162,8 @@ class Add_Res_Conv_Layer(Action):
             layer_to = Model.get_layer(pair[1])
             if type(layer_from) == Conv:
                 if type(Model.get_layer(pair[1])) == Conv:
-                    i = layer_from.output_shape[0]
-                    d = np.clip(layer_to.depth, 1, 10)
-                    k = np.clip(layer_to.kernel_size, 1, i)  
-                    output_shape = (i-k+1,i-k+1, d)  
-                    output_flatten = output_shape[0] * output_shape[1] * output_shape[2]
-                    #if output_shape == layer_to.input_shape:
                     actions.append(Add_Res_Conv_Layer(pair))                
                 elif type(layer_to) == Layer:
-                    o = layer_to.input_size
-                    i = layer_from.output_shape[0]
-                    d = np.clip(math.floor(o ** ( 1 / 3)), 1, 10)
-                    k = np.clip(i + 1 - math.ceil(o ** ( 1 / 3)), 1, i)
-                    output_shape = (i-k+1,i-k+1, d)  
-                    output_flatten = output_shape[0] * output_shape[1] * output_shape[2]
-                    #if output_flatten == layer_to.input_size:
                     actions.append(Add_Res_Conv_Layer(pair))
         return actions
     

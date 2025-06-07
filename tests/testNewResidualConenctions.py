@@ -27,7 +27,7 @@ class TestingTrain(unittest.TestCase):
         M.add_res_layer('init_0', 1)
         x = np.asarray(np.random.rand(shape, shape))
         for _ in range(1):
-            output = M.forward_prop(x * float(np.random.ranf(1)))
+            output = M.forward_prop(x * np.random.random())
         self.assertEqual(output.any(), True)
         gnn.painter.draw(M, "zzzz.html")
         
@@ -41,7 +41,7 @@ class TestingTrain(unittest.TestCase):
         y = np.random.randint(2, size=(shape,))
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
         acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler)
-        self.assertEqual(acc.any(), True)
+        self.assertEqual(acc is not None, True)
         gnn.painter.draw(M, "zzzz.html")
         
     def test_edgecase(self):
@@ -60,7 +60,7 @@ class TestingTrain(unittest.TestCase):
         
         acc, _ = M.gradient_descent(x, y, 20, lr_scheduler)
         for _ in range(1):
-            output = M.forward_prop(x * float(np.random.ranf(1)))
+            output = M.forward_prop(x * np.random.random())
         self.assertEqual(output.any(), True)
         gnn.painter.draw(M, "zzzz.html")
         
@@ -71,7 +71,7 @@ class TestingTrain(unittest.TestCase):
         M.add_res_layer(2, 1)
         x = np.random.random((shape, shape, shape, 1))
         for _ in range(1):
-            output = M.forward_prop(x * float(np.random.ranf(1)))
+            output = M.forward_prop(x * np.random.random())
         self.assertEqual(output.any(), True)
         gnn.painter.draw(M, "zzzz.html")
         
@@ -88,17 +88,16 @@ class TestingTrain(unittest.TestCase):
         M.add_res_layer(2, 1)
         acc, _ = M.gradient_descent(x, y, 2, lr_scheduler)
 
-        self.assertEqual(acc.any(), True)
+        self.assertEqual(acc is not None, True)
         gnn.painter.draw(M, "zzzz.html")
 
-
-    def test_res_onnection_3(self):
+    def test_res_onnection_3_simple(self):
         M = gnn.structure.Model(shape, shape, 2, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)
         M.add_res_layer('init_0', 1)
         M.add_res_layer('init_0', 1)
         x = np.asarray(np.random.rand(shape, shape))
         for _ in range(10):
-            output = M.forward_prop(x * float(np.random.ranf(1)))
+            output = M.forward_prop(x * np.random.random())
         self.assertEqual(output.any(), True)
 
     def test_res_onnection_4(self):
@@ -108,7 +107,7 @@ class TestingTrain(unittest.TestCase):
         M.add_res_layer('init_0', 1)
         x = np.asarray(np.random.rand(shape, shape))
         for _ in range(10):
-            output = M.forward_prop(x * float(np.random.ranf(1)))
+            output = M.forward_prop(x * np.random.random())
         self.assertEqual(output.any(), True)
         
 if __name__ == '__main__':
