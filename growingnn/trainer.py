@@ -59,7 +59,7 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
         hist_detail.append('iteration_acc_test', test_acc)
         
         # Check if simulation is needed
-        if simulation_scheduler.can_simulate(i, hist_detail):
+        if simulation_scheduler.can_simulate(i, hist_detail, epochs):
             # Log simulation start
             hist_detail.description += f"[iteration: {i}] No correction detected acc: {new_acc} starting simulation.\n"
             

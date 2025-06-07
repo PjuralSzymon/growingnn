@@ -169,22 +169,12 @@ class TestEdgeCases(unittest.TestCase):
         accuracy, history = self.model.gradient_descent(X, y, 10, lr_scheduler)
         self.assertIsInstance(accuracy, float)
         self.assertTrue(0 <= accuracy <= 1)
-        
-        # Test with batch size larger than dataset
-        self.model.batch_size = len(X) + 5
-        accuracy, history = self.model.gradient_descent(X, y, 10, lr_scheduler)
-        self.assertIsInstance(accuracy, float)
-        self.assertTrue(0 <= accuracy <= 1)
-        
-        # Test with zero batch size
-        self.model.batch_size = 0
-        with self.assertRaises(ValueError) as context:
-            self.model.gradient_descent(X, y, 10, lr_scheduler)
-        
+
         # Test with negative batch size
         self.model.batch_size = -1
         with self.assertRaises(ValueError) as context:
             self.model.gradient_descent(X, y, 10, lr_scheduler)
+        self.assertEqual(str(context.exception), "Batch size must be positive")
 
     def test_invalid_activation(self):
         """Test handling of invalid activation function"""

@@ -103,7 +103,10 @@ class Activations:
             # Vectorized implementation instead of loop
             exp_X = np.exp(X - np.max(X, axis=0))
             result = exp_X / np.sum(exp_X, axis=0)
-            return clip(result, 0.0001, 0.999)
+            if ENABLE_CLIP_ON_ACTIVATIONS:
+                return clip(result, 0.0001, 0.999)
+            else:
+                return result
         
         @staticmethod
         @jit(nopython=True)
@@ -178,7 +181,7 @@ class SimulationScheduler:
         self.flatten_check_length = 20
         self.progres_delta = 0.01
 
-    def can_simulate(self, i, hist_detail):
+    def can_simulate(self, i, hist_detail, epochsInGeneration=20):
         new_acc = 0#hist_detail.Y['iteration_acc_train'][-1]
         prev_acc = 0#hist_detail.Y['iteration_acc_train'][-2]
         if len(hist_detail.Y['iteration_acc_train']) > 0: new_acc = hist_detail.Y['iteration_acc_train'][-1]
@@ -196,11 +199,11 @@ class SimulationScheduler:
                 print("[iteration: "+str(i)+"] correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") training continues.")
                 return False
         elif self.mode == SimulationScheduler.OVERFIT_CHECK:
-            if hist_detail.learning_capable():
-                print("[iteration: "+str(i)+"] Overfit detected: " + str(new_acc)+ " starting simulation."  )
+            if not hist_detail.learning_capable(epochsInGeneration):
+                print("[iteration: "+str(i)+"] Model not learning capable: " + str(new_acc)+ " starting simulation."  )
                 return True
             else:
-                print("[iteration: "+str(i)+"] No overfit detected: " + str(new_acc)+ " training continues.")
+                print("[iteration: "+str(i)+"] Model is learning capable: " + str(new_acc)+ " training continues.")
                 return False
         return False
     
@@ -219,34 +222,87 @@ class History:
         self.best_test_acc = 0.0
         for key in keys:
             self.Y[key] = []
+
+    @staticmethod
+    @jit(nopython=True)
+    def _calculate_accuracy(correct_predictions, total_samples):
+        """Calculate accuracy using Numba JIT"""
+        return correct_predictions / total_samples
+
+    def update_training_progress(self, correct_predictions, total_samples, total_loss, epoch, current_alpha, quiet):
+        """Update training history and print progress"""
+        acc = self._calculate_accuracy(correct_predictions, total_samples)
+        self.append('accuracy', acc)
+        self.append('loss', total_loss)
+        return acc
+
     def get_length(self):
         return len(self.Y[list(self.Y.keys())[0]])
+
     def append(self, key, value):
         if not key in self.Y.keys():
             self.Y[key] = []
         self.Y[key].append(value)
+
     def merge(self, new_hist):
         for key in self.Y.keys():
             if key in self.Y.keys() and key in new_hist.Y.keys():
                 self.Y[key] += new_hist.Y[key]
-    def learning_capable(self, patience=10, verbose=0.5):
-        """Check if the model is still capable of learning based on loss history"""
-        if 'loss' not in self.Y or len(self.Y['loss']) < patience:
+
+    def _check_learning_capability(accuracies, patience=15, verbose=0.3): #0.425
+        """
+        Determine if a model is still learning based on recent accuracy values.
+        Returns True if the model is still learning (significant upward trend), 
+        or False if learning has plateaued or stalled.
+        """
+        import numpy as np
+        
+        # If not enough data points, assume the model can still learn
+        if len(accuracies) < 2:
+            return True
+        
+        # Consider only the most recent `patience` accuracy values
+        recent_values = accuracies[-patience:] if patience > 0 else accuracies
+        if len(recent_values) < 2:
+            # Not enough values in the window to determine a trend
+            return True
+        
+        # Calculate the overall slope as the difference between the last and first accuracy in the window
+        net_improvement = recent_values[-1] - recent_values[0]
+        # Calculate the standard deviation of accuracies in the window to gauge fluctuations
+        std_dev = float(np.std(recent_values))
+        
+        # Define a small improvement threshold based on the verbose (sensitivity) parameter
+        # Lower verbose => more sensitive (higher threshold required), higher verbose => less sensitive (lower threshold)
+        if verbose <= 0:
+            verbose = 1  # avoid division by zero, treat non-positive verbose as most sensitive
+        threshold = 0.01 / verbose  # e.g., verbose=1 -> 0.01 (1% accuracy), verbose=2 -> 0.005, verbose=10 -> 0.001
+        
+        # Check conditions for learning capability
+        # Condition 1: If net improvement is below the threshold (no significant upward trend)
+        if net_improvement <= threshold:
+            return False  # No meaningful overall improvement (plateau or very slow progress)
+        # Condition 2: If accuracy fluctuates a lot without a clear upward trend (improvement overshadowed by noise)
+        if net_improvement > 0 and std_dev > net_improvement:
+            return False  # Variations are larger than the overall improvement (no clear upward trend)
+        
+        # If neither condition triggered, the model is likely still learning (trend is upward)
+        return True
+
+
+    def learning_capable(self, epochsInGeneration=50):
+        """Check if the model is still capable of learning based on accuracy history"""
+        if 'accuracy' not in self.Y or len(self.Y['accuracy']) == 0:
+            print("No accuracy data available")
             return True
             
-        recent_losses = self.Y['loss'][-patience:]
-        min_loss = min(recent_losses)
-        max_loss = max(recent_losses)
-        
-        # If the difference between min and max loss is less than verbose,
-        # and we've seen no improvement in the last patience epochs,
-        # then we consider the model to have plateaued
-        if max_loss - min_loss < verbose and recent_losses[-1] >= recent_losses[0]:
-            return False
-            
-        return True
+        # Use all available data points up to patience
+        recent_accuracies = np.array(self.Y['accuracy'][-min(len(self.Y['accuracy']), epochsInGeneration):])
+        return History._check_learning_capability(recent_accuracies)
+
     def get_last(self, key):
         return self.Y[key][-1]
+
     def draw_hist(self, label, path):
         if not SAVE_PLOTS: return
         for key in self.Y.keys():
@@ -256,6 +312,7 @@ class History:
             plt.legend()
             plt.savefig(path + "/" + label + "_" + key + ".png")
             plt.close()
+            
     def save(self, path):
         dict = {}
         dict['keys'] = {}
@@ -269,6 +326,7 @@ class History:
             f.write(json.dumps(dict, cls=NumpyArrayEncoder))
         with open(path+"_description.txt", 'w') as f:
             f.write(self.description)
+            
     def load(self, path):
         with open(path, "r") as f:
             data = json.load(f)
@@ -327,7 +385,8 @@ class Layer:
                 self.B = get_reverse_normal_distribution(WEIGHTS_CLIP_RANGE/3, (neurons, 1))
             else:
                 raise ValueError(f"Unsupported distribution mode: {WEIGHT_DISTRIBUTION_MODE}")
-            
+        self.W =  np.ascontiguousarray(self.W, dtype=FLOAT_TYPE)
+        self.B =  np.ascontiguousarray(self.B, dtype=FLOAT_TYPE)
             
     def set_as_ending(self):
         self.is_ending = True
@@ -387,40 +446,43 @@ class Layer:
         return W
     
     def should_thread_forward(self):
-        if threading.active_count() >= MAX_THREADS:
-            return False
-        if len(self.f_input) + 1 < len(self.input_layers_ids): 
-            return False
-        print("BOB")
-        exit()
-        return True
+        return (threading.active_count() < MAX_THREADS and 
+                len(self.f_input) + 1 >= len(self.input_layers_ids))
     
     def append_to_f_input(self, X, sender_id):
         if sender_id == -1:
             self.f_input = [X]
-        else:
-            if sender_id not in self.input_layers_ids:
-                #return None
-                raise ValueError(f"Sender ID {sender_id} is not in the input layers IDs {self.input_layers_ids}")
-            while len(self.f_input) < len(self.input_layers_ids):
-                self.f_input.append(None)  # Uzupełniamy miejsce, jeśli f_input jest krótsze niż input_layers_ids
-            self.f_input[self.input_layers_ids.index(sender_id)] = X
+            return
+            
+        if sender_id not in self.input_layers_ids:
+            raise ValueError(f"Sender ID {sender_id} is not in the input layers IDs {self.input_layers_ids}")
+            
+        # Pre-allocate if needed
+        if len(self.f_input) < len(self.input_layers_ids):
+            self.f_input.extend([None] * (len(self.input_layers_ids) - len(self.f_input)))
+            
+        self.f_input[self.input_layers_ids.index(sender_id)] = X
         
+
     def forward_prop(self, X, sender_id, deepth = 0):
         self.append_to_f_input(X, sender_id)
         if any(x is None for x in self.f_input):
                 return None
         
-        # Combine inputs more efficiently
+        #Preparing data
         self.I = np.vstack(self.f_input)
         self.W = Layer.update_weights_shape(self.W, self.I.shape[0])
-        self.Z = np.dot(self.W, self.I) + self.B
+        #Making data contiguous in memory makes NUMBA work faster
+        self.I = np.ascontiguousarray(self.I)
+        self.B = np.ascontiguousarray(self.B)
+        self.W = np.ascontiguousarray(self.W)
+        #Computing forward pass
+        self.Z = Layer.compute_forward(self.I, self.W, self.B)
         self.A = self.act_fun.exe(self.Z)
 
-        # Process outputs more efficiently
         for layer_id in self.output_layers_ids:
+            #Reshape calucualted signal to the input size of the next layer
             layer = self.model.get_layer(layer_id)
-            # Initialize new_input before it's used
             new_input = None
             if type(layer) == Layer:
                 new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
@@ -432,14 +494,15 @@ class Layer:
             if new_input is None:
                 raise ValueError("Failed to initialize new_input for layer")
 
+            #Forward prop using threads approach
             if layer.should_thread_forward():
-                # Create a copy of new_input to avoid the closure issue
                 input_copy = new_input.copy()
                 thread = threading.Thread(
                     target=lambda input_copy=input_copy: layer.forward_prop(input_copy, self.id, deepth + 1),
                 )
                 thread.start()
                 self.model.forward_threads.append(thread)
+            #Forward prop using single thread approach
             else:
                 layer.forward_prop(new_input, self.id, deepth + 1)
         self.f_input = []
@@ -488,12 +551,19 @@ class Layer:
         self.B = self.optimizer_B.update(self.B, self.dB, alpha)
 
     @staticmethod
-    @jit(nopython=True)
+    @jit(nopython=True, cache=False)
+    def compute_forward(I: FLOAT_TYPE, W: FLOAT_TYPE, B: FLOAT_TYPE):
+        """Compute forward pass with optimized array contiguity"""
+        Z = np.dot(W, I) + B
+        return Z
+    
+    @staticmethod
+    @jit(nopython=True, cache=False)
     def calcuale_Z(W, I, B):
         return np.dot(W, I) + B
 
     @staticmethod
-    @jit(nopython=True)
+    @jit(nopython=True, cache=False)
     def calcuale_dW(m, dZ, I):
         return 1 / m * dZ @ I.T
 
@@ -737,7 +807,8 @@ class Model:
             raise ValueError("Input array is empty")
         if len(self.input_layers) == 0:
             raise ValueError("Model has no input layers")
-            
+
+        input = np.ascontiguousarray(input, dtype=FLOAT_TYPE)
         self.output_layer.A = None
         self.output_layer.set_as_ending()
         if len(self.input_layers) == 1:
@@ -755,11 +826,7 @@ class Model:
         if self.output_layer.A is None:
             raise ValueError("After forward prop A on output layer is None")
         return self.output_layer.A
-        
-        
-    #def back_prop(self,
 
-    #def back_prop(self,
     def back_prop(self,E,m,alpha):
         for i in range(0, len(self.input_layers)):
             self.input_layers[i].set_as_starting()
@@ -781,6 +848,9 @@ class Model:
             raise ValueError("Number of iterations must be positive")
         if lr_scheduler is None:
             raise ValueError("Learning rate scheduler cannot be None")
+        if self.batch_size <= 0:
+            raise ValueError("Batch size must be positive")
+        X = np.ascontiguousarray(X, dtype=FLOAT_TYPE)
             
         if one_hot_needed: 
             one_hot_Y = one_hot(Y)
@@ -802,9 +872,9 @@ class Model:
             current_alpha = lr_scheduler.alpha_scheduler(i, iterations)
             
             # Initialize batch metrics
-            total_loss = 0
-            all_predictions = []
-            all_expectations = []
+            total_loss = 0          
+            correct_predictions = 0 
+            total_samples = Y.shape[0]
             
             # Process batches
             for x_indx_start in range(0, X.shape[index_axis], self.batch_size):
@@ -815,7 +885,6 @@ class Model:
                 # Forward pass
                 batch_X = np.take(X, batch_indexes, index_axis)
                 batch_Y = np.take(one_hot_Y, batch_indexes, 1)
-                batch_Y_orig = np.take(Y, batch_indexes, 0)
                 
                 # Forward propagation
                 A = self.forward_prop(batch_X)
@@ -824,30 +893,19 @@ class Model:
                 E = self.loss_function.der(batch_Y, A)
                 self.back_prop(E, len(batch_indexes), current_alpha)
                 
-                # Calculate loss
+                # Calculate loss and accuracy
                 batch_loss = self.loss_function.exe(batch_Y, A)
                 total_loss += batch_loss
-                
-                # Store predictions and expectations
-                all_predictions.append(A)
-                all_expectations.append(batch_Y_orig)
+                correct_predictions += np.sum(Model.get_predictions(A) == np.argmax(batch_Y, axis=0))
             
             # Shuffle indexes for next iteration
             np.random.shuffle(indexes)
-            
-            # Calculate metrics for this epoch
-            predictions = np.concatenate(all_predictions, axis=1)
-            expectations = np.concatenate(all_expectations, axis=0)
-            acc = Model.get_accuracy(Model.get_predictions(predictions), expectations)
-            
-            # Update history
-            history.append('accuracy', acc)
-            history.append('loss', total_loss)
-            
-            # Print progress if not quiet and at the configured frequency
-            if not quiet and i % PROGRESS_PRINT_FREQUENCY == 0:
-                print(f"Epoch: {i} Accuracy: {round(float(acc), 3)} loss: {round(float(total_loss), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()}")
-        
+
+            history.update_training_progress(correct_predictions, total_samples, total_loss, i, current_alpha, quiet)
+
+            if i % PROGRESS_PRINT_FREQUENCY == 0 and not quiet:
+                print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()}")
+
         return history.get_last('accuracy'), history
 
     def evaluate(self, x, y):
@@ -1007,7 +1065,6 @@ class Conv(Layer):
         self.I = mean_n_conv(self.f_input, self.input_shape)
         self.Z = np.zeros((self.I.shape[0], self.output_shape[0], self.output_shape[1], self.output_shape[2]))
         
-        # Optimize convolution operations
         for img_id in range(0, self.I.shape[0]):
             for i in range(self.depth): 
                 for j in range(self.input_depth): 

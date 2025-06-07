@@ -1,6 +1,7 @@
 import time
 import random
 import math
+import numpy as np
 from ..action import Action
 #from ..structure import *
 
@@ -42,20 +43,20 @@ class TreeNode:
         deepth = DEEPTH
         while deepth > 0:
             all_action_seq = Action.generate_all_actions(M_copy)
-            if len(all_action_seq) == 0: break
+            if not all_action_seq:
+                break
+                
+            # Choose action and execute it
             choosen_action = random.choice(all_action_seq)
             choosen_action.execute(M_copy)
-            #M_copy.add_layer(action_seq[0], action_seq[1])
-            all_action_seq.remove(choosen_action)
-            new_action_seq = []
-            for check_action in all_action_seq:
-                if check_action.can_be_infulenced(choosen_action) == False:
-                    new_action_seq.append(check_action)
-            all_action_seq = new_action_seq
+            
+            # Filter actions more efficiently using list comprehension
+            all_action_seq = [action for action in all_action_seq 
+                            if action != choosen_action and 
+                            not action.can_be_infulenced(choosen_action)]
             deepth -= 1
 
-        score = self.simulation_score.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
-        return score
+        return self.simulation_score.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
 
     def get_best_child(self):
         USB1 = lambda node : node.value + UCB1_CONTS*protected_divide(math.log(node.parent.visit_counter),node.visit_counter)
@@ -84,17 +85,17 @@ class TreeNode:
         del self
 
     def __str__(self):
-        result = "node: value:"+ str(self.value) + " visit_counter: "+str(self.visit_counter)+ "\n"
+        result = f"node: value:{self.value} visit_counter: {self.visit_counter}\n"
         for child in self.childNodes:
-            result += child.__str__()+ "\n"
+            result += child.__str__() + "\n"
         return result
     
 async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_score):
     size_of_changes = len(Action.generate_all_actions(M))
-    #size_of_changes = len(M.generate_all_possible_new_layers())
     if size_of_changes == 0: 
         print("Error")
-        return None,0
+        return None, 0
+        
     root = TreeNode(None, None, M, epochs, X_train, Y_train, simulation_score)
     deadline = time.time() + max_time_for_dec
     deepth = 0
@@ -103,7 +104,8 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
         _, deepth, r = simulate(root)
         rollouts += r
     if time.time() > deadline: 
-        print("More time was needed to analise all possiblites at least once")
+        print("More time was needed to analyze all possibilities at least once")
+        
     best_action = root.get_best_child().action
     root.kill()
     return best_action, deepth, rollouts
@@ -112,7 +114,6 @@ def simulate(node, deepth = 0, rollouts = 0):
     if node.is_leaf():
         if node.visit_counter==0:
             new_value = node.rollout()
-            #print("deepth: ", deepth, " rollout score: ", new_value, )
             node.value = new_value
             node.visit_counter += 1
             rollouts += 1
