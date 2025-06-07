@@ -16,25 +16,24 @@ class NumpyArrayEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 def get_reverse_normal_distribution(clip_range, shape):
-    tmp = np.random.normal(loc=0.0, scale=clip_range, size=shape)
-    tmp_right = tmp + 2.2 * clip_range
-    tmp_left = tmp - 2.2 * clip_range
-    # Ensure we have enough samples for the desired shape
-    num_samples = np.prod(shape)  # Total number of samples needed
-    half_samples = num_samples // 2  # Half for left, half for right
+    # Calculate total number of samples needed
+    num_samples = np.prod(shape)
     
-    # Randomly choose samples for left and right sides
-    left_selected = np.random.choice(tmp_left.flatten(), half_samples, replace=True)
-    right_selected = np.random.choice(tmp_right.flatten(), half_samples, replace=True)
+    # Generate samples for left and right sides directly
+    left_samples = np.random.normal(loc=-2.2 * clip_range, scale=clip_range, size=num_samples)
+    right_samples = np.random.normal(loc=2.2 * clip_range, scale=clip_range, size=num_samples)
     
-    # Merge left and right samples
-    merged = np.concatenate((left_selected, right_selected))
-    
-    # Shuffle the merged array to avoid order bias
+    # Merge and shuffle samples
+    merged = np.concatenate((left_samples, right_samples))
     np.random.shuffle(merged)
     
-    # Reshape to the desired shape
-    return merged.reshape(shape)
+    # Take the first num_samples elements and reshape
+    result = merged[:num_samples].reshape(shape)
+    
+    # Ensure all values are within the expected range
+    result = np.clip(result, -2.2 * clip_range, 2.2 * clip_range)
+    
+    return result
 
 def switch_to_gpu():
     #print(" helper: switch_to_gpu")
