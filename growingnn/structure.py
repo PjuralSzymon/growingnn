@@ -399,6 +399,12 @@ class Layer:
     def get_output_size(self):
         return self.neurons
     
+    def remove_neurons(self, reduce_ratio):
+        neurons_reduced_amount = int(self.neurons * reduce_ratio)
+        self.W = np.dot(self.W.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
+        self.B = np.dot(self.B.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
+        self.neurons = neurons_reduced_amount
+
     def connect_input(self, layer_id):
         if layer_id == self.id: 
             print("error I")

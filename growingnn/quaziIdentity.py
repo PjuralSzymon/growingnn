@@ -1,4 +1,6 @@
 import matplotlib
+
+from growingnn.config import FLOAT_TYPE
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from numba import jit
@@ -19,10 +21,9 @@ def get_reshsper(size_from, size_to):
         return None
     key = (size_from, size_to)
     if key not in RESHEPERS:
-        RESHEPERS[key] = eye_stretch(size_from, size_to)
+        RESHEPERS[key] = np.ascontiguousarray(eye_stretch(size_from, size_to), dtype=FLOAT_TYPE)
     return RESHEPERS[key]
 
-@jit(nopython=True)
 def Reshape(x, output_size, QIdentity):
     if QIdentity is None:
         return x[:output_size, :]

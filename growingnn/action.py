@@ -1,6 +1,6 @@
 from .structure import *
 import numpy as np
-import math
+from math import floor
 
 class Action:
     def __init__(self, _params):
@@ -24,6 +24,8 @@ class Action:
         adding_layer_conv_seq_actions = Add_Seq_Conv_Layer.generate_all_actions(Model)
         adding_layer_conv_res_actions = Add_Res_Conv_Layer.generate_all_actions(Model)
         delete_layer_actions = Del_Layer.generate_all_actions(Model)
+        delete_neurons_actions_05 = Del_neurons.generate_all_actions(Model,0.5)
+        delete_neurons_actions_09 = Del_neurons.generate_all_actions(Model,0.9)
         
         # Use extend instead of += for better performance
         result.extend(adding_layer_seq_actions)
@@ -31,7 +33,8 @@ class Action:
         result.extend(adding_layer_conv_seq_actions)
         result.extend(adding_layer_conv_res_actions)
         result.extend(delete_layer_actions)
-        
+        result.extend(delete_neurons_actions_05)
+        result.extend(delete_neurons_actions_09)
         return result
 
 class Add_Seq_Layer(Action):
@@ -96,22 +99,6 @@ class Add_Res_Layer(Action):
     def __str__(self):
         return " ( Add Res Layer Action: " + str(self.params) + " ) "
 
-class Del_Layer(Action):
-    def execute(self, Model):
-        Model.remove_layer(self.params)
-
-    def can_be_infulenced(self, by_action):
-        return False
-
-    def generate_all_actions(Model):
-        actions = []
-        for layer_hidden in Model.hidden_layers:
-            actions.append(Del_Layer(layer_hidden.id))
-        return actions
-
-    def __str__(self):
-        return " ( Del Layer Action: " + str(self.params) + " ) "
-    
 
 class Add_Seq_Conv_Layer(Action):
     def execute(self, Model):
@@ -169,3 +156,41 @@ class Add_Res_Conv_Layer(Action):
     
     def __str__(self):
         return " ( Add Res Conv Layer Action: " + str(self.params) + " ) "
+    
+class Del_Layer(Action):
+    def execute(self, Model):
+        Model.remove_layer(self.params)
+
+    def can_be_infulenced(self, by_action):
+        return False
+
+    def generate_all_actions(Model):
+        actions = []
+        for layer_hidden in Model.hidden_layers:
+            actions.append(Del_Layer(layer_hidden.id))
+        return actions
+
+    def __str__(self):
+        return " ( Del Layer Action: " + str(self.params) + " ) "
+    
+
+class Del_neurons(Action):
+
+    def execute(self, Model):
+        Model.get_layer(self.params[0]).remove_neurons(self.params[1])
+
+    def can_be_infulenced(self, by_action):
+        return False
+
+    def generate_all_actions(Model, remove_neurons_ratio = 0.5):
+        actions = []
+        for layer_hidden in Model.hidden_layers:
+            if type(Model.get_layer(layer_hidden.id)) != Conv:
+                if floor(Model.get_layer(layer_hidden.id).neurons * remove_neurons_ratio) < MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL:
+                    continue
+                params = [layer_hidden.id, remove_neurons_ratio]
+                actions.append(Del_neurons(params))
+        return actions
+
+    def __str__(self):
+        return " ( Del Neurons Action: " + str(self.params) + " ) "

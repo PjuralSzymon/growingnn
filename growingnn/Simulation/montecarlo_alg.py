@@ -94,7 +94,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
     size_of_changes = len(Action.generate_all_actions(M))
     if size_of_changes == 0: 
         print("Error")
-        return None, 0
+        return None, 0, 0
         
     root = TreeNode(None, None, M, epochs, X_train, Y_train, simulation_score)
     deadline = time.time() + max_time_for_dec
