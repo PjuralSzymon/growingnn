@@ -310,7 +310,10 @@ class History:
             plt.figure()
             plt.plot(xc, get_list_as_numpy_array(self.Y[key]), label = key)
             plt.legend()
-            plt.savefig(path + "/" + label + "_" + key + ".png")
+            try:
+                plt.savefig(path + "/" + label + "_" + key + ".png")
+            except Exception as e:
+                print(f"Error saving plot: {e}")
             plt.close()
             
     def save(self, path):
