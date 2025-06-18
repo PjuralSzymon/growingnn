@@ -33,7 +33,17 @@ class Config:
     # Neural Network Structure Settings
     MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
     MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
-    
+
+    # Action Settings
+    ACTIONS_ENABLE_ADD_SEQ_LAYER = True
+    ACTIONS_ENABLE_ADD_RES_LAYER = True
+    ACTIONS_ENABLE_ADD_SEQ_CONV_LAYER = True
+    ACTIONS_ENABLE_ADD_RES_CONV_LAYER = True
+    ACTIONS_ENABLE_DEL_LAYER = True
+    ACTIONS_ENABLE_DEL_NEURONS_01 = True
+    ACTIONS_ENABLE_DEL_NEURONS_05 = True
+    ACTIONS_ENABLE_DEL_NEURONS_09 = True
+
     @classmethod
     def update(cls, **kwargs):
         """Update configuration values at runtime"""
