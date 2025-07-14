@@ -5,6 +5,7 @@ import json
 import threading
 import os
 import time
+from numba import jit
 from .painter import *
 from .config import *
 from .optimizers import *
@@ -29,6 +30,8 @@ class Loss:
     def getByName(name):
         if name == Loss.MSE.__name__:
             return Loss.MSE
+        elif name == Loss.MAE.__name__:
+            return Loss.MAE
         elif name == Loss.multiclass_cross_entropy.__name__:
             return Loss.multiclass_cross_entropy
 
@@ -38,6 +41,14 @@ class Loss:
             return np.sum((Y_pred - Y_true)**2)/Y_pred.shape[0]
         def der(Y_true, Y_pred):
             return Y_pred - Y_true
+    
+    class MAE:
+        __name__ = 'MAE'
+        def exe(Y_true, Y_pred):
+            return np.sum(np.abs(Y_pred - Y_true))/Y_pred.shape[0]
+        def der(Y_true, Y_pred):
+            return np.sign(Y_pred - Y_true)
+    
     class multiclass_cross_entropy:
         __name__ = 'multiclass_cross_entropy'
         def exe(Y_true, Y_pred):
@@ -69,18 +80,23 @@ class Activations:
             return Activations.Sigmoid
         elif name == Activations.Tanh.__name__:
             return Activations.Tanh
+        elif name == Activations.Linear.__name__:
+            return Activations.Linear
+        elif name == Activations.ReLU_Regression.__name__:
+            return Activations.ReLU_Regression
+    
     class ReLu:
         __name__ = 'ReLu'
 
         @staticmethod
         @jit(nopython=True)
         def exe(X):
-            return numpy.maximum(X,0)
+            return np.maximum(X,0)
         
         @staticmethod
         @jit(nopython=True)
         def der(X):
-            return X > 0
+            return np.where(X > 0, 1, 0)
         
     class leaky_ReLu:
         __name__ = 'leaky_ReLu'
@@ -139,6 +155,32 @@ class Activations:
         @jit(nopython=True)
         def der(X):
             return 1 - np.tanh(X)**2
+    
+    class Linear:
+        __name__ = 'Linear'
+        
+        @staticmethod
+        @jit(nopython=True)
+        def exe(X):
+            return X
+        
+        @staticmethod
+        @jit(nopython=True)
+        def der(X):
+            return np.ones_like(X)
+    
+    class ReLU_Regression:
+        __name__ = 'ReLU_Regression'
+        
+        @staticmethod
+        @jit(nopython=True)
+        def exe(X):
+            return np.maximum(X, 0)
+        
+        @staticmethod
+        @jit(nopython=True)
+        def der(X):
+            return X > 0
 
 class LearningRateScheduler:
     CONSTANT = 0
