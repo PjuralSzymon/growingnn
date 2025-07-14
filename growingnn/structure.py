@@ -466,6 +466,9 @@ class Layer:
 
     def forward_prop(self, X, sender_id, deepth = 0):
         self.append_to_f_input(X, sender_id)
+        #print(self.id, "self.f_input: ",self.f_input, " X: ", X.shape)
+        #print(self.id, "self.input_layers_ids: ",self.input_layers_ids)
+        #exit()
         if any(x is None for x in self.f_input):
                 return None
         
@@ -515,6 +518,7 @@ class Layer:
         return True
     
     def back_prop(self,E,m,alpha):
+        #print(self.id, "back_prop")
         if E.shape[0] <=0:
             raise ValueError("Error with 0 shape can't be backpropagated E.shape:", E.shape)
         m = 1.0
@@ -877,6 +881,7 @@ class Model:
             total_samples = Y.shape[0]
             
             # Process batches
+            #print(" Process batches - ")
             for x_indx_start in range(0, X.shape[index_axis], self.batch_size):
                 # Get batch indexes
                 batch_end = min(x_indx_start + self.batch_size, X.shape[index_axis])
@@ -887,6 +892,7 @@ class Model:
                 batch_Y = np.take(one_hot_Y, batch_indexes, 1)
                 
                 # Forward propagation
+                #print("AAAA batch_X: ", batch_X.shape)
                 A = self.forward_prop(batch_X)
                 
                 # Calculate error and backpropagate
@@ -1062,24 +1068,30 @@ class Conv(Layer):
                 return None
         
         # Combine inputs more efficiently
+        #print(self.id, "self.input_shape: ", self.input_shape)
+        #print(self.id, "self.f_input.shape: ", len(self.f_input), " s: ", self.f_input[0].shape)
         self.I = mean_n_conv(self.f_input, self.input_shape)
         self.Z = np.zeros((self.I.shape[0], self.output_shape[0], self.output_shape[1], self.output_shape[2]))
-        
+        #print(self.id, "self.I.shape: ", self.I.shape)
+        #print(self.id, "self.Z.shape: ", self.Z.shape)
         for img_id in range(0, self.I.shape[0]):
             for i in range(self.depth): 
                 for j in range(self.input_depth): 
                     if IS_CUPY:
                         temp1 = correlate(self.I[img_id,:,:,j], self.kernels[i,j])
+                        # TODO: JAKIŚ RESIZE ZLE DZIAŁA Z PRZESKALOWYWANIEM
                         self.Z[img_id,:,:,i] += np.resize(temp1, self.Z[img_id,:,:,i].shape)
                     else:
                         self.Z[img_id,:,:,i] += correlate2d(self.I[img_id,:,:,j], self.kernels[i,j], "valid") 
                 self.Z[img_id,:,:,i] += self.biases[:,:,i]
         
+        #print(self.id, "self.Z.shape: ", self.Z.shape)
         self.A = self.act_fun.exe(self.Z)
-        
+        #print(self.id, "self.A.shape: ", self.A.shape)
         # Process outputs more efficiently
         for layer_id in self.output_layers_ids:
             layer = self.model.get_layer(layer_id)
+            #print(self.id, " target layer: ", layer.id, " A shape: ", self.A.shape, " input_shape: ", layer.input_shape)
             if type(layer) == Conv:
                 new_input = Resize(self.A.copy(), layer.input_shape)
             elif type(layer) == Layer:
@@ -1096,6 +1108,7 @@ class Conv(Layer):
                 thread.start()
                 self.model.forward_threads.append(thread)
             else:
+                #print("from: ", self.id, " target: ", layer.id)
                 layer.forward_prop(new_input.copy(), self.id, deepth + 1)
         self.f_input = []
 
