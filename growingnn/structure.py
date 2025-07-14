@@ -82,8 +82,6 @@ class Activations:
             return Activations.Tanh
         elif name == Activations.Linear.__name__:
             return Activations.Linear
-        elif name == Activations.ReLU_Regression.__name__:
-            return Activations.ReLU_Regression
     
     class ReLu:
         __name__ = 'ReLu'
@@ -168,19 +166,7 @@ class Activations:
         @jit(nopython=True)
         def der(X):
             return np.ones_like(X)
-    
-    class ReLU_Regression:
-        __name__ = 'ReLU_Regression'
-        
-        @staticmethod
-        @jit(nopython=True)
-        def exe(X):
-            return np.maximum(X, 0)
-        
-        @staticmethod
-        @jit(nopython=True)
-        def der(X):
-            return X > 0
+
 
 class LearningRateScheduler:
     CONSTANT = 0
