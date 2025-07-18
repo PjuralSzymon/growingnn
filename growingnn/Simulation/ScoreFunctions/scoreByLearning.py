@@ -5,5 +5,5 @@ def scoreAcc(M, epochs, X_train, Y_train):
     return acc
 
 def scoreLoss(M, epochs, X_train, Y_train):
-    _, history = M.gradient_descent(X_train, Y_train, epochs, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.01, 0.8) , True)
+    _, history = M.gradient_descent(X_train, Y_train, epochs, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.000001, 0.8) , True)
     return min(1 / history.get_last('loss'), 1.0)

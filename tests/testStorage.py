@@ -72,7 +72,7 @@ class TestingStorage(unittest.TestCase):
         
         # Train the model with a small number of epochs
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
-        M.gradient_descent(x_train, y_train, 2, lr_scheduler)
+        M.gradient_descent(x_train, y_train, 2, lr_scheduler, quiet=True)
         
         # Get output before saving
         output1 = M.forward_prop(x_train[:1])
@@ -239,7 +239,7 @@ class TestingStorage(unittest.TestCase):
         
         # Train the model
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
-        M.gradient_descent(x, y, 5, lr_scheduler)
+        M.gradient_descent(x, y, 5, lr_scheduler, quiet=True)
         
         # Forward propagate
         output1 = M.forward_prop(x)
@@ -266,7 +266,7 @@ class TestingStorage(unittest.TestCase):
         
         # Train the model and get history
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
-        _, history = M.gradient_descent(x, y, 10, lr_scheduler)
+        _, history = M.gradient_descent(x, y, 10, lr_scheduler, quiet=True)
         
         # Save history
         history_path = os.path.join(self.test_dir, "history.json")
@@ -299,7 +299,7 @@ class TestingStorage(unittest.TestCase):
         
         # Train the model
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
-        M.gradient_descent(x_train, y_train, 10, lr_scheduler)
+        M.gradient_descent(x_train, y_train, 10, lr_scheduler, quiet=True)
         
         # Evaluate accuracy on test set before saving
         predictions = M.forward_prop(x_test)
@@ -419,7 +419,7 @@ class TestingStorage(unittest.TestCase):
         
         # Train the model
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
-        M.gradient_descent(x_train, y_train, 2, lr_scheduler)
+        M.gradient_descent(x_train, y_train, 2, lr_scheduler, quiet=True)
         
         # Get output before structural changes
         output1 = M.forward_prop(x_train[:1])
@@ -481,7 +481,7 @@ class TestingStorage(unittest.TestCase):
                           set(str(id) for id in layer_loaded.output_layers_ids))
         
         # Test that the model can still be trained after loading
-        M_loaded.gradient_descent(x_train, y_train, 2, lr_scheduler)
+        M_loaded.gradient_descent(x_train, y_train, 2, lr_scheduler, quiet=True)
         output4 = M_loaded.forward_prop(x_train[:1])
         print(f"\nOutput after additional training: {output4}")
         

@@ -9,6 +9,7 @@ import glob
 # Define the test file names
 test_files = [
     "testAdvancedFeatures.py",
+    "testActivationFunctions.py",
     "testActions.py",
     "testEdgeCases.py",
     "testHistory.py",

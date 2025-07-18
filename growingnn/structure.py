@@ -5,6 +5,7 @@ import json
 import threading
 import os
 import time
+from numba import jit
 from .painter import *
 from .config import *
 from .optimizers import *
@@ -29,6 +30,8 @@ class Loss:
     def getByName(name):
         if name == Loss.MSE.__name__:
             return Loss.MSE
+        elif name == Loss.MAE.__name__:
+            return Loss.MAE
         elif name == Loss.multiclass_cross_entropy.__name__:
             return Loss.multiclass_cross_entropy
 
@@ -38,6 +41,14 @@ class Loss:
             return np.sum((Y_pred - Y_true)**2)/Y_pred.shape[0]
         def der(Y_true, Y_pred):
             return Y_pred - Y_true
+    
+    class MAE:
+        __name__ = 'MAE'
+        def exe(Y_true, Y_pred):
+            return np.sum(np.abs(Y_pred - Y_true))/Y_pred.shape[0]
+        def der(Y_true, Y_pred):
+            return np.sign(Y_pred - Y_true)
+    
     class multiclass_cross_entropy:
         __name__ = 'multiclass_cross_entropy'
         def exe(Y_true, Y_pred):
@@ -69,18 +80,21 @@ class Activations:
             return Activations.Sigmoid
         elif name == Activations.Tanh.__name__:
             return Activations.Tanh
+        elif name == Activations.Linear.__name__:
+            return Activations.Linear
+    
     class ReLu:
         __name__ = 'ReLu'
 
         @staticmethod
         @jit(nopython=True)
         def exe(X):
-            return numpy.maximum(X,0)
+            return np.maximum(X,0)
         
         @staticmethod
         @jit(nopython=True)
         def der(X):
-            return X > 0
+            return np.where(X > 0, 1, 0)
         
     class leaky_ReLu:
         __name__ = 'leaky_ReLu'
@@ -139,6 +153,20 @@ class Activations:
         @jit(nopython=True)
         def der(X):
             return 1 - np.tanh(X)**2
+    
+    class Linear:
+        __name__ = 'Linear'
+        
+        @staticmethod
+        @jit(nopython=True)
+        def exe(X):
+            return X
+        
+        @staticmethod
+        @jit(nopython=True)
+        def der(X):
+            return np.ones_like(X)
+
 
 class LearningRateScheduler:
     CONSTANT = 0
@@ -181,7 +209,7 @@ class SimulationScheduler:
         self.flatten_check_length = 20
         self.progres_delta = 0.01
 
-    def can_simulate(self, i, hist_detail, epochsInGeneration=20):
+    def can_simulate(self, i, hist_detail, epochsInGeneration=20, quiet = False):
         new_acc = 0#hist_detail.Y['iteration_acc_train'][-1]
         prev_acc = 0#hist_detail.Y['iteration_acc_train'][-2]
         if len(hist_detail.Y['iteration_acc_train']) > 0: new_acc = hist_detail.Y['iteration_acc_train'][-1]
@@ -189,21 +217,26 @@ class SimulationScheduler:
         new_acc = get_numpy_array(new_acc)
         prev_acc = get_numpy_array(prev_acc)
         if self.mode == SimulationScheduler.CONSTANT: 
-            print("[iteration: "+str(i)+"] Constant frequency od simulaiton acc: " + str(new_acc)+ " starting simulation." )
+            if not quiet:
+                print("[iteration: "+str(i)+"] Constant frequency od simulaiton acc: " + str(new_acc)+ " starting simulation." )
             return True
         elif self.mode == SimulationScheduler.PROGRESS_CHECK:
             if new_acc - prev_acc < self.progres_delta:
-                print("[iteration: "+str(i)+"] No correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") starting simulation."  )
+                if not quiet:
+                    print("[iteration: "+str(i)+"] No correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") starting simulation."  )
                 return True
             else:
-                print("[iteration: "+str(i)+"] correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") training continues.")
+                if not quiet:
+                    print("[iteration: "+str(i)+"] correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") training continues.")
                 return False
         elif self.mode == SimulationScheduler.OVERFIT_CHECK:
             if not hist_detail.learning_capable(epochsInGeneration):
-                print("[iteration: "+str(i)+"] Model not learning capable: " + str(new_acc)+ " starting simulation."  )
+                if not quiet:
+                    print("[iteration: "+str(i)+"] Model not learning capable: " + str(new_acc)+ " starting simulation."  )
                 return True
             else:
-                print("[iteration: "+str(i)+"] Model is learning capable: " + str(new_acc)+ " training continues.")
+                if not quiet:
+                    print("[iteration: "+str(i)+"] Model is learning capable: " + str(new_acc)+ " training continues.")
                 return False
         return False
     
@@ -628,7 +661,7 @@ class Layer:
         return "[<layer: "+ str(self.id)+ " id: " + str(id(self)) + " model id: "+ str(id(self.model))+" in conn: "+ str(len(self.input_layers_ids)) +" out conn: "+ str(len(self.output_layers_ids))+ ">]" 
 
 class Model:
-    def __init__(self, input_size, hidden_size, output_size, loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, _optimizer = SGDOptimizer()):
+    def __init__(self, input_size, hidden_size, output_size, loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, _optimizer = SGDOptimizer(), output_activation_fun = Activations.SoftMax):
         if input_size <= 0:
             raise ValueError("Input size must be positive")
         if hidden_size <= 0:
@@ -654,7 +687,8 @@ class Model:
         self.activation_fun = activation_fun
         self.input_layers = []
         self.optimizer = _optimizer
-        self.output_layer = Layer(1, self, hidden_size, output_size, Activations.SoftMax, Layer_Type.RANDOM, self.optimizer.getDense())
+        self.output_activation_fun = output_activation_fun
+        self.output_layer = Layer(1, self, hidden_size, output_size, self.output_activation_fun, Layer_Type.RANDOM, self.optimizer.getDense())
         self.output_layer.set_as_ending()
         for i in range(0, input_paths):
             layer_id = "init_"+str(i)
@@ -691,6 +725,9 @@ class Model:
                 self.input_layers[i] = Conv(layer_id, self, self.input_shape, self.kernel_size, self.depth, self.activation_fun, self.optimizer.getConv())
                 self.add_connection(layer_id, output_layer_id)
 
+    def is_regression(self):
+        return self.output_layer.act_fun == Activations.Linear
+    
     def add_res_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
@@ -855,16 +892,19 @@ class Model:
             raise ValueError("Batch size must be positive")
         X = np.ascontiguousarray(X, dtype=FLOAT_TYPE)
             
-        if one_hot_needed: 
-            one_hot_Y = one_hot(Y)
-        else: 
-            one_hot_Y = Y
+        if not self.is_regression():
+            if one_hot_needed: 
+                one_hot_Y = one_hot(Y)
+            else: 
+                one_hot_Y = Y
             
         # Determine the correct axis for indexing based on convolution mode
-        index_axis = 0 if self.convolution and len(self.input_layers) == 1 else (1 if not self.convolution and len(self.input_layers) == 1 else 2)
-        
-        # Pre-generate all indexes for shuffling
-        indexes = np.arange(X.shape[index_axis])
+        if self.is_regression():
+            index_axis_x = 0
+        else:
+            index_axis_x = 0 if self.convolution and len(self.input_layers) == 1 else (1 if not self.convolution and len(self.input_layers) == 1 else 2)
+
+        indexes = np.arange(X.shape[index_axis_x])
         
         # Initialize history
         history = History(['accuracy', 'loss'])
@@ -880,20 +920,25 @@ class Model:
             total_samples = Y.shape[0]
             
             # Process batches
-            for x_indx_start in range(0, X.shape[index_axis], self.batch_size):
+            for x_indx_start in range(0, X.shape[index_axis_x], self.batch_size):
                 # Get batch indexes
-                batch_end = min(x_indx_start + self.batch_size, X.shape[index_axis])
+                batch_end = min(x_indx_start + self.batch_size, X.shape[index_axis_x])
                 batch_indexes = indexes[x_indx_start:batch_end]
                 
                 # Forward pass
-                batch_X = np.take(X, batch_indexes, index_axis)
-                batch_Y = np.take(one_hot_Y, batch_indexes, 1)
+                batch_X = np.take(X, batch_indexes, index_axis_x)
+                if self.is_regression():
+                    batch_Y = np.take(Y, batch_indexes, 0)
+                else:
+                    batch_Y = np.take(one_hot_Y, batch_indexes, 1)
                 
                 # Forward propagation
                 A = self.forward_prop(batch_X)
                 
                 # Calculate error and backpropagate
                 E = self.loss_function.der(batch_Y, A)
+
+                #print("E: ", E)
                 self.back_prop(E, len(batch_indexes), current_alpha)
                 
                 # Calculate loss and accuracy
@@ -909,7 +954,10 @@ class Model:
             if i % PROGRESS_PRINT_FREQUENCY == 0 and not quiet:
                 print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()}")
 
-        return history.get_last('accuracy'), history
+        if self.is_regression():
+            return history.get_last('loss'), history
+        else:   
+            return history.get_last('accuracy'), history
 
     def evaluate(self, x, y):
         A = self.forward_prop(x)
@@ -959,6 +1007,9 @@ class Model:
         copy.input_shape = self.input_shape
         copy.kernel_size = self.kernel_size
         copy.depth = self.depth
+        copy.loss_function = self.loss_function
+        copy.activation_fun = self.activation_fun
+        copy.output_activation_fun = self.output_activation_fun
         return copy
     
     def is_cyclic(self, additional_pair):

@@ -68,7 +68,7 @@ class TestingTrain(unittest.TestCase):
         y = np.random.randint(2, size=(shape,))
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
         gnn.painter.draw(M, "input_test.html")
-        acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler)
+        acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
         self.assertEqual(acc >= 0.3, True)
 
     def test_simple_SGD_train(self):
@@ -77,7 +77,7 @@ class TestingTrain(unittest.TestCase):
         y = np.random.randint(2, size=(shape,))
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
         gnn.painter.draw(M, "input_test.html")
-        acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler)
+        acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
         self.assertEqual(acc >= 0.3, True)
 
     def test_simple_Adam_train(self):
@@ -86,7 +86,7 @@ class TestingTrain(unittest.TestCase):
         y = np.random.randint(2, size=(shape,))
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
         gnn.painter.draw(M, "input_test.html")
-        acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler)
+        acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
         self.assertEqual(acc >= 0.3, True)
 
     def test_actions(self):
@@ -98,14 +98,14 @@ class TestingTrain(unittest.TestCase):
             all_actions = gnn.action.Action.generate_all_actions(M)
             new_action = random.choice(all_actions)        
             new_action.execute(M)
-            M.gradient_descent(x, y, epochs, lr_scheduler, True)
+            M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
         delete_layer_actions = gnn.action.Del_Layer.generate_all_actions(M)
         while len(delete_layer_actions) > 0:
             new_action = random.choice(delete_layer_actions)        
             new_action.execute(M)
-            M.gradient_descent(x, y, epochs, lr_scheduler, True)
+            M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
             delete_layer_actions = gnn.action.Del_Layer.generate_all_actions(M)
-        acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, True)
+        acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
         print("test_actions result acc: ", acc)
         self.assertEqual(acc >= 0.01, True)
 
@@ -120,7 +120,7 @@ class TestingTrain(unittest.TestCase):
         asyncio.set_event_loop(loop)
         try:
             action, deepth, rollouts = loop.run_until_complete(gnn.montecarlo_alg.get_action(M, 5, 2, x, y, gnn.Simulation_score()))
-            acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, True)
+            acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
             print("test_montecarlo result acc: ", acc)
             self.assertEqual(acc >= 0.01, True)
         finally:
@@ -131,7 +131,7 @@ class TestingTrain(unittest.TestCase):
         x = np.random.rand(shape, shape)
         y = np.random.randint(2, size=(shape,))
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.PROGRESIVE, 0.03, 0.8)
-        acc = M.gradient_descent(x, y, epochs, lr_scheduler, True)
+        acc = M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
         
         # Create a new event loop for the test
         loop = asyncio.new_event_loop()
@@ -140,8 +140,8 @@ class TestingTrain(unittest.TestCase):
             for i in range(0,5):
                 new_action, deepth, rollouts = loop.run_until_complete(gnn.montecarlo_alg.get_action(M, 5, 2, x, y, gnn.Simulation_score()))
                 new_action.execute(M)
-                acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, True)
-            acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, True)
+                acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
+            acc, _ = M.gradient_descent(x, y, epochs, lr_scheduler, quiet=True)
             self.assertEqual(acc >= 0.01, True)
         finally:
             loop.close()
