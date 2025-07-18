@@ -437,7 +437,8 @@ class TestAdvancedFeatures(unittest.TestCase):
                 output_size=self.output_size,
                 input_shape=None,
                 kernel_size=None,
-                deepth=None
+                deepth=None,
+                quiet=True
             )
         except Exception as e:
             self.fail(f"Training with constant simulation scheduler raised an exception: {e}")
@@ -463,7 +464,8 @@ class TestAdvancedFeatures(unittest.TestCase):
                 output_size=self.output_size,
                 input_shape=None,
                 kernel_size=None,
-                deepth=None
+                deepth=None,
+                quiet=True
             )
         except Exception as e:
             self.fail(f"Training with progress check simulation scheduler raised an exception: {e}")

@@ -7,7 +7,7 @@ from .Simulation.ScoreFunctions import *
 import os
 from .helpers import convert_to_desired_type
 
-def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score(), optimizer = SGDOptimizer()):
+def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, output_activation_fun = Activations.SoftMax, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False):
     # Convert data types once at the beginning
     x_train = convert_to_desired_type(x_train)
     x_test = convert_to_desired_type(x_test)
@@ -24,14 +24,15 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
     hist_path = path + model_name + "_hist"
     
     # Create and configure model
-    M = Model(input_size, hidden_size, output_size, loss_function, activation_fun, input_paths, optimizer)
+    M = Model(input_size, hidden_size, output_size, loss_function, activation_fun, input_paths, optimizer, output_activation_fun)
     if input_shape is not None:
         M.set_convolution_mode(input_shape, kernel_size, deepth)
     M.batch_size = batch_size
     
     # Calculate initial accuracy
     acc = Model.get_accuracy(Model.get_predictions(M.forward_prop(x_test)), y_test)
-    print(f"Model is ready, starting accuracy: {acc}")
+    if not quiet:
+        print(f"Model is ready, starting accuracy: {acc}")
     
     # Generate simulation set once
     sim_x, sim_y = sim_set_generator(x_train, y_train, simulation_set_size)
@@ -50,7 +51,7 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
         draw(M, model_path + '_graph_' + str(hist_detail.last_img_id) + "bef.html")
         
         # Run gradient descent
-        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, False, True, model_path + "_gen_" + str(i))
+        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, quiet, True, model_path + "_gen_" + str(i))
         
         # Update history
         hist_detail.merge(new_hist)
@@ -59,7 +60,7 @@ def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, ge
         hist_detail.append('iteration_acc_test', test_acc)
         
         # Check if simulation is needed
-        if simulation_scheduler.can_simulate(i, hist_detail, epochs):
+        if simulation_scheduler.can_simulate(i, hist_detail, epochs, quiet):
             # Log simulation start
             hist_detail.description += f"[iteration: {i}] No correction detected acc: {new_acc} starting simulation.\n"
             

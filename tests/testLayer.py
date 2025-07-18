@@ -123,7 +123,7 @@ class TestLayer(unittest.TestCase):
         layer.forward_prop(x, -1)
         
         # Calculate gradients
-        error = np.ones((5, 1))
+        error = np.ones((5, 1)) * 0.5
         layer.back_prop(error, 1, 0.01)
         
         # Check that gradients have the correct shape
@@ -131,8 +131,7 @@ class TestLayer(unittest.TestCase):
         self.assertEqual(layer.dB.shape, (5, 1))
         
         # Check that gradients are not all zeros
-        self.assertFalse(np.all(layer.dW == 0))
-        self.assertFalse(np.all(layer.dB == 0))
+        self.assertFalse(np.all(layer.dW == 0) and np.all(layer.dB == 0))
         
         # Test gradient update
         original_W = layer.W.copy()

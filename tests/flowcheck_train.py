@@ -120,7 +120,8 @@ def train_and_evaluate():
             simulation_epochs=1
         ),
         lr_scheduler = gnn.LearningRateScheduler(gnn.LearningRateScheduler.PROGRESIVE, 0.002),
-        deepth=2
+        deepth=2,
+        quiet=True
     )
     
     training_time = time.time() - start_time
