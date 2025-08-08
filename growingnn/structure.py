@@ -362,6 +362,7 @@ class Layer:
         self.optimizer_W = OptimizerFactory.copy(self.optimizer)
         self.optimizer_B = OptimizerFactory.copy(self.optimizer)
         self.connections = {}
+        self.size_registry = {}
         if layer_type == Layer_Type.EYE:
             self.W = np.asarray(eye_stretch(neurons, input_size))
             self.B = np.asarray(np.zeros((neurons, 1)))
@@ -400,9 +401,43 @@ class Layer:
         return self.neurons
     
     def remove_neurons(self, reduce_ratio):
-        neurons_reduced_amount = int(self.neurons * reduce_ratio)
+        neurons_reduced_amount = max(1, int(self.neurons * reduce_ratio))
+        
+        # Store old neuron count for weight adjustment
+        old_neurons = self.neurons
+        
         self.W = np.dot(self.W.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
         self.B = np.dot(self.B.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
+        
+        # Adjust weights in output layers that receive input from this layer
+        for output_layer_id in self.output_layers_ids:
+            output_layer = self.model.get_layer(output_layer_id)
+            if output_layer is not None:
+                if self.id in output_layer.input_layers_ids:
+                    start_pos, end_pos = output_layer.get_weight_matrix_indexes_for_layer_id(self.id)
+                    if start_pos == 0 and end_pos == 0:
+                        print("ERROR NOT WEIGHT ADJUSTMENT")
+                        continue
+                    # Adjust the weight matrix using the same scaling logic
+                    if hasattr(output_layer, 'W') and output_layer.W is not None:                       
+                        weights_before = output_layer.W[:, :start_pos] if start_pos > 0 else None
+                        weights_middle = output_layer.W[:, start_pos:end_pos]  # Part corresponding to current layer
+                        weights_after = output_layer.W[:, end_pos:] if end_pos < output_layer.W.shape[1] else None
+
+                        scaled_weights_middle = np.dot(weights_middle, get_reshsper(old_neurons, neurons_reduced_amount))
+                        
+                        # Combine the three parts
+                        new_W_parts = []
+                        if weights_before is not None:
+                            new_W_parts.append(weights_before)
+                        new_W_parts.append(scaled_weights_middle)
+                        if weights_after is not None:
+                            new_W_parts.append(weights_after)
+                        output_layer.W = np.hstack(new_W_parts)
+                        
+                        # Update the input_size of the output layer
+                        if hasattr(output_layer, 'input_size'):
+                            output_layer.input_size = output_layer.W.shape[1]
         self.neurons = neurons_reduced_amount
 
     def connect_input(self, layer_id):
@@ -463,6 +498,8 @@ class Layer:
         if sender_id not in self.input_layers_ids:
             raise ValueError(f"Sender ID {sender_id} is not in the input layers IDs {self.input_layers_ids}")
             
+        #print(self.id, "---sender_id: ", sender_id, " X.shape: ", X.shape, " input_layers_ids: ", self.input_layers_ids)
+        self.size_registry[sender_id] = X.shape[0]
         # Pre-allocate if needed
         if len(self.f_input) < len(self.input_layers_ids):
             self.f_input.extend([None] * (len(self.input_layers_ids) - len(self.f_input)))
@@ -471,6 +508,8 @@ class Layer:
         
 
     def forward_prop(self, X, sender_id, deepth = 0):
+        if X is None:
+            raise ValueError("Layed Dense recived None input")
         self.append_to_f_input(X, sender_id)
         if any(x is None for x in self.f_input):
                 return None
@@ -491,7 +530,8 @@ class Layer:
             layer = self.model.get_layer(layer_id)
             new_input = None
             if type(layer) == Layer:
-                new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
+                #new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
+                new_input = self.A.copy()
             elif type(layer) == Conv:
                 new_input = Resize(self.A.copy(), layer.input_shape)
             else:
@@ -534,7 +574,8 @@ class Layer:
         self.E = self.W.T @ dZ
         before_iteration = 0
         for layer_id in self.input_layers_ids:
-            neurons = self.input_size
+            #neurons = self.input_size
+            neurons = self.size_registry[layer_id]
             E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
             before_iteration += neurons
             layer = self.model.get_layer(layer_id)
@@ -617,18 +658,83 @@ class Layer:
         copy.b_input = self.b_input.copy()
         copy.W = self.W.copy()
         copy.B = self.B.copy()
+        copy.size_registry = self.size_registry.copy()
         return copy
 
     def get_weights_summary(self):
         return "W: "+str(np.mean(self.W))+ " B: "+ str(np.mean(self.B))
     
     def get_paint_label(self):
-            # self.W.shape[1] -> connections/input size
-            # self.W.shape[0] -> neurons/outpu size
-            return str(self.id) + "[" +str(self.W.shape[1])+","+str(self.W.shape[0])+"]"
+        return str(self.id) + "[" +str(self.W.shape[1])+","+str(self.W.shape[0])+"]" + "mean: "+str( round(np.mean(self.W), 2))
 
     def __str__(self):
         return "[<layer: "+ str(self.id)+ " id: " + str(id(self)) + " model id: "+ str(id(self.model))+" in conn: "+ str(len(self.input_layers_ids)) +" out conn: "+ str(len(self.output_layers_ids))+ ">]" 
+
+    def get_weight_matrix_indexes_for_layer_id(self, target_layer_id):
+        """
+        Get the start and end indexes in the weight matrix that correspond to a specific layer ID.
+        
+        Args:
+            target_layer_id: The ID of the layer whose weight indexes we want to find
+            
+        Returns:
+            tuple: (start_index, end_index) representing the column range in the weight matrix
+        """
+        if target_layer_id not in self.size_registry.keys():
+            return 0, 0
+        #print(f"\n=== DEBUG: get_weight_matrix_indexes_for_layer_id ===")
+        #print(f"Current layer ID: {self.id}")
+        #print(f"Target layer ID: {target_layer_id}")
+        #print(f"Input layers IDs: {self.input_layers_ids}")
+        #print(f"W: {self.W.shape}")
+        #print(f"B: {self.B.shape}")
+        #print("Current type: ", type(self))
+        for idin in self.input_layers_ids:
+            if idin not in self.size_registry.keys(): 
+                continue
+            inlayer = self.model.get_layer(idin)
+            #print("inlayer: ", idin, " size_registry: ", self.size_registry[idin])
+            if type(inlayer) == Conv:
+                #print("inlayer: ", idin, " output_flatten: ", inlayer.output_flatten, " input_flatten ", inlayer.input_flatten)
+                pass
+            else:
+                #print("inlayer: ", idin, " W: ", inlayer.W.shape, " B: ", inlayer.B.shape, " output: ", inlayer.get_output_size())
+                pass
+        
+        if target_layer_id not in self.input_layers_ids:
+            print(f"ERROR: Layer ID {target_layer_id} is not in the input layers IDs {self.input_layers_ids}")
+            raise ValueError(f"Layer ID {target_layer_id} is not in the input layers IDs {self.input_layers_ids}")
+        
+        # Find the position of the target layer in input_layers_ids
+        input_index = self.input_layers_ids.index(target_layer_id)
+        #print(f"Input index of target layer: {input_index}")
+        
+        # Calculate the start position by summing up the output sizes of previous layers
+        start_pos = 0
+        #print(f"Calculating start position...")
+        for i in range(input_index):
+            prev_layer_id = self.input_layers_ids[i]
+            if prev_layer_id in self.size_registry.keys():
+                prev_output_size = self.size_registry[prev_layer_id]
+                start_pos += prev_output_size
+                #print(f"  Layer {prev_layer_id}: output_size = {prev_output_size}, start_pos = {start_pos}")
+            else:
+                #print(f"  WARNING: Layer {prev_layer_id} is not in the size_registry!")
+                pass
+        
+        # Calculate the end position
+        target_layer = self.model.get_layer(target_layer_id)
+        if target_layer is None:
+            print(f"ERROR: Target layer with ID {target_layer_id} does not exist")
+            raise ValueError(f"Target layer with ID {target_layer_id} does not exist")
+        
+        target_output_size = target_layer.get_output_size()
+        end_pos = start_pos + target_output_size
+        #print(f"Target layer {target_layer_id}: output_size = {target_output_size}")
+        #print(f"Final indexes: start_pos = {start_pos}, end_pos = {end_pos}")
+        #print(f"=== END DEBUG ===\n")
+        
+        return start_pos, end_pos
 
 class Model:
     def __init__(self, input_size, hidden_size, output_size, loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, _optimizer = SGDOptimizer()):
@@ -652,6 +758,7 @@ class Model:
         self.input_size = input_size
         self.output_size = output_size
         self.hidden_size = hidden_size
+        self.hidden_size = int(self.input_size * 0.2 + self.output_size * 0.8)
         self.hidden_layers = []
         self.avaible_id = 2
         self.activation_fun = activation_fun
@@ -826,10 +933,13 @@ class Model:
                 self.input_layers[i].forward_prop(input[i], -1,  0)
         
         #self.output_layer.done_event.wait()
+        #print("!!!waiting for forward threads: ", threading.active_count())
         for thread in self.forward_threads:
             thread.join()
         self.forward_threads.clear()
         if self.output_layer.A is None:
+            for layer in self.hidden_layers:
+                print("layer: ", layer.id, " A: ", layer.A is None)
             raise ValueError("After forward prop A on output layer is None")
         return self.output_layer.A
 
@@ -1033,6 +1143,7 @@ class Conv(Layer):
         self.kernels_shape = (int(self.depth), int(self.input_depth), int(kernel_size), int(kernel_size)) 
         self.reshspers = {}
         self.optimizer = _optimizer
+        self.size_registry = {}
         if config.WEIGHT_DISTRIBUTION_MODE == DistributionMode.UNIFORM:
             # Uniform Distribution: Generate values in range (-1, 1) and shift by -0.5
             self.kernels = np.array(np.random.uniform(low=-1.0, high=1.0, size=self.kernels_shape) - 0.5)
@@ -1063,10 +1174,11 @@ class Conv(Layer):
         return self.reshspers[(size_from, size_to)]
 
     def forward_prop(self, X, sender_id, deepth = 0):
+        if X is None:
+            raise ValueError("Layed Conv recived None input")
         self.append_to_f_input(X, sender_id)
         if any(x is None for x in self.f_input):
                 return None
-        
         # Combine inputs more efficiently
         self.I = mean_n_conv(self.f_input, self.input_shape)
         self.Z = np.zeros((self.I.shape[0], self.output_shape[0], self.output_shape[1], self.output_shape[2]))
@@ -1176,7 +1288,7 @@ class Conv(Layer):
         return "k: "+str(np.mean(self.kernels))+ " B: "+ str(np.mean(self.biases))
     
     def get_paint_label(self):
-        return str(self.id) + "[" +str(self.input_shape)+","+str(self.output_shape)+"]"
+        return str(self.id) + "[" +str(self.input_shape)+","+str(self.output_shape)+"]" + "mean: "+str( round(np.mean(self.kernels), 2))
 
     def __str__(self):
         return "[<layer: "+ str(self.id)+ " id: " + str(id(self)) + " model id: "+ str(id(self.model))+" in conn: "+ str(len(self.input_layers_ids)) +" out conn: "+ str(len(self.output_layers_ids))+ ">]"
