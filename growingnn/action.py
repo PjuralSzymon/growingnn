@@ -155,6 +155,7 @@ class Add_Res_Conv_Layer(Action):
         pairs = delete_repetitions(pairs)
         actions = []
         for pair in pairs:
+            # check if the new layer size is not reaching the limit
             layer_from = Model.get_layer(pair[0])
             layer_to = Model.get_layer(pair[1])
             if type(layer_from) == Conv:
