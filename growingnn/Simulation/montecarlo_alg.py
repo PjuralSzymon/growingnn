@@ -2,7 +2,9 @@ import time
 import random
 import math
 import numpy as np
+from growingnn.structure import LearningRateScheduler
 from ..action import Action
+from ..painter import *
 #from ..structure import *
 
 UCB1_CONTS = 2
@@ -34,6 +36,7 @@ class TreeNode:
         for action in all_action_seq:
             M_copy = self.M.deepcopy()
             action.execute(M_copy)
+            M_copy.gradient_descent(self.X_train, self.Y_train, 1, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.0001, 0.8) , True)
             #M_copy.add_layer(action[0], action[1])
             new_node = TreeNode(self, action, M_copy, self.epochs, self.X_train, self.Y_train, self.simulation_score)
             self.childNodes.append(new_node)
@@ -49,6 +52,7 @@ class TreeNode:
             # Choose action and execute it
             choosen_action = random.choice(all_action_seq)
             choosen_action.execute(M_copy)
+            M_copy.gradient_descent(self.X_train, self.Y_train, 1, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.0001, 0.8) , True)
             
             # Filter actions more efficiently using list comprehension
             all_action_seq = [action for action in all_action_seq 
