@@ -175,6 +175,7 @@ class Del_Layer(Action):
     def can_be_infulenced(self, by_action):
         return False
 
+    @staticmethod
     def generate_all_actions(Model):
         actions = []
         for layer_hidden in Model.hidden_layers:
@@ -193,6 +194,7 @@ class Del_neurons(Action):
     def can_be_infulenced(self, by_action):
         return False
 
+    @staticmethod
     def generate_all_actions(Model, remove_neurons_ratio = 0.5):
         actions = []
         for layer_hidden in Model.hidden_layers + Model.input_layers:

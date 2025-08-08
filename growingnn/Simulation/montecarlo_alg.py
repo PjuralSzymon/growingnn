@@ -4,7 +4,6 @@ import math
 import numpy as np
 from growingnn.structure import LearningRateScheduler
 from ..action import Action
-from ..painter import *
 #from ..structure import *
 
 UCB1_CONTS = 2

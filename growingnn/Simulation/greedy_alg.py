@@ -65,22 +65,10 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
         log_text += f"  Type: {str(action)}\n"
         log_text += f"  Score: {score}\n"
         log_text += f"  Time: {action_info['timestamp']}\n\n"
-
-        if score > best_score:
-            best_score = score
-            best_action = action
-            log_text += f"*** NEW BEST ACTION ***\n"
-            log_text += f"  Best score so far: {best_score}\n"
-            log_text += f"  Best action: {action}\n\n"
-
         rollouts += 1
 
-    #if time.time() > deadline:
-    #    print("More time was needed to analyze all possibilities at least once")
-    #    log_text += "WARNING: Time limit exceeded, not all actions analyzed\n"
-
     # Final summary
-    log_text += f"=== FINAL SUMMARY ===\n"
+    log_text += "=== FINAL SUMMARY ===\n"
     log_text += f"Total rollouts: {rollouts}\n"
     log_text += f"Best score: {best_score}\n"
     log_text += f"Best action: {best_action}\n"
@@ -92,9 +80,15 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
         file_path = f"{LOG_DIRECTORY}/action_analysis_{global_action_index:06d}.txt"
         try:
             import os
+            import asyncio
+            
+            # Create directory synchronously (this is usually fast)
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(log_text)
+            # Write file asynchronously using thread pool
+            async def write_file():
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(log_text)
+            await asyncio.to_thread(write_file)
             print(f"Action analysis saved to: {file_path}")
         except Exception as e:
             print(f"Error saving action analysis: {e}")

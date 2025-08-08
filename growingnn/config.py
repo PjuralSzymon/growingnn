@@ -12,7 +12,6 @@ class Config:
     # Weight and Distribution Settings
     WEIGHT_DISTRIBUTION_MODE = DistributionMode.NORMAL
     WEIGHTS_CLIP_RANGE = 3
-    #weights_clip_range = 400
     LARGE_MAX = 2**128
     
     # Neural Network Settings
@@ -75,7 +74,6 @@ class Config:
         """Reset all configuration values to their defaults"""
         cls.WEIGHT_DISTRIBUTION_MODE = DistributionMode.NORMAL
         cls.WEIGHTS_CLIP_RANGE = 3
-        cls.weights_clip_range = 400
         cls.LARGE_MAX = 2**128
         cls.FLOAT_TYPE = numpy.float64
         cls.VERSION = 'R3'
