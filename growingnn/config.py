@@ -45,6 +45,17 @@ class Config:
     ACTIONS_ENABLE_DEL_NEURONS_05 = True
     ACTIONS_ENABLE_DEL_NEURONS_09 = True
 
+    # Simulation Scoring Configuration
+    # Time efficiency scoring: Higher values make time efficiency more important
+    # Formula: grade = 1.0 / (TIME_EFFICIENCY_WEIGHT * time_difference + 1.0)
+    # If TIME_EFFICIENCY_WEIGHT is larger, faster models get much higher scores
+    TIME_EFFICIENCY_WEIGHT = 100.0
+    
+    # Weight count efficiency scoring: Higher values make weight count efficiency more important  
+    # Formula: grade = 1.0 / (WEIGHT_COUNT_WEIGHT * total_weights + 1.0)
+    # If WEIGHT_COUNT_WEIGHT is larger, models with fewer weights get much higher scores
+    WEIGHT_COUNT_WEIGHT = 0.001
+
     @classmethod
     def update(cls, **kwargs):
         """Update configuration values at runtime"""
@@ -77,6 +88,8 @@ class Config:
         cls.ENABLE_CLIP_ON_ACTIVATIONS = False
         cls.MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
         cls.MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
+        cls.TIME_EFFICIENCY_WEIGHT = 100.0
+        cls.WEIGHT_COUNT_WEIGHT = 0.001
 
 # Create a global instance for backward compatibility
 config = Config()
