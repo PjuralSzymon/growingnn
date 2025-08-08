@@ -18,7 +18,7 @@ class Config:
     # Neural Network Settings
     FLOAT_TYPE = numpy.float64
     VERSION = 'R3.3'
-    MAX_THREADS = max(1, int(os.cpu_count() * 0.5))
+    MAX_THREADS = 1#max(1, int(os.cpu_count() * 0.5))
     
     # Training Settings
     ERROR_CLIP_RANGE = 600
@@ -33,6 +33,7 @@ class Config:
     # Neural Network Structure Settings
     MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
     MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
+    MAXIMUM_MATRIX_SIZE_FOR_LAYER_ADDITION = 300 * 300
 
     # Action Settings
     ACTIONS_ENABLE_ADD_SEQ_LAYER = True
@@ -67,7 +68,7 @@ class Config:
         cls.LARGE_MAX = 2**128
         cls.FLOAT_TYPE = numpy.float64
         cls.VERSION = 'R3'
-        cls.MAX_THREADS = max(1, int(os.cpu_count() * 0.5))
+        cls.MAX_THREADS = 1 #max(1, int(os.cpu_count() * 0.5))
         cls.ERROR_CLIP_RANGE = 600
         cls.PROGRESS_PRINT_FREQUENCY = 7
         cls.THROW_EXCEPTION = True
