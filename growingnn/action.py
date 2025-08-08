@@ -195,7 +195,7 @@ class Del_neurons(Action):
 
     def generate_all_actions(Model, remove_neurons_ratio = 0.5):
         actions = []
-        for layer_hidden in Model.hidden_layers:
+        for layer_hidden in Model.hidden_layers + Model.input_layers:
             if type(Model.get_layer(layer_hidden.id)) != Conv:
                 if floor(Model.get_layer(layer_hidden.id).neurons * remove_neurons_ratio) < config.MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL:
                     continue
