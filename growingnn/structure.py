@@ -560,6 +560,11 @@ class Layer:
             return False
         return True
     
+    def get_size_registry(self, layer_id):
+        if layer_id not in self.size_registry.keys():
+            return self.model.get_layer(layer_id).get_output_size()
+        return self.size_registry[layer_id]
+    
     def back_prop(self,E,m,alpha):
         if E.shape[0] <=0:
             raise ValueError("Error with 0 shape can't be backpropagated E.shape:", E.shape)
@@ -575,7 +580,7 @@ class Layer:
         before_iteration = 0
         for layer_id in self.input_layers_ids:
             #neurons = self.input_size
-            neurons = self.size_registry[layer_id]
+            neurons = self.get_size_registry(layer_id)
             E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
             before_iteration += neurons
             layer = self.model.get_layer(layer_id)
