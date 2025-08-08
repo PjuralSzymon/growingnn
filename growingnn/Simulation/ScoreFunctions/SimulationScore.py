@@ -4,10 +4,6 @@ from .scoreEfficiency import *
 from .scoreGraphStructure import *
 
 class Simulation_score:
-    #ACCURACY = 0
-    #LOSS = 1
-    # def __init__(self, mode = 0):
-    #     self.mode = mode
 
     ScoreFunctions = {
         'weight_acc': scoreAcc,
@@ -44,16 +40,6 @@ class Simulation_score:
         self.weights['weight_machingN'] = weight_machingN
         self.weights['weight_independenceN'] = weight_independenceN
 
-        #     self.mode = mode
-    # def new_max_loss(self, global_history):
-    #     self.max_loss = numpy.max(get_list_as_numpy_array(global_history.Y['loss']))
-        
-    # def grade(self, acc, history):
-    #     if self.mode == Simulation_score.ACCURACY:
-    #         return acc
-    #     else:
-    #         return max(1.e-17, self.max_loss - history.get_last('loss'))
-            
     def weightSum(self):
         sum = 0.0
         for key in self.weights.keys():
@@ -64,5 +50,7 @@ class Simulation_score:
         score = 0.0
         for score_weight in Simulation_score.ScoreFunctions.keys():
             if self.weights[score_weight] > 0.0:
-                score  += self.weights[score_weight] * Simulation_score.ScoreFunctions[score_weight](M, epochs, X_train, Y_train)
-        return score / self.weightSum()
+                graded_score = Simulation_score.ScoreFunctions[score_weight](M, epochs, X_train, Y_train)
+                score  += self.weights[score_weight] * graded_score
+        final_score = score / self.weightSum()
+        return final_score
