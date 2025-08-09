@@ -66,6 +66,9 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
         log_text += f"  Score: {score}\n"
         log_text += f"  Time: {action_info['timestamp']}\n\n"
         rollouts += 1
+        if score > best_score:
+            best_score = score
+            best_action = action
 
     # Final summary
     log_text += "=== FINAL SUMMARY ===\n"
