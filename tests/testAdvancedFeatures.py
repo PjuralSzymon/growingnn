@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import growingnn as gnn
 from testSuite import mode
 from growingnn import Model, Loss, Activations, LearningRateScheduler, Storage
-from growingnn.config import THROW_EXCEPTION
+from growingnn.config import config
 
 class TestAdvancedFeatures(unittest.TestCase):
     """Advanced tests for the growingnn package"""

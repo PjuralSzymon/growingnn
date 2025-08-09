@@ -1,6 +1,7 @@
 from .structure import *
 import numpy as np
-import math
+from math import floor
+from .config import config
 
 class Action:
     def __init__(self, _params):
@@ -19,19 +20,31 @@ class Action:
         result = []
         
         # Generate all actions in one pass
-        adding_layer_seq_actions = Add_Seq_Layer.generate_all_actions(Model)
-        adding_layer_res_actions = Add_Res_Layer.generate_all_actions(Model)
-        adding_layer_conv_seq_actions = Add_Seq_Conv_Layer.generate_all_actions(Model)
-        adding_layer_conv_res_actions = Add_Res_Conv_Layer.generate_all_actions(Model)
-        delete_layer_actions = Del_Layer.generate_all_actions(Model)
-        
-        # Use extend instead of += for better performance
-        result.extend(adding_layer_seq_actions)
-        result.extend(adding_layer_res_actions)
-        result.extend(adding_layer_conv_seq_actions)
-        result.extend(adding_layer_conv_res_actions)
-        result.extend(delete_layer_actions)
-        
+        if config.ACTIONS_ENABLE_ADD_SEQ_LAYER:
+            adding_layer_seq_actions = Add_Seq_Layer.generate_all_actions(Model)
+            result.extend(adding_layer_seq_actions)
+        if config.ACTIONS_ENABLE_ADD_RES_LAYER:
+            adding_layer_res_actions = Add_Res_Layer.generate_all_actions(Model)
+            result.extend(adding_layer_res_actions)
+        if config.ACTIONS_ENABLE_ADD_SEQ_CONV_LAYER:
+            adding_layer_conv_seq_actions = Add_Seq_Conv_Layer.generate_all_actions(Model)
+            result.extend(adding_layer_conv_seq_actions)
+        if config.ACTIONS_ENABLE_ADD_RES_CONV_LAYER:
+            adding_layer_conv_res_actions = Add_Res_Conv_Layer.generate_all_actions(Model)
+            result.extend(adding_layer_conv_res_actions)
+        if config.ACTIONS_ENABLE_DEL_LAYER:
+            delete_layer_actions = Del_Layer.generate_all_actions(Model)
+            result.extend(delete_layer_actions)
+        if config.ACTIONS_ENABLE_DEL_NEURONS_01:
+            delete_neurons_actions_01 = Del_neurons.generate_all_actions(Model,0.1)
+            result.extend(delete_neurons_actions_01)
+        if config.ACTIONS_ENABLE_DEL_NEURONS_05:
+            delete_neurons_actions_05 = Del_neurons.generate_all_actions(Model,0.5)
+            result.extend(delete_neurons_actions_05)
+        if config.ACTIONS_ENABLE_DEL_NEURONS_09:
+            delete_neurons_actions_09 = Del_neurons.generate_all_actions(Model,0.9)
+            result.extend(delete_neurons_actions_09)
+
         return result
 
 class Add_Seq_Layer(Action):
@@ -96,22 +109,6 @@ class Add_Res_Layer(Action):
     def __str__(self):
         return " ( Add Res Layer Action: " + str(self.params) + " ) "
 
-class Del_Layer(Action):
-    def execute(self, Model):
-        Model.remove_layer(self.params)
-
-    def can_be_infulenced(self, by_action):
-        return False
-
-    def generate_all_actions(Model):
-        actions = []
-        for layer_hidden in Model.hidden_layers:
-            actions.append(Del_Layer(layer_hidden.id))
-        return actions
-
-    def __str__(self):
-        return " ( Del Layer Action: " + str(self.params) + " ) "
-    
 
 class Add_Seq_Conv_Layer(Action):
     def execute(self, Model):
@@ -158,6 +155,7 @@ class Add_Res_Conv_Layer(Action):
         pairs = delete_repetitions(pairs)
         actions = []
         for pair in pairs:
+            # check if the new layer size is not reaching the limit
             layer_from = Model.get_layer(pair[0])
             layer_to = Model.get_layer(pair[1])
             if type(layer_from) == Conv:
@@ -169,3 +167,43 @@ class Add_Res_Conv_Layer(Action):
     
     def __str__(self):
         return " ( Add Res Conv Layer Action: " + str(self.params) + " ) "
+    
+class Del_Layer(Action):
+    def execute(self, Model):
+        Model.remove_layer(self.params)
+
+    def can_be_infulenced(self, by_action):
+        return False
+
+    @staticmethod
+    def generate_all_actions(Model):
+        actions = []
+        for layer_hidden in Model.hidden_layers:
+            actions.append(Del_Layer(layer_hidden.id))
+        return actions
+
+    def __str__(self):
+        return " ( Del Layer Action: " + str(self.params) + " ) "
+    
+
+class Del_neurons(Action):
+
+    def execute(self, Model):
+        Model.get_layer(self.params[0]).remove_neurons(self.params[1])
+
+    def can_be_infulenced(self, by_action):
+        return False
+
+    @staticmethod
+    def generate_all_actions(Model, remove_neurons_ratio = 0.5):
+        actions = []
+        for layer_hidden in Model.hidden_layers + Model.input_layers:
+            if type(Model.get_layer(layer_hidden.id)) != Conv:
+                if floor(Model.get_layer(layer_hidden.id).neurons * remove_neurons_ratio) < config.MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL:
+                    continue
+                params = [layer_hidden.id, remove_neurons_ratio]
+                actions.append(Del_neurons(params))
+        return actions
+
+    def __str__(self):
+        return " ( Del Neurons Action: " + str(self.params) + " ) "
