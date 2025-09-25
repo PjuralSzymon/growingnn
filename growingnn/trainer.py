@@ -65,28 +65,29 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         hist_detail.append('iteration_acc_test', test_acc)
         
         # Check if simulation is needed
-        if simulation_scheduler.can_simulate(i, hist_detail, epochs):
-            # Log simulation start
-            hist_detail.description += f"[iteration: {i}] No correction detected acc: {new_acc} starting simulation.\n"
-            
-            # Run simulation
-            action, deepth, rollouts = loop.run_until_complete(
-                simulation_alg.get_action(
-                    M.deepcopy(), 
-                    simulation_scheduler.simulation_time, 
-                    simulation_scheduler.simulation_epochs, 
-                    sim_x, 
-                    sim_y, 
-                    simulation_score
+        if i < generations - 1:
+            if simulation_scheduler.can_simulate(i, hist_detail, epochs):
+                # Log simulation start
+                hist_detail.description += f"[iteration: {i}] No correction detected acc: {new_acc} starting simulation.\n"
+                
+                # Run simulation
+                action, deepth, rollouts = loop.run_until_complete(
+                    simulation_alg.get_action(
+                        M.deepcopy(), 
+                        simulation_scheduler.simulation_time, 
+                        simulation_scheduler.simulation_epochs, 
+                        sim_x, 
+                        sim_y, 
+                        simulation_score
+                    )
                 )
-            )
-            
-            # Log simulation results
-            size_of_changes = len(Action.generate_all_actions(M))
-            hist_detail.description += f"[iteration: {i}] Best action found after simulation: {action} deepth of tree searched: {deepth} number of rollouts: {rollouts} size_of_changes: {size_of_changes}\n"
-            
-            # Execute the action
-            action.execute(M)
+                
+                # Log simulation results
+                size_of_changes = len(Action.generate_all_actions(M))
+                hist_detail.description += f"[iteration: {i}] Best action found after simulation: {action} deepth of tree searched: {deepth} number of rollouts: {rollouts} size_of_changes: {size_of_changes}\n"
+                
+                # Execute the action
+                action.execute(M)
         
         # Save model and history
         hist_detail.save(hist_path)
