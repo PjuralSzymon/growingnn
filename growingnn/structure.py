@@ -815,10 +815,22 @@ class Model:
                 self.input_layers[i] = Conv(layer_id, self, self.input_shape, self.kernel_size, self.depth, self.activation_fun, self.optimizer.getConv())
                 self.add_connection(layer_id, output_layer_id)
 
+    def validate_and_adjust_layer_size(self,input_size, output_size):
+        if input_size * output_size > config.MAXIMUM_MATRIX_SIZE_FOR_LAYER_ADDITION:
+            input_size = self.hidden_size
+        if input_size * output_size > config.MAXIMUM_MATRIX_SIZE_FOR_LAYER_ADDITION:
+            output_size = math.floor(math.sqrt(config.MAXIMUM_MATRIX_SIZE_FOR_LAYER_ADDITION / input_size))
+        if input_size > config.MAXIMUM_MATRIX_DIMENSTION_FOR_LAYER_ADDITION:
+            input_size = config.MAXIMUM_MATRIX_DIMENSTION_FOR_LAYER_ADDITION
+        if output_size > config.MAXIMUM_MATRIX_DIMENSTION_FOR_LAYER_ADDITION:
+            output_size = config.MAXIMUM_MATRIX_DIMENSTION_FOR_LAYER_ADDITION
+        return input_size, output_size
+
     def add_res_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
         input_size = layer_from.get_output_size()
+        input_size, output_size = self.validate_and_adjust_layer_size(input_size, layer_to.input_size)
         #input_size = min(input_size, self.hidden_size)
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
@@ -834,6 +846,7 @@ class Model:
             input_size = layer_from.output_flatten
         elif type(layer_from) == Layer:
             input_size = layer_from.neurons
+        input_size, output_size = self.validate_and_adjust_layer_size(input_size, layer_to.input_size)
         #input_size = min(input_size, self.hidden_size)
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
