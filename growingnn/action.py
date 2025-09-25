@@ -45,6 +45,8 @@ class Action:
             delete_neurons_actions_09 = Del_neurons.generate_all_actions(Model,0.9)
             result.extend(delete_neurons_actions_09)
 
+        if len(result) == 0:
+            result.append(Empty_action(None))
         return result
 
 class Add_Seq_Layer(Action):
@@ -207,3 +209,20 @@ class Del_neurons(Action):
 
     def __str__(self):
         return " ( Del Neurons Action: " + str(self.params) + " ) "
+    
+
+
+class Empty_action(Action):
+
+    def execute(self, Model):
+        pass
+
+    def can_be_infulenced(self, by_action):
+        return False
+
+    @staticmethod
+    def generate_all_actions(Model):
+        return [Empty_action(None)]
+
+    def __str__(self):
+        return " ( Empty action ) "

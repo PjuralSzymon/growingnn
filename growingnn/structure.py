@@ -790,6 +790,15 @@ class Model:
     def layers(self):
         """Return all layers in the model for compatibility with tests"""
         return self.input_layers + self.hidden_layers + [self.output_layer]
+    
+    def get_parametr_count(self):
+        counter = 0
+        for layer in self.hidden_layers + self.input_layers + [self.output_layer]:
+            if type(layer) == Conv:
+                counter += int(layer.depth) * int(layer.input_depth) * int(layer.kernel_size) * int(layer.kernel_size)
+            elif type(layer) == Layer:
+                counter += layer.input_size * layer.neurons
+        return counter
 
     def set_convolution_mode(self, input_shape, kernel_size, depth):
         #import convolution
