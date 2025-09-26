@@ -529,10 +529,10 @@ class Layer:
             #Reshape calucualted signal to the input size of the next layer
             layer = self.model.get_layer(layer_id)
             new_input = None
-            if isinstance(layer, Layer):
+            if type(layer) == Layer:
                 #new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
                 new_input = self.A.copy()
-            elif isinstance(layer, Conv):
+            elif type(layer) == Conv:
                 new_input = Resize(self.A.copy(), layer.input_shape)
             else:
                 raise ValueError(f"Unsupported layer type: {type(layer)}")
@@ -699,7 +699,7 @@ class Layer:
                 continue
             inlayer = self.model.get_layer(idin)
             #print("inlayer: ", idin, " size_registry: ", self.size_registry[idin])
-            if isinstance(inlayer, Conv):
+            if type(inlayer) == Conv:
                 #print("inlayer: ", idin, " output_flatten: ", inlayer.output_flatten, " input_flatten ", inlayer.input_flatten)
                 pass
             else:
@@ -794,9 +794,9 @@ class Model:
     def get_parametr_count(self):
         counter = 0
         for layer in self.hidden_layers + self.input_layers + [self.output_layer]:
-            if isinstance(layer, Conv):
+            if type(layer) == Conv:
                 counter += int(layer.depth) * int(layer.input_depth) * int(layer.kernel_size) * int(layer.kernel_size)
-            elif isinstance(layer, Layer):
+            elif type(layer) == Layer:
                 counter += layer.input_size * layer.neurons
         return counter
 
@@ -842,9 +842,9 @@ class Model:
     def add_norm_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.RANDOM):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
-        if isinstance(layer_from, Conv):
+        if type(layer_from) == Conv:
             input_size = layer_from.output_flatten
-        elif isinstance(layer_from, Layer):
+        elif type(layer_from) == Layer:
             input_size = layer_from.neurons
         input_size, _ = self.validate_and_adjust_layer_size(input_size, layer_to.input_size)
         #input_size = min(input_size, self.hidden_size)
@@ -873,12 +873,12 @@ class Model:
     def add_conv_norm_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.RANDOM):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
-        if isinstance(layer_to, Conv):
+        if type(layer_to) == Conv:
             i = layer_from.output_shape[0]
             d = clip(layer_to.depth, 1, 3)
             k = clip(layer_to.kernel_size, 1, i)
             new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun, self.optimizer.getConv())
-        elif isinstance(layer_to, Layer):
+        elif type(layer_to) == Layer:
             o = layer_to.input_size
             i = layer_from.output_shape[0]
             d = clip(math.floor(o ** ( 1 / 3)), 1, 3)
@@ -895,12 +895,12 @@ class Model:
     def add_conv_res_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
-        if isinstance(layer_to, Conv):
+        if type(layer_to) == Conv:
             d = layer_to.depth
             i = layer_from.output_shape[0]
             k = clip(layer_to.kernel_size, 1, i)
             new_layer = Conv(self.avaible_id, self, layer_from.output_shape, k, d, self.activation_fun, self.optimizer.getConv())        
-        elif isinstance(layer_to, Layer):
+        elif type(layer_to) == Layer:
             o = layer_to.input_size
             i = layer_from.output_shape[0]
             d = clip(math.floor(o ** ( 1 / 3)), 1, 3)
@@ -1225,9 +1225,9 @@ class Conv(Layer):
         # Process outputs more efficiently
         for layer_id in self.output_layers_ids:
             layer = self.model.get_layer(layer_id)
-            if isinstance(layer, Conv):
+            if type(layer) == Conv:
                 new_input = Resize(self.A.copy(), layer.input_shape)
-            elif isinstance(layer, Layer):
+            elif type(layer) == Layer:
                 new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, get_reshsper(self.output_flatten, layer.input_size))         
             else:
                 raise ValueError(f"Unsupported layer type: {type(layer)}")
@@ -1392,12 +1392,12 @@ class Storage:
             dict_reshapers[reshsper_id]["matrix"] =  get_numpy_array(layer.reshspers[resheper_key]).tolist()
         dict_main['reshapers'] = dict_reshapers
         dict_main['weights'] = {}
-        if isinstance(layer, Layer):
+        if type(layer) == Layer:
             dict_main['neurons'] = layer.neurons
             dict_main['input_size'] = layer.input_size
             dict_main['weights']['W'] = get_numpy_array(layer.W).tolist()
             dict_main['weights']['B'] = get_numpy_array(layer.B).tolist()
-        if isinstance(layer, Conv):
+        if type(layer) == Conv:
             dict_main['weights']['kernels'] = get_numpy_array(layer.kernels).tolist()
             dict_main['weights']['biases'] = get_numpy_array(layer.biases).tolist()
             dict_main['conv'] = {}
