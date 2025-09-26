@@ -5,7 +5,6 @@ sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
 from growingnn.structure import Layer, LearningRateScheduler, Model, Activations, Layer_Type
-from growingnn.config import FLOAT_TYPE
 from growingnn.action import Del_neurons
 
 class TestNeuronReduction(unittest.TestCase):
@@ -73,7 +72,7 @@ class TestNeuronReduction(unittest.TestCase):
                 
                 # Create test input
                 input = np.random.uniform(-1, 1, (config['input_size'], 1))
-                input = np.ascontiguousarray(input, dtype=FLOAT_TYPE)
+                input = np.ascontiguousarray(input, dtype=gnn.config.FLOAT_TYPE)
                 
                 # Get outputs and weights before reduction
                 layer.forward_prop(input, -1)
@@ -115,7 +114,7 @@ class TestNeuronReduction(unittest.TestCase):
                 
                 # Create test data
                 X = np.random.uniform(-1, 1, (config['input_size'], config['num_samples']))
-                X = np.ascontiguousarray(X, dtype=FLOAT_TYPE)
+                X = np.ascontiguousarray(X, dtype=gnn.config.FLOAT_TYPE)
                 y = np.random.randint(0, config['output_size'], (config['num_samples'],))
                 y[0] = config['output_size'] - 1
 
