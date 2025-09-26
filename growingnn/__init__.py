@@ -3,7 +3,7 @@ from .painter import *
 from .structure import *
 from .trainer import *
 from .helpers import *
-from .config import *
+from .config import config, DistributionMode
 from .quaziIdentity import *
 
 IS_CUPY = False
