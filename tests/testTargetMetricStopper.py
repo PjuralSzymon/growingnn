@@ -182,7 +182,7 @@ class TestTargetMetricStopper(unittest.TestCase):
                 input_paths=1,
                 path=self.temp_dir,
                 model_name="test_loss_stopper",
-                epochs=2,
+                epochs=200,
                 generations=10,  # High number to test early stopping
                 input_size=self.datadimensionality,
                 hidden_size=self.datadimensionality,
