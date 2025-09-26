@@ -47,7 +47,7 @@ class TreeNode:
             if not all_action_seq:
                 break
             # If there is no other action to do stop
-            if len(all_action_seq) == 1 and type(all_action_seq[0]) == Empty_action:    
+            if len(all_action_seq) == 1 and isinstance(all_action_seq[0], Empty_action):    
                 break
             # Choose action and execute it
             choosen_action = random.choice(all_action_seq)
