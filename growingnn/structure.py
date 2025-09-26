@@ -375,6 +375,34 @@ class History:
         for key in data['keys'].keys():
             self.Y[key] = list(np.asarray(data['keys'][key]))
 
+
+class TargetMetricStopper:
+    """
+    Stops training when a target metric threshold is reached.
+    Example: Stop when accuracy >= 0.90
+    """
+    def __init__(self, target_value = 1.0, metric_name="accuracy", greater_is_better=True):
+        self.target_value = target_value
+        self.metric_name = metric_name
+        self.greater_is_better = greater_is_better
+        self.should_stop = False
+
+    def check(self, current_value, epoch=None):
+        if self.greater_is_better:
+            if current_value >= self.target_value:
+                self.should_stop = True
+        else:
+            if current_value <= self.target_value:
+                self.should_stop = True
+        if self.should_stop:
+            msg = f"Stopping: {self.metric_name} reached {current_value:.4f}"
+            if epoch is not None:
+                msg += f" at epoch {epoch}"
+            print(msg)
+
+        return self.should_stop
+
+
 class Layer_Type(Enum):
     ZERO = 1
     RANDOM = 2

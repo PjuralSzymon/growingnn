@@ -8,11 +8,11 @@ import os
 from .helpers import convert_to_desired_type
 
 
-def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False, output_activation_fun = Activations.SoftMax):
-    return train_continue(None, x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size, simulation_set_size, simulation_alg, sim_set_generator, simulation_scheduler, lr_scheduler, loss_function, activation_fun, input_paths, sample_sub_generator , simulation_score, optimizer, quiet, output_activation_fun)
+def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False, output_activation_fun = Activations.SoftMax, stopper = TargetMetricStopper()):
+    return train_continue(None, x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size, simulation_set_size, simulation_alg, sim_set_generator, simulation_scheduler, lr_scheduler, loss_function, activation_fun, input_paths, sample_sub_generator , simulation_score, optimizer, quiet, output_activation_fun, stopper)
 
 
-def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False, output_activation_fun = Activations.SoftMax):
+def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False, output_activation_fun = Activations.SoftMax, stopper = TargetMetricStopper()):
     # Convert data types once at the beginning
     x_train = convert_to_desired_type(x_train)
     x_test = convert_to_desired_type(x_test)
@@ -65,6 +65,8 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         test_acc = M.evaluate(x_test, y_test)
         hist_detail.append('iteration_acc_test', test_acc)
         
+        if stopper.check(new_acc):
+            break
         # Check if simulation is needed
         if i < generations - 1:
             if simulation_scheduler.can_simulate(i, hist_detail, epochs, quiet):
