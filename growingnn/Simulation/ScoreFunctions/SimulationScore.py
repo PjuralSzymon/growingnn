@@ -21,7 +21,7 @@ class Simulation_score:
                  weight_acc =  1.0, 
                  weight_loss = 0.0,
                  weight_time = 0.0,
-                 weight_countW = 0.0,
+                 weight_countW = 0.5,
                  weight_diameter = 0.0,
                  weight_radius = 0.0,
                  weight_eccentricity = 0.0,
