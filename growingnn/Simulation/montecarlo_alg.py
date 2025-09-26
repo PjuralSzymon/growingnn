@@ -2,7 +2,8 @@ import time
 import random
 import math
 import numpy as np
-from ..action import Action
+from growingnn.structure import LearningRateScheduler
+from ..action import Action, Empty_action
 #from ..structure import *
 
 UCB1_CONTS = 2
@@ -29,11 +30,11 @@ class TreeNode:
         self.visit_counter = 0
 
     def expand(self):
-#        all_action_seq = self.M.generate_all_possible_new_layers()
         all_action_seq = Action.generate_all_actions(self.M)
         for action in all_action_seq:
             M_copy = self.M.deepcopy()
             action.execute(M_copy)
+            M_copy.gradient_descent(self.X_train, self.Y_train, 1, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.0001, 0.8) , True)
             #M_copy.add_layer(action[0], action[1])
             new_node = TreeNode(self, action, M_copy, self.epochs, self.X_train, self.Y_train, self.simulation_score)
             self.childNodes.append(new_node)
@@ -45,10 +46,13 @@ class TreeNode:
             all_action_seq = Action.generate_all_actions(M_copy)
             if not all_action_seq:
                 break
-                
+            # If there is no other action to do stop
+            if len(all_action_seq) == 1 and isinstance(all_action_seq[0], Empty_action):    
+                break
             # Choose action and execute it
             choosen_action = random.choice(all_action_seq)
             choosen_action.execute(M_copy)
+            M_copy.gradient_descent(self.X_train, self.Y_train, 1, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.0001, 0.8) , True)
             
             # Filter actions more efficiently using list comprehension
             all_action_seq = [action for action in all_action_seq 
@@ -94,7 +98,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
     size_of_changes = len(Action.generate_all_actions(M))
     if size_of_changes == 0: 
         print("Error")
-        return None, 0
+        return None, 0, 0
         
     root = TreeNode(None, None, M, epochs, X_train, Y_train, simulation_score)
     deadline = time.time() + max_time_for_dec

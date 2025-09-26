@@ -49,7 +49,8 @@ def timer_train(datasize, datadimensionality, classes):
             kernel_size=2,
             batch_size=1,
             simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 2, simulation_epochs = 2), 
-            deepth=2
+            deepth=2,
+            quiet=True
             )
         end_time = time.time()
         times.append(end_time - start_time)

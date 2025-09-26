@@ -22,7 +22,7 @@ class TestModel(unittest.TestCase):
         self.assertEqual(self.model.batch_size, 128)
         self.assertEqual(self.model.input_size, 10)
         self.assertEqual(self.model.output_size, 3)
-        self.assertEqual(self.model.hidden_size, 5)
+        self.assertEqual(self.model.hidden_size, 4)
         self.assertEqual(len(self.model.hidden_layers), 0)
         self.assertEqual(self.model.avaible_id, 2)
         self.assertEqual(self.model.convolution, False)

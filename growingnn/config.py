@@ -7,25 +7,104 @@ class DistributionMode(Enum):
     NORMAL = 'normal'
     GAMMA = 'gamma'
     REVERSED_GAUSSIAN = 'reversed_gaussian'
+
+class Config:
+    # Weight and Distribution Settings
+    WEIGHT_DISTRIBUTION_MODE = DistributionMode.NORMAL
+    WEIGHTS_CLIP_RANGE = 3
+    LARGE_MAX = 2**128
     
-WEIGHT_DISTRIBUTION_MODE = DistributionMode.NORMAL
-error_clip_range = 600 # In back propagation we are clipping the error range to prevent exploding gradients
-WEIGHTS_CLIP_RANGE = 3 # After weight update we are clipping all weights to prevent exploding gradients
-weights_clip_range = 400 # After weight update we are clipping all weights to prevent exploding gradients
-LARGE_MAX = 2**128
-MAX_THREADS = 1#max(1, int(os.cpu_count() * 0.5))
-VERSION = 'R3'
-FLOAT_TYPE = numpy.float64
+    # Neural Network Settings
+    FLOAT_TYPE = numpy.float64
+    VERSION = 'R3.3'
+    MAX_THREADS = 1#max(1, int(os.cpu_count() * 0.5))
+    
+    # Training Settings
+    ERROR_CLIP_RANGE = 600
+    PROGRESS_PRINT_FREQUENCY = 7
+    
+    # Feature Flags
+    THROW_EXCEPTION = True
+    SAVE_PLOTS = True
+    ENABLE_CLIP_ON_OPTIMIZERS = False
+    ENABLE_CLIP_ON_ACTIVATIONS = False
+    
+    # Neural Network Structure Settings
+    MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
+    MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
+    MAXIMUM_MATRIX_SIZE_FOR_LAYER_ADDITION = 300 * 300
+    MAXIMUM_MATRIX_DIMENSTION_FOR_LAYER_ADDITION = 1000
 
-# Exception handling configuration
-THROW_EXCEPTION = True  # Set to False to handle errors silently
+    # Action Settings
+    ACTIONS_ENABLE_ADD_SEQ_LAYER = True
+    ACTIONS_ENABLE_ADD_RES_LAYER = True
+    ACTIONS_ENABLE_ADD_SEQ_CONV_LAYER = True
+    ACTIONS_ENABLE_ADD_RES_CONV_LAYER = True
+    ACTIONS_ENABLE_DEL_LAYER = True
+    ACTIONS_ENABLE_DEL_NEURONS_01 = True
+    ACTIONS_ENABLE_DEL_NEURONS_05 = True
+    ACTIONS_ENABLE_DEL_NEURONS_09 = True
 
-# Progress printing configuration
-PROGRESS_PRINT_FREQUENCY = 7  # Print progress every N epochs
+    # Simulation Scoring Configuration
+    # Time efficiency scoring: Higher values make time efficiency more important
+    # Formula: grade = 1.0 / (TIME_EFFICIENCY_WEIGHT * time_difference + 1.0)
+    # If TIME_EFFICIENCY_WEIGHT is larger, faster models get much higher scores
+    TIME_EFFICIENCY_WEIGHT = 100.0
+    
+    # Weight count efficiency scoring: Higher values make weight count efficiency more important  
+    # Formula: grade = 1.0 / (WEIGHT_COUNT_WEIGHT * total_weights + 1.0)
+    # If WEIGHT_COUNT_WEIGHT is larger, models with fewer weights get much higher scores
+    WEIGHT_COUNT_WEIGHT = 0.001
 
-# Add this with other configuration constants
-SAVE_PLOTS = True  # Set to False in tests to disable plot saving
+    @classmethod
+    def update(cls, **kwargs):
+        """Update configuration values at runtime"""
+        for key, value in kwargs.items():
+            if hasattr(cls, key):
+                setattr(cls, key, value)
+            else:
+                raise AttributeError(f"Configuration '{key}' does not exist")
+    
+    @classmethod
+    def get(cls, key, default=None):
+        """Get configuration value with optional default"""
+        return getattr(cls, key, default)
+    
+    @classmethod
+    def reset_to_defaults(cls):
+        """Reset all configuration values to their defaults"""
+        cls.WEIGHT_DISTRIBUTION_MODE = DistributionMode.NORMAL
+        cls.WEIGHTS_CLIP_RANGE = 3
+        cls.LARGE_MAX = 2**128
+        cls.FLOAT_TYPE = numpy.float64
+        cls.VERSION = 'R3'
+        cls.MAX_THREADS = 1 #max(1, int(os.cpu_count() * 0.5))
+        cls.ERROR_CLIP_RANGE = 600
+        cls.PROGRESS_PRINT_FREQUENCY = 7
+        cls.THROW_EXCEPTION = True
+        cls.SAVE_PLOTS = True
+        cls.ENABLE_CLIP_ON_OPTIMIZERS = False
+        cls.ENABLE_CLIP_ON_ACTIVATIONS = False
+        cls.MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
+        cls.MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
+        cls.TIME_EFFICIENCY_WEIGHT = 100.0
+        cls.WEIGHT_COUNT_WEIGHT = 0.001
 
-ENABLE_CLIP_ON_OPTIMIZERS = False # Switch to True reduce a risk of exploding gradients but it will increase a time of training by 21%
+# Create a global instance for backward compatibility
+config = Config()
 
-ENABLE_CLIP_ON_ACTIVATIONS = False # Switch to True reduce a risk of exploding gradients but it will increase a time of training by 21%
+# Example usage:
+# from growingnn.config import config
+# 
+# # Update multiple settings
+# update(
+#     WEIGHTS_CLIP_RANGE=5,
+#     PROGRESS_PRINT_FREQUENCY=10,
+#     ENABLE_CLIP_ON_ACTIVATIONS=True
+# )
+# 
+# # Get a setting with default
+# batch_size = get('BATCH_SIZE', 32)
+# 
+# # Reset to defaults
+# reset_to_defaults()

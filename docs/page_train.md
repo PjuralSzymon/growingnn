@@ -97,13 +97,115 @@ sim_set_gen = create_simulation_set_SAMLE
 model = train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, simulation_alg=sim_alg, sim_set_generator=sim_set_gen)
 ```
 
-## Notes
-- Ensure that the dataset is properly formatted before passing it to the `train` function.
-- The function includes a simulation-based improvement mechanism that optimizes model performance through iterative refinements.
-- Various parameters such as `simulation_alg`, `lr_scheduler`, and `optimizer` allow customization of the training process.
+## Regression Training
 
-## References
-- **Simulation Scheduler**: Used to control the timing and execution of simulations.
-- **Learning Rate Scheduler**: Defines the learning rate adaptation strategy.
-- **Simulation Algorithms**: Improve model performance through reinforcement learning-based exploration.
+The growingnn library supports regression tasks. Regression models predict continuous values instead of discrete classes.
 
+### Key Components for Regression
+
+1. **Loss Functions**: 
+   - `Loss.MSE` - Mean Squared Error (most common for regression)
+   - `Loss.MAE` - Mean Absolute Error (robust to outliers)
+
+2. **Activation Functions**:
+   - `Activations.Linear` - Identity function (no transformation)
+
+3. **Model Configuration**:
+   - `output_size = 1` for single-value regression
+   - `one_hot_needed = False` in gradient descent
+
+4. **Trainer Configuration**:
+   - Use `gnn.trainer.train` with regression-specific parameters
+   - Set `loss_function=gnn.Loss.MSE` or `gnn.Loss.MAE`
+   - Configure `activation_fun=gnn.Activations.Linear` and `output_activation_fun=gnn.Activations.Linear`
+   - Use smaller learning rates (0.001-0.01) for stable convergence
+   - Set `simulation_score` with `weight_acc=0.0, weight_loss=1.0` to focus on loss minimization
+
+### Simple Regression Training Example
+
+```python
+import growingnn as gnn
+import numpy as np
+
+# Generate simple linear regression data: y = 3x
+x_train = np.arange(1, 5)
+y_train = x_train * 3
+
+# Create regression model
+model = gnn.Model(
+    input_size=1,
+    hidden_size=20,
+    output_size=1,
+    loss_function=gnn.Loss.MSE,
+    activation_fun=gnn.Activations.Linear,
+    output_activation_fun=gnn.Activations.Linear,
+    input_paths=1,
+    _optimizer=gnn.SGDOptimizer()
+)
+
+# Configure learning rate
+lr_scheduler = gnn.LearningRateScheduler(gnn.LearningRateScheduler.CONSTANT, 0.001)
+
+# Train the model
+final_loss, history = model.gradient_descent(
+    X=x_train,
+    Y=y_train,
+    iterations=100,
+    lr_scheduler=lr_scheduler,
+    quiet=True,
+    one_hot_needed=False  # Important for regression!
+)
+
+print(f"Final loss: {final_loss}")
+```
+
+### Complex Regression Training Example
+
+```python
+import growingnn as gnn
+import numpy as np
+import tempfile
+
+# Generate quadratic regression data: y = x²
+x_train = np.arange(1, 5)
+y_train = x_train ** 2
+
+# Use the trainer for more advanced training with simulations
+temp_dir = tempfile.mkdtemp()
+model = gnn.trainer.train(
+    x_train=x_train,
+    y_train=y_train,
+    x_test=x_train,  # Using same data for simplicity
+    y_test=y_train,
+    labels=['Y'],
+    input_paths=1,
+    path=temp_dir,
+    model_name="quadratic_regression",
+    epochs=200,
+    generations=2,
+    input_size=1,
+    hidden_size=5,
+    output_size=1,
+    input_shape=None,
+    kernel_size=None,
+    batch_size=10,
+    activation_fun=gnn.Activations.Linear,
+    output_activation_fun=gnn.Activations.Linear,
+    loss_function=gnn.Loss.MSE,
+    lr_scheduler=gnn.LearningRateScheduler(
+        gnn.LearningRateScheduler.CONSTANT, 
+        0.001, 
+        0.5
+    ),
+    simulation_scheduler=gnn.SimulationScheduler(
+        gnn.SimulationScheduler.CONSTANT, 
+        simulation_time=5, 
+        simulation_epochs=100
+    ),
+    simulation_score=gnn.Simulation_score(weight_acc=0.0, weight_loss=1.0),
+    deepth=None,
+    quiet=True,
+    simulation_alg=gnn.montecarlo_alg,
+    optimizer=gnn.SGDOptimizer()
+)
+```

@@ -107,8 +107,8 @@ class TestTrainingScenarios(unittest.TestCase):
         lr_scheduler = gnn.structure.LearningRateScheduler(gnn.structure.LearningRateScheduler.CONSTANT, 0.01)
         
         # Train both models
-        acc_sgd, _ = model_sgd.gradient_descent(x, y, 50, lr_scheduler)
-        acc_adam, _ = model_adam.gradient_descent(x, y, 50, lr_scheduler)
+        acc_sgd, _ = model_sgd.gradient_descent(x, y, 50, lr_scheduler, quiet=True)
+        acc_adam, _ = model_adam.gradient_descent(x, y, 50, lr_scheduler, quiet=True)
         
         # Adam should perform at least 80% as well as SGD
         self.assertGreaterEqual(acc_adam, acc_sgd * 0.8,
@@ -202,7 +202,8 @@ class TestTrainingScenarios(unittest.TestCase):
                     ),
                     deepth=None,
                     simulation_alg=self.simulation_alg,
-                    optimizer=self.optimizer
+                    optimizer=self.optimizer,
+                    quiet=True
                 )
                 self.assertIsNotNone(model)
             except Exception as e:
@@ -238,7 +239,8 @@ class TestTrainingScenarios(unittest.TestCase):
                     ),
                     deepth=None,
                     simulation_alg=self.simulation_alg,
-                    optimizer=self.optimizer
+                    optimizer=self.optimizer,
+                    quiet=True
                 )
                 self.assertIsNotNone(model)
             except Exception as e:
@@ -274,7 +276,8 @@ class TestTrainingScenarios(unittest.TestCase):
                     ),
                     deepth=depth,
                     simulation_alg=self.simulation_alg,
-                    optimizer=self.optimizer
+                    optimizer=self.optimizer,
+                    quiet=True
                 )
                 self.assertIsNotNone(model)
             except Exception as e:
@@ -310,7 +313,8 @@ class TestTrainingScenarios(unittest.TestCase):
                     ),
                     deepth=1,
                     simulation_alg=self.simulation_alg,
-                    optimizer=self.optimizer
+                    optimizer=self.optimizer,
+                    quiet=True
                 )
                 self.assertIsNotNone(model)
             except Exception as e:
@@ -342,7 +346,8 @@ class TestTrainingScenarios(unittest.TestCase):
             ), 
             deepth=2,
             simulation_alg=self.simulation_alg,
-            optimizer=self.optimizer
+            optimizer=self.optimizer,
+            quiet=True
         )
 
     def train_dense(self):
@@ -371,7 +376,8 @@ class TestTrainingScenarios(unittest.TestCase):
             ), 
             deepth=None,
             simulation_alg=self.simulation_alg,
-            optimizer=self.optimizer
+            optimizer=self.optimizer,
+            quiet=True
         )
 
 

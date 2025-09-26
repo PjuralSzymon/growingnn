@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import growingnn as gnn
 from testSuite import mode
 from growingnn import Model, Loss, Activations, LearningRateScheduler, Storage
-from growingnn.config import THROW_EXCEPTION
+from growingnn.config import config
 
 class TestAdvancedFeatures(unittest.TestCase):
     """Advanced tests for the growingnn package"""
@@ -437,7 +437,8 @@ class TestAdvancedFeatures(unittest.TestCase):
                 output_size=self.output_size,
                 input_shape=None,
                 kernel_size=None,
-                deepth=None
+                deepth=None,
+                quiet=True
             )
         except Exception as e:
             self.fail(f"Training with constant simulation scheduler raised an exception: {e}")
@@ -463,7 +464,8 @@ class TestAdvancedFeatures(unittest.TestCase):
                 output_size=self.output_size,
                 input_shape=None,
                 kernel_size=None,
-                deepth=None
+                deepth=None,
+                quiet=True
             )
         except Exception as e:
             self.fail(f"Training with progress check simulation scheduler raised an exception: {e}")

@@ -50,6 +50,7 @@ class TestTrainer(unittest.TestCase):
         """Test basic training functionality with minimal parameters"""
         try:
             model = gnn.trainer.train(
+                quiet=True,
                 x_train=self.x_train,
                 y_train=self.y_train,
                 x_test=self.x_test,
@@ -83,6 +84,7 @@ class TestTrainer(unittest.TestCase):
         """Test training with convolutional layers"""
         try:
             model = gnn.trainer.train(
+                quiet=True,
                 x_train=self.x_conv_train,
                 y_train=self.y_conv_train,
                 x_test=self.x_conv_test,
@@ -122,6 +124,7 @@ class TestTrainer(unittest.TestCase):
         for optimizer in optimizers:
             try:
                 model = gnn.trainer.train(
+                    quiet=True,
                     x_train=self.x_train,
                     y_train=self.y_train,
                     x_test=self.x_test,
@@ -162,6 +165,7 @@ class TestTrainer(unittest.TestCase):
         for alg in simulation_algs:
             try:
                 model = gnn.trainer.train(
+                    quiet=True,
                     x_train=self.x_train,
                     y_train=self.y_train,
                     x_test=self.x_test,
@@ -202,6 +206,7 @@ class TestTrainer(unittest.TestCase):
         for mode in scheduler_modes:
             try:
                 model = gnn.trainer.train(
+                    quiet=True,
                     x_train=self.x_train,
                     y_train=self.y_train,
                     x_test=self.x_test,
@@ -242,6 +247,7 @@ class TestTrainer(unittest.TestCase):
         for scheduler in lr_schedulers:
             try:
                 model = gnn.trainer.train(
+                    quiet=True,
                     x_train=self.x_train,
                     y_train=self.y_train,
                     x_test=self.x_test,
@@ -284,6 +290,7 @@ class TestTrainer(unittest.TestCase):
         for act_fun in activation_funs:
             try:
                 model = gnn.trainer.train(
+                    quiet=True,
                     x_train=self.x_train,
                     y_train=self.y_train,
                     x_test=self.x_test,
@@ -324,6 +331,7 @@ class TestTrainer(unittest.TestCase):
         for loss_fun in loss_functions:
             try:
                 model = gnn.trainer.train(
+                    quiet=True,
                     x_train=self.x_train,
                     y_train=self.y_train,
                     x_test=self.x_test,
@@ -362,6 +370,7 @@ class TestTrainer(unittest.TestCase):
             x_test_multi = [self.x_test, self.x_test]
             
             model = gnn.trainer.train(
+                quiet=True,
                 x_train=x_train_multi,
                 y_train=self.y_train,
                 x_test=x_test_multi,
@@ -398,6 +407,7 @@ class TestTrainer(unittest.TestCase):
         for batch_size in batch_sizes:
             try:
                 model = gnn.trainer.train(
+                    quiet=True,
                     x_train=self.x_train,
                     y_train=self.y_train,
                     x_test=self.x_test,

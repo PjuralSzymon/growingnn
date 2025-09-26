@@ -5,8 +5,9 @@ import json
 import threading
 import os
 import time
+from numba import jit
 from .painter import *
-from .config import *
+from .config import config, DistributionMode
 from .optimizers import *
 from .quaziIdentity import *
 
@@ -29,6 +30,8 @@ class Loss:
     def getByName(name):
         if name == Loss.MSE.__name__:
             return Loss.MSE
+        elif name == Loss.MAE.__name__:
+            return Loss.MAE
         elif name == Loss.multiclass_cross_entropy.__name__:
             return Loss.multiclass_cross_entropy
 
@@ -38,6 +41,14 @@ class Loss:
             return np.sum((Y_pred - Y_true)**2)/Y_pred.shape[0]
         def der(Y_true, Y_pred):
             return Y_pred - Y_true
+    
+    class MAE:
+        __name__ = 'MAE'
+        def exe(Y_true, Y_pred):
+            return np.sum(np.abs(Y_pred - Y_true))/Y_pred.shape[0]
+        def der(Y_true, Y_pred):
+            return np.sign(Y_pred - Y_true)
+    
     class multiclass_cross_entropy:
         __name__ = 'multiclass_cross_entropy'
         def exe(Y_true, Y_pred):
@@ -69,18 +80,21 @@ class Activations:
             return Activations.Sigmoid
         elif name == Activations.Tanh.__name__:
             return Activations.Tanh
+        elif name == Activations.Linear.__name__:
+            return Activations.Linear
+    
     class ReLu:
         __name__ = 'ReLu'
 
         @staticmethod
         @jit(nopython=True)
         def exe(X):
-            return numpy.maximum(X,0)
+            return np.maximum(X,0)
         
         @staticmethod
         @jit(nopython=True)
         def der(X):
-            return X > 0
+            return np.where(X > 0, 1, 0)
         
     class leaky_ReLu:
         __name__ = 'leaky_ReLu'
@@ -103,7 +117,7 @@ class Activations:
             # Vectorized implementation instead of loop
             exp_X = np.exp(X - np.max(X, axis=0))
             result = exp_X / np.sum(exp_X, axis=0)
-            if ENABLE_CLIP_ON_ACTIVATIONS:
+            if config.ENABLE_CLIP_ON_ACTIVATIONS:
                 return clip(result, 0.0001, 0.999)
             else:
                 return result
@@ -139,6 +153,20 @@ class Activations:
         @jit(nopython=True)
         def der(X):
             return 1 - np.tanh(X)**2
+    
+    class Linear:
+        __name__ = 'Linear'
+        
+        @staticmethod
+        @jit(nopython=True)
+        def exe(X):
+            return X
+        
+        @staticmethod
+        @jit(nopython=True)
+        def der(X):
+            return np.ones_like(X)
+
 
 class LearningRateScheduler:
     CONSTANT = 0
@@ -181,7 +209,7 @@ class SimulationScheduler:
         self.flatten_check_length = 20
         self.progres_delta = 0.01
 
-    def can_simulate(self, i, hist_detail, epochsInGeneration=20):
+    def can_simulate(self, i, hist_detail, epochsInGeneration=20, quiet = False):
         new_acc = 0#hist_detail.Y['iteration_acc_train'][-1]
         prev_acc = 0#hist_detail.Y['iteration_acc_train'][-2]
         if len(hist_detail.Y['iteration_acc_train']) > 0: new_acc = hist_detail.Y['iteration_acc_train'][-1]
@@ -189,21 +217,26 @@ class SimulationScheduler:
         new_acc = get_numpy_array(new_acc)
         prev_acc = get_numpy_array(prev_acc)
         if self.mode == SimulationScheduler.CONSTANT: 
-            print("[iteration: "+str(i)+"] Constant frequency od simulaiton acc: " + str(new_acc)+ " starting simulation." )
+            if not quiet:
+                print("[iteration: "+str(i)+"] Constant frequency od simulaiton acc: " + str(new_acc)+ " starting simulation." )
             return True
         elif self.mode == SimulationScheduler.PROGRESS_CHECK:
             if new_acc - prev_acc < self.progres_delta:
-                print("[iteration: "+str(i)+"] No correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") starting simulation."  )
+                if not quiet:
+                    print("[iteration: "+str(i)+"] No correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") starting simulation."  )
                 return True
             else:
-                print("[iteration: "+str(i)+"] correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") training continues.")
+                if not quiet:
+                    print("[iteration: "+str(i)+"] correction detected acc: " + str(new_acc)+ "(prev: " + str(prev_acc) + ") training continues.")
                 return False
         elif self.mode == SimulationScheduler.OVERFIT_CHECK:
             if not hist_detail.learning_capable(epochsInGeneration):
-                print("[iteration: "+str(i)+"] Model not learning capable: " + str(new_acc)+ " starting simulation."  )
+                if not quiet:
+                    print("[iteration: "+str(i)+"] Model not learning capable: " + str(new_acc)+ " starting simulation."  )
                 return True
             else:
-                print("[iteration: "+str(i)+"] Model is learning capable: " + str(new_acc)+ " training continues.")
+                if not quiet:
+                    print("[iteration: "+str(i)+"] Model is learning capable: " + str(new_acc)+ " training continues.")
                 return False
         return False
     
@@ -304,13 +337,16 @@ class History:
         return self.Y[key][-1]
 
     def draw_hist(self, label, path):
-        if not SAVE_PLOTS: return
+        if not config.SAVE_PLOTS: return
         for key in self.Y.keys():
             xc = range(0, len(self.Y[key]))
             plt.figure()
             plt.plot(xc, get_list_as_numpy_array(self.Y[key]), label = key)
             plt.legend()
-            plt.savefig(path + "/" + label + "_" + key + ".png")
+            try:
+                plt.savefig(path + "/" + label + "_" + key + ".png")
+            except Exception as e:
+                print(f"Error saving plot: {e}")
             plt.close()
             
     def save(self, path):
@@ -390,6 +426,7 @@ class Layer:
         self.optimizer_W = OptimizerFactory.copy(self.optimizer)
         self.optimizer_B = OptimizerFactory.copy(self.optimizer)
         self.connections = {}
+        self.size_registry = {}
         if layer_type == Layer_Type.EYE:
             self.W = np.asarray(eye_stretch(neurons, input_size))
             self.B = np.asarray(np.zeros((neurons, 1)))
@@ -397,24 +434,24 @@ class Layer:
             self.W = np.asarray(np.zeros((neurons, input_size)))
             self.B = np.asarray(np.zeros((neurons, 1)))
         else:
-            if WEIGHT_DISTRIBUTION_MODE == DistributionMode.UNIFORM:
-                self.W = np.random.uniform(low=-WEIGHTS_CLIP_RANGE/3, high=WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
-                self.B = np.random.uniform(low=-WEIGHTS_CLIP_RANGE/3, high=WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
-            elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.NORMAL:
-                self.W = np.random.normal(loc=0.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
-                self.B = np.random.normal(loc=0.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
-            elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.GAMMA:
-                # Using shape=2 and scale=WEIGHTS_CLIP_RANGE for Gamma distribution.
-                self.W = np.random.gamma(shape=2.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
-                self.B = np.random.gamma(shape=2.0, scale=WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
-            elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.REVERSED_GAUSSIAN:
-                # Shifting the mean to negative, and controlling spread with WEIGHTS_CLIP_RANGE
-                self.W = get_reverse_normal_distribution(WEIGHTS_CLIP_RANGE/3, (neurons, input_size))
-                self.B = get_reverse_normal_distribution(WEIGHTS_CLIP_RANGE/3, (neurons, 1))
+            if config.WEIGHT_DISTRIBUTION_MODE == DistributionMode.UNIFORM:
+                self.W = np.random.uniform(low=-config.WEIGHTS_CLIP_RANGE/3, high=config.WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
+                self.B = np.random.uniform(low=-config.WEIGHTS_CLIP_RANGE/3, high=config.WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
+            elif config.WEIGHT_DISTRIBUTION_MODE == DistributionMode.NORMAL:
+                self.W = np.random.normal(loc=0.0, scale=config.WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
+                self.B = np.random.normal(loc=0.0, scale=config.WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
+            elif config.WEIGHT_DISTRIBUTION_MODE == DistributionMode.GAMMA:
+                # Using shape=2 and scale=config.WEIGHTS_CLIP_RANGE for Gamma distribution.
+                self.W = np.random.gamma(shape=2.0, scale=config.WEIGHTS_CLIP_RANGE/3, size=(neurons, input_size))
+                self.B = np.random.gamma(shape=2.0, scale=config.WEIGHTS_CLIP_RANGE/3, size=(neurons, 1))
+            elif config.WEIGHT_DISTRIBUTION_MODE == DistributionMode.REVERSED_GAUSSIAN:
+                # Shifting the mean to negative, and controlling spread with config.WEIGHTS_CLIP_RANGE
+                self.W = get_reverse_normal_distribution(config.WEIGHTS_CLIP_RANGE/3, (neurons, input_size))
+                self.B = get_reverse_normal_distribution(config.WEIGHTS_CLIP_RANGE/3, (neurons, 1))
             else:
-                raise ValueError(f"Unsupported distribution mode: {WEIGHT_DISTRIBUTION_MODE}")
-        self.W =  np.ascontiguousarray(self.W, dtype=FLOAT_TYPE)
-        self.B =  np.ascontiguousarray(self.B, dtype=FLOAT_TYPE)
+                raise ValueError(f"Unsupported distribution mode: {config.WEIGHT_DISTRIBUTION_MODE}")
+        self.W =  np.ascontiguousarray(self.W, dtype=config.FLOAT_TYPE)
+        self.B =  np.ascontiguousarray(self.B, dtype=config.FLOAT_TYPE)
             
     def set_as_ending(self):
         self.is_ending = True
@@ -427,6 +464,46 @@ class Layer:
     def get_output_size(self):
         return self.neurons
     
+    def remove_neurons(self, reduce_ratio):
+        neurons_reduced_amount = max(1, int(self.neurons * reduce_ratio))
+        
+        # Store old neuron count for weight adjustment
+        old_neurons = self.neurons
+        
+        self.W = np.dot(self.W.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
+        self.B = np.dot(self.B.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
+        
+        # Adjust weights in output layers that receive input from this layer
+        for output_layer_id in self.output_layers_ids:
+            output_layer = self.model.get_layer(output_layer_id)
+            if output_layer is not None:
+                if self.id in output_layer.input_layers_ids:
+                    start_pos, end_pos = output_layer.get_weight_matrix_indexes_for_layer_id(self.id)
+                    if start_pos == 0 and end_pos == 0:
+                        print("ERROR NOT WEIGHT ADJUSTMENT")
+                        continue
+                    # Adjust the weight matrix using the same scaling logic
+                    if hasattr(output_layer, 'W') and output_layer.W is not None:                       
+                        weights_before = output_layer.W[:, :start_pos] if start_pos > 0 else None
+                        weights_middle = output_layer.W[:, start_pos:end_pos]  # Part corresponding to current layer
+                        weights_after = output_layer.W[:, end_pos:] if end_pos < output_layer.W.shape[1] else None
+
+                        scaled_weights_middle = np.dot(weights_middle, get_reshsper(old_neurons, neurons_reduced_amount))
+                        
+                        # Combine the three parts
+                        new_W_parts = []
+                        if weights_before is not None:
+                            new_W_parts.append(weights_before)
+                        new_W_parts.append(scaled_weights_middle)
+                        if weights_after is not None:
+                            new_W_parts.append(weights_after)
+                        output_layer.W = np.hstack(new_W_parts)
+                        
+                        # Update the input_size of the output layer
+                        if hasattr(output_layer, 'input_size'):
+                            output_layer.input_size = output_layer.W.shape[1]
+        self.neurons = neurons_reduced_amount
+
     def connect_input(self, layer_id):
         if layer_id == self.id: 
             print("error I")
@@ -474,7 +551,7 @@ class Layer:
         return W
     
     def should_thread_forward(self):
-        return (threading.active_count() < MAX_THREADS and 
+        return (threading.active_count() < config.MAX_THREADS and 
                 len(self.f_input) + 1 >= len(self.input_layers_ids))
     
     def append_to_f_input(self, X, sender_id):
@@ -485,6 +562,8 @@ class Layer:
         if sender_id not in self.input_layers_ids:
             raise ValueError(f"Sender ID {sender_id} is not in the input layers IDs {self.input_layers_ids}")
             
+        #print(self.id, "---sender_id: ", sender_id, " X.shape: ", X.shape, " input_layers_ids: ", self.input_layers_ids)
+        self.size_registry[sender_id] = X.shape[0]
         # Pre-allocate if needed
         if len(self.f_input) < len(self.input_layers_ids):
             self.f_input.extend([None] * (len(self.input_layers_ids) - len(self.f_input)))
@@ -493,6 +572,8 @@ class Layer:
         
 
     def forward_prop(self, X, sender_id, deepth = 0):
+        if X is None:
+            raise ValueError("Layed Dense recived None input")
         self.append_to_f_input(X, sender_id)
         if any(x is None for x in self.f_input):
                 return None
@@ -513,7 +594,8 @@ class Layer:
             layer = self.model.get_layer(layer_id)
             new_input = None
             if type(layer) == Layer:
-                new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
+                #new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
+                new_input = self.A.copy()
             elif type(layer) == Conv:
                 new_input = Resize(self.A.copy(), layer.input_shape)
             else:
@@ -536,11 +618,16 @@ class Layer:
         self.f_input = []
 
     def should_thread_backward(self):
-        if threading.active_count() >= MAX_THREADS:
+        if threading.active_count() >= config.MAX_THREADS:
             return False
         if len(self.b_input) + 1 < len(self.output_layers_ids): 
             return False
         return True
+    
+    def get_size_registry(self, layer_id):
+        if layer_id not in self.size_registry.keys():
+            return self.model.get_layer(layer_id).get_output_size()
+        return self.size_registry[layer_id]
     
     def back_prop(self,E,m,alpha):
         if E.shape[0] <=0:
@@ -549,14 +636,15 @@ class Layer:
         E = Reshape(E, self.neurons, get_reshsper(E.shape[0], self.neurons))
         self.b_input.append(E)
         if len(self.b_input) < len(self.output_layers_ids): return None
-        self.E =  clip(mean_n(self.b_input), -error_clip_range, error_clip_range)
+        self.E =  clip(mean_n(self.b_input), -config.ERROR_CLIP_RANGE, config.ERROR_CLIP_RANGE)
         dZ = self.E * self.act_fun.der(self.Z)
         self.dW = Layer.calcuale_dW(m, dZ, self.I)
         self.dB = Layer.calcuale_dB(m, dZ, self.B)
         self.E = self.W.T @ dZ
         before_iteration = 0
         for layer_id in self.input_layers_ids:
-            neurons = self.input_size
+            #neurons = self.input_size
+            neurons = self.get_size_registry(layer_id)
             E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
             before_iteration += neurons
             layer = self.model.get_layer(layer_id)
@@ -580,7 +668,7 @@ class Layer:
 
     @staticmethod
     @jit(nopython=True, cache=False)
-    def compute_forward(I: FLOAT_TYPE, W: FLOAT_TYPE, B: FLOAT_TYPE):
+    def compute_forward(I: config.FLOAT_TYPE, W: config.FLOAT_TYPE, B: config.FLOAT_TYPE):
         """Compute forward pass with optimized array contiguity"""
         Z = np.dot(W, I) + B
         return Z
@@ -639,21 +727,86 @@ class Layer:
         copy.b_input = self.b_input.copy()
         copy.W = self.W.copy()
         copy.B = self.B.copy()
+        copy.size_registry = self.size_registry.copy()
         return copy
 
     def get_weights_summary(self):
         return "W: "+str(np.mean(self.W))+ " B: "+ str(np.mean(self.B))
     
     def get_paint_label(self):
-            # self.W.shape[1] -> connections/input size
-            # self.W.shape[0] -> neurons/outpu size
-            return str(self.id) + "[" +str(self.W.shape[1])+","+str(self.W.shape[0])+"]"
+        return str(self.id) + "[" +str(self.W.shape[1])+","+str(self.W.shape[0])+"]" + "mean: "+str( round(np.mean(self.W), 2))
 
     def __str__(self):
         return "[<layer: "+ str(self.id)+ " id: " + str(id(self)) + " model id: "+ str(id(self.model))+" in conn: "+ str(len(self.input_layers_ids)) +" out conn: "+ str(len(self.output_layers_ids))+ ">]" 
 
+    def get_weight_matrix_indexes_for_layer_id(self, target_layer_id):
+        """
+        Get the start and end indexes in the weight matrix that correspond to a specific layer ID.
+        
+        Args:
+            target_layer_id: The ID of the layer whose weight indexes we want to find
+            
+        Returns:
+            tuple: (start_index, end_index) representing the column range in the weight matrix
+        """
+        if target_layer_id not in self.size_registry.keys():
+            return 0, 0
+        #print(f"\n=== DEBUG: get_weight_matrix_indexes_for_layer_id ===")
+        #print(f"Current layer ID: {self.id}")
+        #print(f"Target layer ID: {target_layer_id}")
+        #print(f"Input layers IDs: {self.input_layers_ids}")
+        #print(f"W: {self.W.shape}")
+        #print(f"B: {self.B.shape}")
+        #print("Current type: ", type(self))
+        for idin in self.input_layers_ids:
+            if idin not in self.size_registry.keys(): 
+                continue
+            inlayer = self.model.get_layer(idin)
+            #print("inlayer: ", idin, " size_registry: ", self.size_registry[idin])
+            if type(inlayer) == Conv:
+                #print("inlayer: ", idin, " output_flatten: ", inlayer.output_flatten, " input_flatten ", inlayer.input_flatten)
+                pass
+            else:
+                #print("inlayer: ", idin, " W: ", inlayer.W.shape, " B: ", inlayer.B.shape, " output: ", inlayer.get_output_size())
+                pass
+        
+        if target_layer_id not in self.input_layers_ids:
+            print(f"ERROR: Layer ID {target_layer_id} is not in the input layers IDs {self.input_layers_ids}")
+            raise ValueError(f"Layer ID {target_layer_id} is not in the input layers IDs {self.input_layers_ids}")
+        
+        # Find the position of the target layer in input_layers_ids
+        input_index = self.input_layers_ids.index(target_layer_id)
+        #print(f"Input index of target layer: {input_index}")
+        
+        # Calculate the start position by summing up the output sizes of previous layers
+        start_pos = 0
+        #print(f"Calculating start position...")
+        for i in range(input_index):
+            prev_layer_id = self.input_layers_ids[i]
+            if prev_layer_id in self.size_registry.keys():
+                prev_output_size = self.size_registry[prev_layer_id]
+                start_pos += prev_output_size
+                #print(f"  Layer {prev_layer_id}: output_size = {prev_output_size}, start_pos = {start_pos}")
+            else:
+                #print(f"  WARNING: Layer {prev_layer_id} is not in the size_registry!")
+                pass
+        
+        # Calculate the end position
+        target_layer = self.model.get_layer(target_layer_id)
+        if target_layer is None:
+            print(f"ERROR: Target layer with ID {target_layer_id} does not exist")
+            raise ValueError(f"Target layer with ID {target_layer_id} does not exist")
+        
+        target_output_size = target_layer.get_output_size()
+        end_pos = start_pos + target_output_size
+        #print(f"Target layer {target_layer_id}: output_size = {target_output_size}")
+        #print(f"Final indexes: start_pos = {start_pos}, end_pos = {end_pos}")
+        #print(f"=== END DEBUG ===\n")
+        
+        return start_pos, end_pos
+
 class Model:
-    def __init__(self, input_size, hidden_size, output_size, loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, _optimizer = SGDOptimizer()):
+    def __init__(self, input_size, hidden_size, output_size, loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, _optimizer = SGDOptimizer(), output_activation_fun = Activations.SoftMax):
         if input_size <= 0:
             raise ValueError("Input size must be positive")
         if hidden_size <= 0:
@@ -674,12 +827,14 @@ class Model:
         self.input_size = input_size
         self.output_size = output_size
         self.hidden_size = hidden_size
+        self.hidden_size = int(self.input_size * 0.2 + self.output_size * 0.8)
         self.hidden_layers = []
         self.avaible_id = 2
         self.activation_fun = activation_fun
         self.input_layers = []
         self.optimizer = _optimizer
-        self.output_layer = Layer(1, self, hidden_size, output_size, Activations.SoftMax, Layer_Type.RANDOM, self.optimizer.getDense())
+        self.output_activation_fun = output_activation_fun
+        self.output_layer = Layer(1, self, hidden_size, output_size, self.output_activation_fun, Layer_Type.RANDOM, self.optimizer.getDense())
         self.output_layer.set_as_ending()
         for i in range(0, input_paths):
             layer_id = "init_"+str(i)
@@ -700,6 +855,15 @@ class Model:
     def layers(self):
         """Return all layers in the model for compatibility with tests"""
         return self.input_layers + self.hidden_layers + [self.output_layer]
+    
+    def get_parametr_count(self):
+        counter = 0
+        for layer in self.hidden_layers + self.input_layers + [self.output_layer]:
+            if type(layer) == Conv:
+                counter += int(layer.depth) * int(layer.input_depth) * int(layer.kernel_size) * int(layer.kernel_size)
+            elif type(layer) == Layer:
+                counter += layer.input_size * layer.neurons
+        return counter
 
     def set_convolution_mode(self, input_shape, kernel_size, depth):
         #import convolution
@@ -716,10 +880,25 @@ class Model:
                 self.input_layers[i] = Conv(layer_id, self, self.input_shape, self.kernel_size, self.depth, self.activation_fun, self.optimizer.getConv())
                 self.add_connection(layer_id, output_layer_id)
 
+    def is_regression(self):
+        return self.output_layer.act_fun == Activations.Linear
+    
+    def validate_and_adjust_layer_size(self,input_size, output_size):
+        if input_size * output_size > config.MAXIMUM_MATRIX_SIZE_FOR_LAYER_ADDITION:
+            input_size = self.hidden_size
+        if input_size * output_size > config.MAXIMUM_MATRIX_SIZE_FOR_LAYER_ADDITION:
+            output_size = math.floor(math.sqrt(config.MAXIMUM_MATRIX_SIZE_FOR_LAYER_ADDITION / input_size))
+        if input_size > config.MAXIMUM_MATRIX_DIMENSTION_FOR_LAYER_ADDITION:
+            input_size = config.MAXIMUM_MATRIX_DIMENSTION_FOR_LAYER_ADDITION
+        if output_size > config.MAXIMUM_MATRIX_DIMENSTION_FOR_LAYER_ADDITION:
+            output_size = config.MAXIMUM_MATRIX_DIMENSTION_FOR_LAYER_ADDITION
+        return input_size, output_size
+
     def add_res_layer(self, layer_from_id, layer_to_id, layer_type = Layer_Type.ZERO):
         layer_from = self.get_layer(layer_from_id)
         layer_to = self.get_layer(layer_to_id)
         input_size = layer_from.get_output_size()
+        input_size, _ = self.validate_and_adjust_layer_size(input_size, layer_to.input_size)
         #input_size = min(input_size, self.hidden_size)
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
@@ -735,6 +914,7 @@ class Model:
             input_size = layer_from.output_flatten
         elif type(layer_from) == Layer:
             input_size = layer_from.neurons
+        input_size, _ = self.validate_and_adjust_layer_size(input_size, layer_to.input_size)
         #input_size = min(input_size, self.hidden_size)
         new_layer = Layer(self.avaible_id, self, input_size, layer_to.input_size, self.activation_fun, layer_type, self.optimizer.getDense())
         self.hidden_layers.append(new_layer)
@@ -836,7 +1016,7 @@ class Model:
         if len(self.input_layers) == 0:
             raise ValueError("Model has no input layers")
 
-        input = np.ascontiguousarray(input, dtype=FLOAT_TYPE)
+        input = np.ascontiguousarray(input, dtype=config.FLOAT_TYPE)
         self.output_layer.A = None
         self.output_layer.set_as_ending()
         if len(self.input_layers) == 1:
@@ -848,10 +1028,13 @@ class Model:
                 self.input_layers[i].forward_prop(input[i], -1,  0)
         
         #self.output_layer.done_event.wait()
+        #print("!!!waiting for forward threads: ", threading.active_count())
         for thread in self.forward_threads:
             thread.join()
         self.forward_threads.clear()
         if self.output_layer.A is None:
+            for layer in self.hidden_layers:
+                print("layer: ", layer.id, " A: ", layer.A is None)
             raise ValueError("After forward prop A on output layer is None")
         return self.output_layer.A
 
@@ -878,18 +1061,21 @@ class Model:
             raise ValueError("Learning rate scheduler cannot be None")
         if self.batch_size <= 0:
             raise ValueError("Batch size must be positive")
-        X = np.ascontiguousarray(X, dtype=FLOAT_TYPE)
+        X = np.ascontiguousarray(X, dtype=config.FLOAT_TYPE)
             
-        if one_hot_needed: 
-            one_hot_Y = one_hot(Y)
-        else: 
-            one_hot_Y = Y
+        if not self.is_regression():
+            if one_hot_needed: 
+                one_hot_Y = one_hot(Y)
+            else: 
+                one_hot_Y = Y
             
         # Determine the correct axis for indexing based on convolution mode
-        index_axis = 0 if self.convolution and len(self.input_layers) == 1 else (1 if not self.convolution and len(self.input_layers) == 1 else 2)
-        
-        # Pre-generate all indexes for shuffling
-        indexes = np.arange(X.shape[index_axis])
+        if self.is_regression():
+            index_axis_x = 0
+        else:
+            index_axis_x = 0 if self.convolution and len(self.input_layers) == 1 else (1 if not self.convolution and len(self.input_layers) == 1 else 2)
+
+        indexes = np.arange(X.shape[index_axis_x])
         
         # Initialize history
         history = History(['accuracy', 'loss'])
@@ -905,20 +1091,25 @@ class Model:
             total_samples = Y.shape[0]
             
             # Process batches
-            for x_indx_start in range(0, X.shape[index_axis], self.batch_size):
+            for x_indx_start in range(0, X.shape[index_axis_x], self.batch_size):
                 # Get batch indexes
-                batch_end = min(x_indx_start + self.batch_size, X.shape[index_axis])
+                batch_end = min(x_indx_start + self.batch_size, X.shape[index_axis_x])
                 batch_indexes = indexes[x_indx_start:batch_end]
                 
                 # Forward pass
-                batch_X = np.take(X, batch_indexes, index_axis)
-                batch_Y = np.take(one_hot_Y, batch_indexes, 1)
+                batch_X = np.take(X, batch_indexes, index_axis_x)
+                if self.is_regression():
+                    batch_Y = np.take(Y, batch_indexes, 0)
+                else:
+                    batch_Y = np.take(one_hot_Y, batch_indexes, 1)
                 
                 # Forward propagation
                 A = self.forward_prop(batch_X)
                 
                 # Calculate error and backpropagate
                 E = self.loss_function.der(batch_Y, A)
+
+                #print("E: ", E)
                 self.back_prop(E, len(batch_indexes), current_alpha)
                 
                 # Calculate loss and accuracy
@@ -931,10 +1122,13 @@ class Model:
 
             history.update_training_progress(correct_predictions, total_samples, total_loss, i, current_alpha, quiet)
 
-            if i % PROGRESS_PRINT_FREQUENCY == 0 and not quiet:
+            if i % config.PROGRESS_PRINT_FREQUENCY == 0 and not quiet:
                 print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()}")
 
-        return history.get_last('accuracy'), history
+        if self.is_regression():
+            return history.get_last('loss'), history
+        else:   
+            return history.get_last('accuracy'), history
 
     def evaluate(self, x, y):
         A = self.forward_prop(x)
@@ -984,6 +1178,9 @@ class Model:
         copy.input_shape = self.input_shape
         copy.kernel_size = self.kernel_size
         copy.depth = self.depth
+        copy.loss_function = self.loss_function
+        copy.activation_fun = self.activation_fun
+        copy.output_activation_fun = self.output_activation_fun
         return copy
     
     def is_cyclic(self, additional_pair):
@@ -1055,24 +1252,25 @@ class Conv(Layer):
         self.kernels_shape = (int(self.depth), int(self.input_depth), int(kernel_size), int(kernel_size)) 
         self.reshspers = {}
         self.optimizer = _optimizer
-        if WEIGHT_DISTRIBUTION_MODE == DistributionMode.UNIFORM:
+        self.size_registry = {}
+        if config.WEIGHT_DISTRIBUTION_MODE == DistributionMode.UNIFORM:
             # Uniform Distribution: Generate values in range (-1, 1) and shift by -0.5
             self.kernels = np.array(np.random.uniform(low=-1.0, high=1.0, size=self.kernels_shape) - 0.5)
             self.biases = np.array(np.random.uniform(low=-1.0, high=1.0, size=self.output_shape) - 0.5)
-        elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.NORMAL:
+        elif config.WEIGHT_DISTRIBUTION_MODE == DistributionMode.NORMAL:
             # Normal Distribution: Generate values from normal distribution and shift by -0.5
             self.kernels = np.array(np.random.normal(loc=0.0, scale=1/3, size=self.kernels_shape) - 0.5)
             self.biases = np.array(np.random.normal(loc=0.0, scale=1/3, size=self.output_shape) - 0.5)
-        elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.GAMMA:
+        elif config.WEIGHT_DISTRIBUTION_MODE == DistributionMode.GAMMA:
             # Gamma Distribution: Generate values from Gamma distribution and shift by -0.5
             self.kernels = np.array(np.random.gamma(shape=2.0, scale=1.0, size=self.kernels_shape) - 0.5)
             self.biases = np.array(np.random.gamma(shape=2.0, scale=1.0, size=self.output_shape) - 0.5)
-        elif WEIGHT_DISTRIBUTION_MODE == DistributionMode.REVERSED_GAUSSIAN:
+        elif config.WEIGHT_DISTRIBUTION_MODE == DistributionMode.REVERSED_GAUSSIAN:
             # Reversed Gaussian: Generate values from normal distribution, shift by -0.5, and reverse by multiplying by -1
             self.kernels = np.array(get_reverse_normal_distribution(1/3, self.kernels_shape) - 0.5)
             self.biases = np.array(get_reverse_normal_distribution(1/3, self.output_shape) - 0.5)
         else:
-            raise ValueError(f"Unsupported distribution mode: {WEIGHT_DISTRIBUTION_MODE}")
+            raise ValueError(f"Unsupported distribution mode: {config.WEIGHT_DISTRIBUTION_MODE}")
 
         
 
@@ -1085,10 +1283,11 @@ class Conv(Layer):
         return self.reshspers[(size_from, size_to)]
 
     def forward_prop(self, X, sender_id, deepth = 0):
+        if X is None:
+            raise ValueError("Layed Conv recived None input")
         self.append_to_f_input(X, sender_id)
         if any(x is None for x in self.f_input):
                 return None
-        
         # Combine inputs more efficiently
         self.I = mean_n_conv(self.f_input, self.input_shape)
         self.Z = np.zeros((self.I.shape[0], self.output_shape[0], self.output_shape[1], self.output_shape[2]))
@@ -1134,7 +1333,7 @@ class Conv(Layer):
             E = Resize(E, self.output_shape)
         self.b_input.append(E)
         if len(self.b_input) < len(self.output_layers_ids): return None
-        self.E =  clip(mean_n_conv(self.b_input, self.input_shape), -error_clip_range, error_clip_range)
+        self.E =  clip(mean_n_conv(self.b_input, self.input_shape), -config.ERROR_CLIP_RANGE, config.ERROR_CLIP_RANGE)
         dZ = self.E * self.act_fun.der(self.Z)
         self.error = np.zeros((dZ.shape[1], dZ.shape[2], dZ.shape[3]))
         self.kernels_gradient = np.zeros(self.kernels_shape)
@@ -1198,7 +1397,7 @@ class Conv(Layer):
         return "k: "+str(np.mean(self.kernels))+ " B: "+ str(np.mean(self.biases))
     
     def get_paint_label(self):
-        return str(self.id) + "[" +str(self.input_shape)+","+str(self.output_shape)+"]"
+        return str(self.id) + "[" +str(self.input_shape)+","+str(self.output_shape)+"]" + "mean: "+str( round(np.mean(self.kernels), 2))
 
     def __str__(self):
         return "[<layer: "+ str(self.id)+ " id: " + str(id(self)) + " model id: "+ str(id(self.model))+" in conn: "+ str(len(self.input_layers_ids)) +" out conn: "+ str(len(self.output_layers_ids))+ ">]"
