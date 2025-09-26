@@ -13,12 +13,7 @@ def scoreTime(M, epochs, X_train, Y_train):
 
 def scoreCountWeights(M, epochs, X_train, Y_train):
     # more weights smaller score
-    counter = 0
-    for layer in M.hidden_layers + M.input_layers + [M.output_layer]:
-        if type(layer) == Conv:
-            counter += int(layer.depth) * int(layer.input_depth) * int(layer.kernel_size) * int(layer.kernel_size)
-        elif type(layer) == Layer:
-            counter += layer.input_size * layer.neurons
+    counter = M.get_parametr_count()
     # Use configurable weight instead of hardcoded 0.001
     grade = 1.0/(float(counter) * Config.WEIGHT_COUNT_WEIGHT + 1.0)
     return grade
