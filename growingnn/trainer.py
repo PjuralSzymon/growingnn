@@ -9,11 +9,11 @@ from .helpers import convert_to_desired_type
 from .utils import EmptyStopper
 
 
-def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False, output_activation_fun = Activations.SoftMax, stopper = EmptyStopper()):
-    return train_continue(None, x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size, simulation_set_size, simulation_alg, sim_set_generator, simulation_scheduler, lr_scheduler, loss_function, activation_fun, input_paths, sample_sub_generator , simulation_score, optimizer, quiet, output_activation_fun, stopper)
+def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False, output_activation_fun = Activations.SoftMax, stopper = EmptyStopper()):
+    return train_continue(None, x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size, simulation_set_size, simulation_alg, sim_set_generator, simulation_scheduler, lr_scheduler, loss_function, activation_fun, input_paths, simulation_score, optimizer, quiet, output_activation_fun, stopper)
 
 
-def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, sample_sub_generator = None, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False, output_activation_fun = Activations.SoftMax, stopper = EmptyStopper()):
+def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False, output_activation_fun = Activations.SoftMax, stopper = EmptyStopper()):
     # Convert data types once at the beginning
     x_train = convert_to_desired_type(x_train)
     x_test = convert_to_desired_type(x_test)
@@ -65,8 +65,12 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         hist_detail.append('iteration_acc_train', new_acc)
         test_acc = M.evaluate(x_test, y_test)
         hist_detail.append('iteration_acc_test', test_acc)
-        
+        # Save model and history
+        hist_detail.save(hist_path)
+        Storage.saveModel(M, model_path + "epoch_" + str(i) + "save.json")
+
         if stopper.check(M, x_train, y_train, i):
+            hist_detail.description += f'[iteration: {i}] Stopper triggered\n'
             break
         # Check if simulation is needed
         if i < generations - 1:
@@ -92,11 +96,7 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
                 
                 # Execute the action
                 action.execute(M)
-        
-        # Save model and history
-        hist_detail.save(hist_path)
-        Storage.saveModel(M, model_path + "epoch_" + str(i) + "save.json")
-        
+
         # Draw model after generation
         draw(M, model_path + '_graph_' + str(hist_detail.last_img_id) + ".html")
         hist_detail.last_img_id += 1
@@ -108,15 +108,11 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         if hist_detail.get_last('iteration_acc_train') > hist_detail.best_train_acc:
             hist_detail.description += f'[iteration: {i}] Rewriting best model for train acc prev: {hist_detail.best_train_acc} new: {hist_detail.get_last("iteration_acc_train")}\n'
             hist_detail.best_train_acc = hist_detail.get_last('iteration_acc_train')
-            if sample_sub_generator is not None:
-                sample_sub_generator(M, model_path + "train_", labels, x_train, y_train, x_test, y_test)
         
         # Check for best test accuracy
         if hist_detail.get_last('iteration_acc_test') > hist_detail.best_test_acc:
             hist_detail.description += f'[iteration: {i}] Rewriting best model for test acc prev: {hist_detail.best_test_acc} new: {hist_detail.get_last("iteration_acc_test")}\n'
             hist_detail.best_test_acc = hist_detail.get_last('iteration_acc_test')
-            if sample_sub_generator is not None:
-                sample_sub_generator(M, model_path + "test_", labels, x_train, y_train, x_test, y_test)
     
     # Draw final model
     draw(M, model_path + "_graph.html")

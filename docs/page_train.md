@@ -7,7 +7,7 @@ The `train` function is responsible for training a neural network model using gr
 ## Function Signature
 
 ```python
-train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size=128, simulation_set_size=20, simulation_alg=montecarlo_alg, sim_set_generator=create_simulation_set_SAMLE, simulation_scheduler=SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time=60, simulation_epochs=20), lr_scheduler=LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function=Loss.multiclass_cross_entropy, activation_fun=Activations.Sigmoid, input_paths=1, sample_sub_generator=None, simulation_score=Simulation_score(), optimizer=SGDOptimizer())
+train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size=128, simulation_set_size=20, simulation_alg=montecarlo_alg, sim_set_generator=create_simulation_set_SAMLE, simulation_scheduler=SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time=60, simulation_epochs=20), lr_scheduler=LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function=Loss.multiclass_cross_entropy, activation_fun=Activations.Sigmoid, input_paths=1,simulation_score=Simulation_score(), optimizer=SGDOptimizer())
 ```
 
 ## Parameters
@@ -38,7 +38,6 @@ train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, genera
 | `loss_function` | function | Loss function used during training |
 | `activation_fun` | function | Activation function used in the model |
 | `input_paths` | int | Number of input paths for model |
-| `sample_sub_generator` | function or None | Function for generating sample subsets (default: None) |
 | `simulation_score` | object | Scoring function for simulations |
 | `optimizer` | object | Optimizer used for gradient descent (default: `SGDOptimizer`) |
 
