@@ -23,7 +23,7 @@ test_files = [
     "testSimulationScheduler.py",
     "testSimulationScore.py",
     "testStorage.py",
-    "testTargetMetricStopper.py",
+    "testStopper.py",
     "testTrain.py",
     "testTrainer.py",
     "testTrainingScenarios.py",
