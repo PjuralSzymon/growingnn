@@ -464,7 +464,7 @@ class Layer:
     def get_output_size(self):
         return self.neurons
     
-    def remove_neurons(self, reduce_ratio):
+    def scale_neurons(self, reduce_ratio):
         neurons_reduced_amount = max(1, int(self.neurons * reduce_ratio))
         
         # Store old neuron count for weight adjustment

@@ -5,9 +5,9 @@ sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
 from growingnn.structure import Layer, LearningRateScheduler, Model, Activations, Layer_Type
-from growingnn.action import Del_neurons
+from growingnn.action import Add_neurons
 
-class TestNeuronReduction(unittest.TestCase):
+class TestNeuronAddition(unittest.TestCase):
     def setUp(self):
         # Define test configurations
         self.test_configs = [
@@ -15,7 +15,7 @@ class TestNeuronReduction(unittest.TestCase):
                 'input_size': 10,
                 'hidden_size': 20,
                 'output_size': 5,
-                'reduction_ratio': 0.8,  # Reduce by 20%
+                'addition_ratio': 1.2,  # Add 20%
                 'num_samples': 10,
                 'iterations': 10,
                 'learning_rate': 0.01
@@ -24,7 +24,7 @@ class TestNeuronReduction(unittest.TestCase):
                 'input_size': 15,
                 'hidden_size': 50,
                 'output_size': 8,
-                'reduction_ratio': 0.7,  # Reduce by 30%
+                'addition_ratio': 1.5,  # Add 50%
                 'num_samples': 15,
                 'iterations': 15,
                 'learning_rate': 0.005
@@ -33,15 +33,15 @@ class TestNeuronReduction(unittest.TestCase):
                 'input_size': 30,
                 'hidden_size': 100,
                 'output_size': 10,
-                'reduction_ratio': 0.6,  # Reduce by 10%
+                'addition_ratio': 1.1,  # Add 10%
                 'num_samples': 8,
                 'iterations': 8,
                 'learning_rate': 0.02
             }
         ]
 
-    def test_del_neurons_action(self):
-        """Test the Del_neurons action class"""
+    def test_add_neurons_action(self):
+        """Test the Add_neurons action class"""
         # Create a simple model with one hidden layer
         model = Model(10, 20, 5, activation_fun=Activations.ReLu)
         layer_id = model.add_res_layer('init_0', 1)
@@ -50,15 +50,15 @@ class TestNeuronReduction(unittest.TestCase):
         layer = model.get_layer(layer_id)
         initial_neurons = layer.neurons
         
-        # Execute Del_neurons action
-        actions = Del_neurons.generate_all_actions(model)
+        # Execute Add_neurons action
+        actions = Add_neurons.generate_all_actions(model, 1.2)
         for action in actions:
             action.execute(model)
         
-        # Verify neurons were reduced
-        self.assertLess(layer.neurons, initial_neurons)
+        # Verify neurons were added
+        self.assertGreater(layer.neurons, initial_neurons)
 
-    def test_neuron_reduction_similar_inputs(self):
+    def test_neuron_addition_similar_inputs(self):
         for config in self.test_configs:
             with self.subTest(config=config):
                 # Create model and layer
@@ -74,30 +74,30 @@ class TestNeuronReduction(unittest.TestCase):
                 input = np.random.uniform(-1, 1, (config['input_size'], 1))
                 input = np.ascontiguousarray(input, dtype=gnn.config.FLOAT_TYPE)
                 
-                # Get outputs and weights before reduction
+                # Get outputs and weights before addition
                 layer.forward_prop(input, -1)
                 output1 = layer.A
                 W_before_mean = np.mean(layer.W)    
                 B_before_mean = np.mean(layer.B)
                 
-                # Reduce neurons
-                layer.scale_neurons(config['reduction_ratio'])
+                # Add neurons
+                layer.scale_neurons(config['addition_ratio'])
                 
-                # Get outputs after reduction
+                # Get outputs after addition
                 layer.forward_prop(input, -1)
-                output1_reduced = layer.A
+                output1_added = layer.A
                 W_after_mean = np.mean(layer.W)
                 B_after_mean = np.mean(layer.B)
                 
                 # Calculate statistics
-                mean_diff = abs(np.mean(output1) - np.mean(output1_reduced))
+                mean_diff = abs(np.mean(output1) - np.mean(output1_added))
                 
-                # Verify statistical measures
-                self.assertLess(abs(W_before_mean - W_after_mean), 0.2)
-                self.assertLess(abs(B_before_mean - B_after_mean), 0.2)
+                # Verify statistical measures - should be similar but not identical
+                self.assertLess(abs(W_before_mean - W_after_mean), 0.3)
+                self.assertLess(abs(B_before_mean - B_after_mean), 0.3)
                 self.assertLess(mean_diff, 0.5)
 
-    def test_neuron_reduction_multi_layer(self):
+    def test_neuron_addition_multi_layer(self):
         for config in self.test_configs:
             with self.subTest(config=config):
                 # Create model with multiple layers
@@ -125,30 +125,65 @@ class TestNeuronReduction(unittest.TestCase):
                 )
                 model.gradient_descent(X, y, iterations=config['iterations'], lr_scheduler=lr_scheduler, quiet=True)
                 
-                # Get output before reduction
+                # Get output before addition
                 output_before = model.forward_prop(X)
                 
-                # Reduce neurons in the first hidden layer
+                # Add neurons in the first hidden layer
                 target_layer = model.hidden_layers[0]
                 neurons_before = target_layer.neurons
                 W_before_mean = np.mean(target_layer.W)
                 B_before_mean = np.mean(target_layer.B)
                 
-                # Reduce neurons
-                target_layer.scale_neurons(config['reduction_ratio'])
+                # Add neurons
+                target_layer.scale_neurons(config['addition_ratio'])
                 
-                # Get output after reduction
+                # Get output after addition
                 output_after = model.forward_prop(X)
                 
                 # Calculate statistics
                 mean_diff = abs(np.mean(output_before) - np.mean(output_after))
                 median_diff = abs(np.median(output_before) - np.median(output_after))
 
-                # Verify the reduction worked
-                self.assertLess(target_layer.neurons, neurons_before)
-                self.assertLess(mean_diff, 0.2)
-                self.assertLess(median_diff, 0.2)
+                # Verify the addition worked
+                self.assertGreater(target_layer.neurons, neurons_before)
+                self.assertLess(mean_diff, 0.3)
+                self.assertLess(median_diff, 0.3)
+
+    def test_add_neurons_generate_all_actions(self):
+        """Test the generate_all_actions method for Add_neurons"""
+        # Create a model with multiple layers
+        model = Model(10, 20, 5, activation_fun=Activations.ReLu)
+        model.add_res_layer('init_0', 1)
+        model.add_res_layer(2, 1)
+        
+        # Test different scale ratios
+        for ratio in [1.1, 1.5, 2.0]:
+            with self.subTest(ratio=ratio):
+                actions = Add_neurons.generate_all_actions(model, ratio)
+                
+                # Should generate actions for applicable layers
+                self.assertGreater(len(actions), 0)
+                
+                # Each action should be an Add_neurons instance
+                for action in actions:
+                    self.assertIsInstance(action, Add_neurons)
+                    self.assertEqual(len(action.params), 2)
+                    self.assertEqual(action.params[1], ratio)
+
+    def test_add_neurons_maximum_size_limit(self):
+        """Test that Add_neurons respects maximum size limits"""
+        # Create a model with a large layer
+        model = Model(10, 500, 5, activation_fun=Activations.ReLu)
+        
+        # Try to add neurons with a large ratio that would exceed limits
+        actions = Add_neurons.generate_all_actions(model, 3.0)  # 3x increase
+        
+        # Should respect the maximum size limit
+        for action in actions:
+            layer = model.get_layer(action.params[0])
+            new_neurons = int(layer.neurons * action.params[1])
+            self.assertLessEqual(new_neurons, gnn.config.MAXIMUM_MATRIX_NEURONS_SIZE_FOR_NEURONS_ADDITION)
 
 
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()
