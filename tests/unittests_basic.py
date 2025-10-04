@@ -8,7 +8,7 @@ import growingnn as gnn
 import numpy as np
 import unittest
 import random
-from testSuite import mode
+# CPU-only mode - no GPU support
 
 shape = 20
 epochs = 5
@@ -16,11 +16,8 @@ epochs = 5
 class TestingTrain(unittest.TestCase):
 
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # CPU-only mode - no GPU support
+        # GPU/CuPy functionality removed - using CPU only
         # Create a temporary directory for test files
         self.test_dir = tempfile.mkdtemp()
         self.test_file = os.path.join(self.test_dir, "testimage.html")

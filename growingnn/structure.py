@@ -6,6 +6,7 @@ import threading
 import os
 import time
 from numba import jit
+from scipy.signal import correlate2d, convolve2d
 from .painter import *
 from .config import config, DistributionMode
 from .optimizers import *
@@ -17,19 +18,7 @@ from .utils.lr_scheduler import LearningRateScheduler
 from .utils.history import History
 from .utils.storage import Storage
 
-def switch_to_gpu():
-    global np, IS_CUPY, correlate, convolve
-    import cupy as np
-    IS_CUPY = True
-    from cupyx.scipy.ndimage import correlate
-    from cupyx.scipy.ndimage import convolve
-
-def switch_to_cpu():
-    global np, IS_CUPY, correlate2d, convolve2d
-    import numpy as np
-    IS_CUPY = False
-    from scipy.signal import correlate2d
-    from scipy.signal import convolve2d
+# GPU/CuPy functionality removed - using CPU only
 
 
 
@@ -979,11 +968,7 @@ class Conv(Layer):
         for img_id in range(0, self.I.shape[0]):
             for i in range(self.depth): 
                 for j in range(self.input_depth): 
-                    if IS_CUPY:
-                        temp1 = correlate(self.I[img_id,:,:,j], self.kernels[i,j])
-                        self.Z[img_id,:,:,i] += np.resize(temp1, self.Z[img_id,:,:,i].shape)
-                    else:
-                        self.Z[img_id,:,:,i] += correlate2d(self.I[img_id,:,:,j], self.kernels[i,j], "valid") 
+                    self.Z[img_id,:,:,i] += correlate2d(self.I[img_id,:,:,j], self.kernels[i,j], "valid") 
                 self.Z[img_id,:,:,i] += self.biases[:,:,i]
         
         self.A = self.act_fun.exe(self.Z)
@@ -1025,14 +1010,8 @@ class Conv(Layer):
         for img_id in range(0, self.I.shape[0]):
             for i in range(self.depth):
                 for j in range(self.input_depth):
-                    if IS_CUPY:
-                        temp1 = correlate(self.I[img_id,:,:,j], dZ[img_id,:,:,i])
-                        self.kernels_gradient[i,j] += np.resize(temp1, self.kernels_gradient[i,j].shape)
-                        temp2 = convolve(dZ[img_id, :, :, i], self.kernels[i,j])
-                        self.input_gradient[img_id, :, :, j] += np.resize(temp2, self.input_gradient[img_id, :, :, j].shape)
-                    else:
-                        self.kernels_gradient[i,j] += correlate2d(self.I[img_id,:,:,j], dZ[img_id,:,:,i], "valid")
-                        self.input_gradient[img_id,:,:,j] += convolve2d(dZ[img_id,:,:,i], self.kernels[i,j], "full")
+                    self.kernels_gradient[i,j] += correlate2d(self.I[img_id,:,:,j], dZ[img_id,:,:,i], "valid")
+                    self.input_gradient[img_id,:,:,j] += convolve2d(dZ[img_id,:,:,i], self.kernels[i,j], "full")
             self.error += dZ[img_id,:,:,:]
         self.kernels_gradient[i,j] /= self.I.shape[0]
         self.input_gradient[img_id,:,:,j] /= self.I.shape[0]

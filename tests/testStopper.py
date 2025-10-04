@@ -6,16 +6,13 @@ import numpy as np
 import unittest
 import tempfile
 import os
-from testSuite import mode
+# CPU-only mode - no GPU support
 from testDataGenerator import TestDataGenerator
 
 class TestStoppers(unittest.TestCase):
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # CPU-only mode - no GPU support
+        # GPU/CuPy functionality removed - using CPU only
             
         # Create small synthetic datasets for testing
         self.datasize = 20

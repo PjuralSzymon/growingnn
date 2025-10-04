@@ -5,16 +5,12 @@ import growingnn as gnn
 import unittest
 import numpy as np
 import matplotlib.pyplot as plt
-from testSuite import mode
+# CPU-only mode - no GPU support
 
 class TestLearningRateScheduler(unittest.TestCase):
 
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        pass
 
     def test_constant_scheduler(self):
         scheduler = gnn.LearningRateScheduler(mode=gnn.LearningRateScheduler.CONSTANT, alpha=0.1)

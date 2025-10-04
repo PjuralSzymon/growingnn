@@ -3,18 +3,13 @@ sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
 import unittest
-from testSuite import mode
 from unittest.mock import MagicMock
 import numpy as np
 
 class TestLayer(unittest.TestCase):
 
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # GPU/CuPy functionality removed - using CPU only
         self.layer = gnn.Layer(1, None, 10, 5, None)
         self.layer.act_fun = gnn.structure.Activations.ReLu
         self.layer.set_as_ending()

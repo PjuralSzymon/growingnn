@@ -7,7 +7,7 @@ import unittest
 import random
 import time
 import asyncio
-from testSuite import mode
+# CPU-only mode - no GPU support
 
 shape = 20
 epochs = 1
@@ -15,11 +15,8 @@ epochs = 1
 class TestingSimulationScore(unittest.TestCase):
 
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # CPU-only mode - no GPU support
+        # GPU/CuPy functionality removed - using CPU only
             
         self.shape = shape
         self.epochs = epochs

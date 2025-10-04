@@ -6,16 +6,13 @@ import unittest
 import numpy as np
 import os
 import tempfile
-from testSuite import mode
+# CPU-only mode - no GPU support
 from testDataGenerator import TestDataGenerator
 
 class TestTrainingScenarios(unittest.TestCase):
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # CPU-only mode - no GPU support
+        # GPU/CuPy functionality removed - using CPU only
             
         # Create small synthetic datasets for testing
         self.datasize = 20
@@ -48,7 +45,7 @@ class TestTrainingScenarios(unittest.TestCase):
         
     def test_train_dense_CPU(self):
         """Test training dense model on CPU"""
-        gnn.switch_to_cpu()
+        # GPU/CuPy functionality removed - using CPU only
         try:
             model = self.train_dense()
             self.assertIsNotNone(model)
@@ -57,7 +54,7 @@ class TestTrainingScenarios(unittest.TestCase):
             
     def test_train_conv_CPU(self):
         """Test training convolutional model on CPU"""
-        gnn.switch_to_cpu()
+        # GPU/CuPy functionality removed - using CPU only
         try:
             model = self.train_conv()
             self.assertIsNotNone(model)
@@ -66,7 +63,7 @@ class TestTrainingScenarios(unittest.TestCase):
             
     def test_train_dense_CPU_SGD(self):
         """Test training dense model with SGD optimizer"""
-        gnn.switch_to_cpu()
+        # GPU/CuPy functionality removed - using CPU only
         self.optimizer = gnn.SGDOptimizer()
         try:
             model = self.train_dense()
@@ -76,7 +73,7 @@ class TestTrainingScenarios(unittest.TestCase):
             
     def test_train_conv_CPU_Adam(self):
         """Test training convolutional model with Adam optimizer"""
-        gnn.switch_to_cpu()
+        # GPU/CuPy functionality removed - using CPU only
         self.optimizer = gnn.AdamOptimizer()
         try:
             model = self.train_conv()
@@ -116,7 +113,7 @@ class TestTrainingScenarios(unittest.TestCase):
         
     def test_train_dense_CPU_SGD_SIMULATION(self):
         """Test training dense model with SGD and longer simulation time"""
-        gnn.switch_to_cpu()
+        # GPU/CuPy functionality removed - using CPU only
         self.optimizer = gnn.SGDOptimizer()
         self.simulation_time = 30
         try:
@@ -127,7 +124,7 @@ class TestTrainingScenarios(unittest.TestCase):
             
     def test_train_conv_CPU_Adam_SIMULATION(self):
         """Test training convolutional model with Adam and longer simulation time"""
-        gnn.switch_to_cpu()
+        # GPU/CuPy functionality removed - using CPU only
         self.optimizer = gnn.AdamOptimizer()
         self.simulation_time = 30
         try:
@@ -138,7 +135,7 @@ class TestTrainingScenarios(unittest.TestCase):
             
     def test_train_dense_CPU_SGD_monte_carlo(self):
         """Test training dense model with SGD and Monte Carlo simulation algorithm"""
-        gnn.switch_to_cpu()
+        # GPU/CuPy functionality removed - using CPU only
         self.optimizer = gnn.SGDOptimizer()
         self.simulation_time = 10
         self.simulation_alg = gnn.montecarlo_alg
@@ -150,7 +147,7 @@ class TestTrainingScenarios(unittest.TestCase):
             
     def test_train_dense_CPU_SGD_greedy(self):
         """Test training dense model with SGD and greedy simulation algorithm"""
-        gnn.switch_to_cpu()
+        # GPU/CuPy functionality removed - using CPU only
         self.optimizer = gnn.SGDOptimizer()
         self.simulation_time = 10
         self.simulation_alg = gnn.greedy_alg
@@ -162,7 +159,7 @@ class TestTrainingScenarios(unittest.TestCase):
             
     def test_train_dense_CPU_SGD_random(self):
         """Test training dense model with SGD and random simulation algorithm"""
-        gnn.switch_to_cpu()
+        # GPU/CuPy functionality removed - using CPU only
         self.optimizer = gnn.SGDOptimizer()
         self.simulation_time = 10
         self.simulation_alg = gnn.random_alg

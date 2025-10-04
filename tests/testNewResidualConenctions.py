@@ -6,7 +6,7 @@ import growingnn as gnn
 import numpy as np
 import unittest
 import random
-from testSuite import mode
+# CPU-only mode - no GPU support
 
 shape = 20
 epochs = 5
@@ -14,11 +14,7 @@ epochs = 5
 class TestingTrain(unittest.TestCase):
 
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        pass
 
     def test_res_onnection_2(self):
         M = gnn.structure.Model(shape, shape, 2, gnn.structure.Loss.multiclass_cross_entropy, gnn.structure.Activations.Sigmoid, 1)

@@ -2,15 +2,11 @@ import sys
 sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
-import numpy as np
-import unittest
-from testSuite import mode
 import unittest
 import numpy as np
 from growingnn.config import config
 from growingnn.structure import Model, Layer
 from growingnn.utils import Activations, Loss
-from testSuite import mode
 from testDataGenerator import TestDataGenerator
 
 class TestConfigRuntime(unittest.TestCase):
