@@ -39,12 +39,12 @@ class Config:
     # Action Settings
     ACTIONS_ENABLE_ADD_SEQ_LAYER = True
     ACTIONS_ENABLE_ADD_RES_LAYER = True
-    ACTIONS_ENABLE_ADD_SEQ_CONV_LAYER = False
-    ACTIONS_ENABLE_ADD_RES_CONV_LAYER = False
-    ACTIONS_ENABLE_DEL_LAYER = False
-    ACTIONS_ENABLE_DEL_NEURONS_01 = False
-    ACTIONS_ENABLE_DEL_NEURONS_05 = False
-    ACTIONS_ENABLE_DEL_NEURONS_09 = False
+    ACTIONS_ENABLE_ADD_SEQ_CONV_LAYER = True
+    ACTIONS_ENABLE_ADD_RES_CONV_LAYER = True
+    ACTIONS_ENABLE_DEL_LAYER = True
+    ACTIONS_ENABLE_DEL_NEURONS_01 = True
+    ACTIONS_ENABLE_DEL_NEURONS_05 = True
+    ACTIONS_ENABLE_DEL_NEURONS_09 = True
     ACTIONS_ENABLE_ADD_NEURONS_01 = True
     ACTIONS_ENABLE_ADD_NEURONS_05 = True
     ACTIONS_ENABLE_ADD_NEURONS_09 = True
@@ -53,7 +53,7 @@ class Config:
     # Time efficiency scoring: Higher values make time efficiency more important
     # Formula: grade = 1.0 / (TIME_EFFICIENCY_WEIGHT * time_difference + 1.0)
     # If TIME_EFFICIENCY_WEIGHT is larger, faster models get much higher scores
-    TIME_EFFICIENCY_WEIGHT = 100.0
+    TIME_EFFICIENCY_WEIGHT = 100.0s
     
     # Weight count efficiency scoring: Higher values make weight count efficiency more important  
     # Formula: grade = 1.0 / (WEIGHT_COUNT_WEIGHT * total_weights + 1.0)
