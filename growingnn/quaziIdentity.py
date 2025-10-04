@@ -17,8 +17,6 @@ def eye_stretch(a, b):
     return cv.resize(A, (a, b)).T
 
 def get_reshsper(size_from, size_to):
-    if size_from == size_to:
-        return None
     key = (size_from, size_to)
     if key not in RESHEPERS:
         RESHEPERS[key] = np.ascontiguousarray(eye_stretch(size_from, size_to), dtype=config.FLOAT_TYPE)
