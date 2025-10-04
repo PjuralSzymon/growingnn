@@ -7,7 +7,7 @@ from testSuite import mode
 from unittest.mock import MagicMock
 import numpy as np
 import matplotlib.pyplot as plt
-from growingnn.structure import History
+from growingnn.utils import History
 import json
 
 # Best settings found from previous runs

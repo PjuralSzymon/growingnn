@@ -53,7 +53,7 @@ class Config:
     # Time efficiency scoring: Higher values make time efficiency more important
     # Formula: grade = 1.0 / (TIME_EFFICIENCY_WEIGHT * time_difference + 1.0)
     # If TIME_EFFICIENCY_WEIGHT is larger, faster models get much higher scores
-    TIME_EFFICIENCY_WEIGHT = 100.0s
+    TIME_EFFICIENCY_WEIGHT = 100.0
     
     # Weight count efficiency scoring: Higher values make weight count efficiency more important  
     # Formula: grade = 1.0 / (WEIGHT_COUNT_WEIGHT * total_weights + 1.0)

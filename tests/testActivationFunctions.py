@@ -4,7 +4,7 @@ import sys
 sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
-from growingnn.structure import Activations
+from growingnn.utils import Activations
 
 # Set numpy print options for nice formatting
 np.set_printoptions(precision=3, suppress=True, floatmode='fixed')

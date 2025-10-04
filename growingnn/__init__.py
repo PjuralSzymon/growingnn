@@ -5,6 +5,7 @@ from .trainer import *
 from .helpers import *
 from .config import config, DistributionMode
 from .quaziIdentity import *
+from .utils import Loss, Activations, LearningRateScheduler, History, Storage
 
 IS_CUPY = False
 
