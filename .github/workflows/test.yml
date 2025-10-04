@@ -32,4 +32,4 @@ jobs:
 
     - name: Run test Suite CPU
       run: |
-        python tests/testSuite.py --mode cpu
+        python tests/testSuite.py

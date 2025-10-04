@@ -4,15 +4,12 @@ sys.path.append('../')
 import growingnn as gnn
 import unittest
 import numpy as np
-from testSuite import mode
+# CPU-only mode - no GPU support
 
 class TestHistory(unittest.TestCase):
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # CPU-only mode - no GPU support
+        # GPU/CuPy functionality removed - using CPU only
         self.keys = ['loss', 'accuracy']
         self.history = gnn.History(self.keys)
 

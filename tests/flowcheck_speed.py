@@ -5,7 +5,6 @@ import unittest
 import numpy as np
 import growingnn as gnn
 from growingnn.structure import SimulationScheduler
-from testSuite import mode
 import time
 
 EXPERIMENT_REPETITIONS = 5

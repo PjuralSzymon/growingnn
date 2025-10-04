@@ -5,7 +5,7 @@ from numba import jit
 import cv2 as cv
 import json
 import random
-import numpy
+import numpy as np
 
 class NumpyArrayEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -35,31 +35,21 @@ def get_reverse_normal_distribution(clip_range, shape):
     
     return result
 
-def switch_to_gpu():
-    #print(" helper: switch_to_gpu")
-    global np, IS_CUPY
-    import cupy as np
-    IS_CUPY = True
-
-def switch_to_cpu():
-    #print(" helper: switch_to_cpu")
-    global np, IS_CUPY
-    import numpy as np
-    IS_CUPY = False
+# GPU/CuPy functionality removed - using CPU only
     
 def clip(X, min, max):
     return np.array(fastclip(get_numpy_array(X), min, max))
     return np.array(np.clip(get_numpy_array(X), min, max))
 
 @jit(nopython=True)
-def fastclip(X : numpy, min : int, max : int):
+def fastclip(X, min, max):
     return np.clip(X, min, max)
 
 def argmax(X, axis):
-    return np.array(numpy.argmax(get_numpy_array(X), axis))
+    return np.array(np.argmax(get_numpy_array(X), axis))
 
 def randn(shape):
-        return np.array(numpy.random.randn(shape))
+        return np.array(np.random.randn(shape))
 
 def get_list_as_numpy_array(X):
     for i in range(0, len(X)):
@@ -67,14 +57,8 @@ def get_list_as_numpy_array(X):
     return X
     
 def get_numpy_array(X):
-    if IS_CUPY == True:
-        import cupy
-        if isinstance(X, cupy.ndarray):
-            return X.get()
-        else:
-            return numpy.array(X)
-    else:
-        return numpy.array(X)
+    # CPU only - no GPU conversion needed
+    return np.array(X)
     
 def convert_to_desired_type(X):
     if not isinstance(X, np.ndarray):

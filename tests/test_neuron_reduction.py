@@ -4,7 +4,8 @@ import sys
 sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
-from growingnn.structure import Layer, LearningRateScheduler, Model, Activations, Layer_Type
+from growingnn.structure import Layer, Model, Layer_Type
+from growingnn.utils import LearningRateScheduler, Activations
 from growingnn.action import Del_neurons
 
 class TestNeuronReduction(unittest.TestCase):

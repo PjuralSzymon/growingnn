@@ -63,12 +63,10 @@ def cleanup_test_files():
             except Exception as e:
                 print(f"Warning: Could not remove {file}: {str(e)}")
 
-# Argument parser for CPU/GPU switch
-parser = argparse.ArgumentParser(description="Run test suite with CPU/GPU mode.")
-parser.add_argument('--mode', choices=['cpu', 'gpu'], default='cpu', help="Select computation mode: 'cpu' or 'gpu'")
+# CPU-only mode - no GPU support
+parser = argparse.ArgumentParser(description="Run test suite (CPU only).")
 parser.add_argument('--discover', action='store_true', help="Automatically discover all test files in the tests directory")
 args = parser.parse_args()
-mode = args.mode
 
 # Create a test loader
 loader = unittest.TestLoader()

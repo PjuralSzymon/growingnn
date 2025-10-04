@@ -3,11 +3,11 @@ sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
 import unittest
-from testSuite import mode
+# CPU-only mode - no GPU support
 from unittest.mock import MagicMock
 import numpy as np
 import matplotlib.pyplot as plt
-from growingnn.structure import History
+from growingnn.utils import History
 import json
 
 # Best settings found from previous runs

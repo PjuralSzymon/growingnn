@@ -7,17 +7,14 @@ import unittest
 import os
 import json
 import shutil
-from testSuite import mode
+# CPU-only mode - no GPU support
 from testDataGenerator import TestDataGenerator
 
 class TestingStorage(unittest.TestCase):
 
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # CPU-only mode - no GPU support
+        # GPU/CuPy functionality removed - using CPU only
         
         # Create test directory for saving models
         self.test_dir = "test_storage_models"

@@ -1,6 +1,7 @@
 import time
 from ...config import Config
-from ...structure import LearningRateScheduler, Conv, Layer
+from ...structure import Conv, Layer
+from ...utils import LearningRateScheduler
 
 def scoreTime(M, epochs, X_train, Y_train):
     # more time smaller score

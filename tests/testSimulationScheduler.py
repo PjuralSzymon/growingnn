@@ -3,17 +3,14 @@ sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
 import unittest
-from testSuite import mode
+# CPU-only mode - no GPU support
 from unittest.mock import MagicMock, patch
 
 class TestSimulationScheduler(unittest.TestCase):
 
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # CPU-only mode - no GPU support
+        # GPU/CuPy functionality removed - using CPU only
         self.hist_detail_mock = MagicMock()
         self.hist_detail_mock.Y = {
             'iteration_acc_train': [],

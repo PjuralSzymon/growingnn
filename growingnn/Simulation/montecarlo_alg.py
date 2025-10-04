@@ -2,7 +2,7 @@ import time
 import random
 import math
 import numpy as np
-from growingnn.structure import LearningRateScheduler
+from growingnn.utils import LearningRateScheduler
 from ..action import Action, Empty_action
 #from ..structure import *
 

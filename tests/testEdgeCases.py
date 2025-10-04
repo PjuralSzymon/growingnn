@@ -7,18 +7,15 @@ import numpy as np
 # Add the parent directory to the Python path to allow importing the growingnn package
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import growingnn as gnn
-from testSuite import mode
+# CPU-only mode - no GPU support
 from growingnn import Model, Loss, Activations, LearningRateScheduler
 
 class TestEdgeCases(unittest.TestCase):
     """Tests for edge cases and error handling in the growingnn package"""
 
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # CPU-only mode - no GPU support
+        # GPU/CuPy functionality removed - using CPU only
         
         # Create a temporary directory for test files
         self.test_dir = tempfile.mkdtemp()

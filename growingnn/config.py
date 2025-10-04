@@ -1,6 +1,6 @@
 import os
 from enum import Enum
-import numpy
+import numpy as np
 
 class DistributionMode(Enum):
     UNIFORM = 'uniform'
@@ -15,7 +15,7 @@ class Config:
     LARGE_MAX = 2**128
     
     # Neural Network Settings
-    FLOAT_TYPE = numpy.float64
+    FLOAT_TYPE = np.float64
     VERSION = 'R3.3'
     MAX_THREADS = 1#max(1, int(os.cpu_count() * 0.5))
     
@@ -53,7 +53,7 @@ class Config:
     # Time efficiency scoring: Higher values make time efficiency more important
     # Formula: grade = 1.0 / (TIME_EFFICIENCY_WEIGHT * time_difference + 1.0)
     # If TIME_EFFICIENCY_WEIGHT is larger, faster models get much higher scores
-    TIME_EFFICIENCY_WEIGHT = 100.0s
+    TIME_EFFICIENCY_WEIGHT = 100.0
     
     # Weight count efficiency scoring: Higher values make weight count efficiency more important  
     # Formula: grade = 1.0 / (WEIGHT_COUNT_WEIGHT * total_weights + 1.0)
@@ -80,7 +80,7 @@ class Config:
         cls.WEIGHT_DISTRIBUTION_MODE = DistributionMode.NORMAL
         cls.WEIGHTS_CLIP_RANGE = 3
         cls.LARGE_MAX = 2**128
-        cls.FLOAT_TYPE = numpy.float64
+        cls.FLOAT_TYPE = np.float64
         cls.VERSION = 'R3'
         cls.MAX_THREADS = 1 #max(1, int(os.cpu_count() * 0.5))
         cls.ERROR_CLIP_RANGE = 600
