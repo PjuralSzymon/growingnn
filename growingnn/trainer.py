@@ -25,7 +25,7 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         os.makedirs(path, exist_ok=True)
     
     # Initialize history tracking
-    hist_detail = History(['accuracy', 'loss'])
+    hist_detail = History(['accuracy', 'loss', 'parameter_count'])
     model_path = path + model_name
     hist_path = path + model_name + "_hist"
     
@@ -65,6 +65,9 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         hist_detail.append('iteration_acc_train', new_acc)
         test_acc = M.evaluate(x_test, y_test)
         hist_detail.append('iteration_acc_test', test_acc)
+        # Track parameter count
+        param_count = M.get_parametr_count()
+        hist_detail.append('iteration_param_count', param_count)
         # Save model and history
         hist_detail.save(hist_path)
         Storage.saveModel(M, model_path + "epoch_" + str(i) + "save.json")
@@ -92,7 +95,8 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
                 
                 # Log simulation results
                 size_of_changes = len(Action.generate_all_actions(M))
-                hist_detail.description += f"[iteration: {i}] Best action found after simulation: {action} deepth of tree searched: {deepth} number of rollouts: {rollouts} size_of_changes: {size_of_changes}\n"
+                current_param_count = M.get_parametr_count()
+                hist_detail.description += f"[iteration: {i}] Best action found after simulation: {action} deepth of tree searched: {deepth} number of rollouts: {rollouts} size_of_changes: {size_of_changes} param_count: {current_param_count}\n"
                 
                 # Execute the action
                 action.execute(M)
@@ -106,12 +110,14 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         
         # Check for best training accuracy
         if hist_detail.get_last('iteration_acc_train') > hist_detail.best_train_acc:
-            hist_detail.description += f'[iteration: {i}] Rewriting best model for train acc prev: {hist_detail.best_train_acc} new: {hist_detail.get_last("iteration_acc_train")}\n'
+            current_param_count = M.get_parametr_count()
+            hist_detail.description += f'[iteration: {i}] Rewriting best model for train acc prev: {hist_detail.best_train_acc} new: {hist_detail.get_last("iteration_acc_train")} param_count: {current_param_count}\n'
             hist_detail.best_train_acc = hist_detail.get_last('iteration_acc_train')
         
         # Check for best test accuracy
         if hist_detail.get_last('iteration_acc_test') > hist_detail.best_test_acc:
-            hist_detail.description += f'[iteration: {i}] Rewriting best model for test acc prev: {hist_detail.best_test_acc} new: {hist_detail.get_last("iteration_acc_test")}\n'
+            current_param_count = M.get_parametr_count()
+            hist_detail.description += f'[iteration: {i}] Rewriting best model for test acc prev: {hist_detail.best_test_acc} new: {hist_detail.get_last("iteration_acc_test")} param_count: {current_param_count}\n'
             hist_detail.best_test_acc = hist_detail.get_last('iteration_acc_test')
     
     # Draw final model
