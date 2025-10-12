@@ -865,6 +865,44 @@ class Model:
             pairs += input_layer.get_all_childrens_connections()
         return delete_repetitions(pairs)
 
+    def forward_blank(self, batch_size=1):
+        """
+        Performs a forward pass with a matrix of ones to test model shape handling.
+        Useful for debugging shape mismatches and connection issues.
+        
+        Args:
+            batch_size (int): Number of samples in the batch (default: 1)
+            
+        Returns:
+            np.ndarray: Output of the forward pass with ones input
+        """
+        if len(self.input_layers) == 0:
+            raise ValueError("Model has no input layers")
+        if len(self.input_layers) == 1:
+            input_layer = self.input_layers[0]
+            if isinstance(input_layer, Conv):
+                input_shape = (batch_size,) + input_layer.input_shape
+            else:
+                input_shape = (batch_size, self.input_size)
+        else:
+            # Multiple input paths
+            input_shapes = []
+            for input_layer in self.input_layers:
+                if isinstance(input_layer, Conv):
+                    input_shapes.append((batch_size,) + input_layer.input_shape)
+                else:
+                    input_shapes.append((batch_size, input_layer.input_size))
+        if len(self.input_layers) == 1:
+            input_ones = np.ones(input_shape, dtype=config.FLOAT_TYPE)
+        else:
+            input_ones = [np.ones(shape, dtype=config.FLOAT_TYPE) for shape in input_shapes]
+        try:
+            output = self.forward_prop(input_ones)
+            return output
+        except Exception as e:
+            print(f"ERROR: Failed to perform forward pass with ones input: {e}")
+            raise
+
     def deepcopy(self):
         copy = Model(self.input_size, self.output_size, self.hidden_size)
         copy.input_layers = []

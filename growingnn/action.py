@@ -62,6 +62,7 @@ class Action:
 class Add_Seq_Layer(Action):
     def execute(self, model):
         model.add_norm_layer(self.params[0], self.params[1], self.params[2])
+        model.forward_blank()
     
     def can_be_infulenced(self, by_action):
         if type(by_action) is Del_Layer:
@@ -102,6 +103,7 @@ class Empty(Action):
 class Add_Res_Layer(Action):
     def execute(self, model):
         model.add_res_layer(self.params[0], self.params[1], self.params[2])
+        model.forward_blank()
     
     def can_be_infulenced(self, by_action):
         if type(by_action) is Del_Layer:
@@ -133,6 +135,7 @@ class Add_Res_Layer(Action):
 class Add_Seq_Conv_Layer(Action):
     def execute(self, model):
         model.add_conv_norm_layer(self.params[0], self.params[1])
+        model.forward_blank()
 
     def can_be_infulenced(self, by_action):
         if type(by_action) is Del_Layer:
@@ -173,6 +176,7 @@ class Add_Seq_Conv_Layer(Action):
 class Add_Res_Conv_Layer(Action):
     def execute(self, model):
         model.add_conv_res_layer(self.params[0], self.params[1])
+        model.forward_blank()
     
     def can_be_infulenced(self, by_action):
         if type(by_action) is Del_Layer:
@@ -211,6 +215,7 @@ class Add_Res_Conv_Layer(Action):
     
 class Del_Layer(Action):
     def execute(self, model):
+        model.forward_blank()
         model.remove_layer(self.params)
 
     def can_be_infulenced(self, by_action):
@@ -227,32 +232,33 @@ class Del_Layer(Action):
         return " ( Del Layer Action: " + str(self.params) + " ) "
     
 
-class Scale_neurons(Action):
+# class Scale_neurons(Action):
 
-    def execute(self, model):
-        model.get_layer(self.params[0]).scale_neurons(self.params[1])
+#     def execute(self, model):
+#         model.forward_blank()
+#         model.get_layer(self.params[0]).scale_neurons(self.params[1])
 
-    def can_be_infulenced(self, by_action):
-        return False
+#     def can_be_infulenced(self, by_action):
+#         return False
 
-    @staticmethod
-    def generate_all_actions(model, scale_neurons_ratio = 0.5):
-        actions = []
-        for layer_hidden in model.hidden_layers + model.input_layers:
-            if type(model.get_layer(layer_hidden.id)) != Conv:
-                if floor(model.get_layer(layer_hidden.id).neurons * scale_neurons_ratio) < config.MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL:
-                    continue
-                params = [layer_hidden.id, scale_neurons_ratio]
-                actions.append(Del_neurons(params))
-        return actions
+#     @staticmethod
+#     def generate_all_actions(model, scale_neurons_ratio = 0.5):
+#         actions = []
+#         for layer_hidden in model.hidden_layers + model.input_layers:
+#             if type(model.get_layer(layer_hidden.id)) != Conv:
+#                 if floor(model.get_layer(layer_hidden.id).neurons * scale_neurons_ratio) < config.MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL:
+#                     continue
+#                 params = [layer_hidden.id, scale_neurons_ratio]
+#                 actions.append(Del_neurons(params))
+#         return actions
 
-    def __str__(self):
-        return " ( Change Amount ofNeurons base Action: " + str(self.params) + " ) "
+#     def __str__(self):
+#         return " ( Change Amount ofNeurons base Action: " + str(self.params) + " ) "
     
 
 class Del_neurons(Action):
-
     def execute(self, model):
+        model.forward_blank()
         model.get_layer(self.params[0]).scale_neurons(self.params[1])
 
     def can_be_infulenced(self, by_action):
@@ -276,6 +282,7 @@ class Del_neurons(Action):
 class Add_neurons(Action):
 
     def execute(self, model):
+        model.forward_blank()
         model.get_layer(self.params[0]).scale_neurons(self.params[1])
 
     def can_be_infulenced(self, by_action):
