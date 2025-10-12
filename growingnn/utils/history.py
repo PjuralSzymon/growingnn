@@ -128,7 +128,7 @@ class History:
                 buf.seek(0)
                 
                 # Write to file
-                full_path = path + "/" + label + "_" + key + ".png"
+                full_path = os.path.join(path, label + "_" + key + ".png")
                 with open(full_path, 'wb') as f:
                     f.write(buf.getvalue())
                 buf.close()
