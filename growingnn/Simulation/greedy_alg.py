@@ -1,6 +1,7 @@
 import time
 import random
 from ..action import Action
+from ..quaziIdentity import clear_reshepers_cache
 #from ..structure import *
 
 # Global configuration for logging
@@ -96,5 +97,6 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
         except Exception as e:
             print(f"Error saving action analysis: {e}")
 
+    clear_reshepers_cache()
     return best_action, deepth, rollouts
 

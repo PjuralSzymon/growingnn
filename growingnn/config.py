@@ -60,12 +60,12 @@ class Config:
     WEIGHT_COUNT_WEIGHT = 0.001
     
     # RESHEPERS Cache Settings - Memory leak prevention
-    RESHEPERS_CACHE_MAX_SIZE = 10  # Maximum number of cached reshepers
-    RESHEPERS_CACHE_MAX_MEMORY_MB = 50  # Maximum memory usage in MB for reshepers cache
+    RESHEPERS_CACHE_MAX_SIZE = 15  # Maximum number of cached reshepers
+    RESHEPERS_CACHE_MAX_MEMORY_MB = 5  # Maximum memory usage in MB for reshepers cache
     RESHEPERS_CACHE_ENABLE_MONITORING = True  # Enable memory monitoring
     
     # Model Parameter Limits
-    MAX_MODEL_PARAMETERS = 7000  # Maximum total parameters allowed in the model
+    MAX_MODEL_PARAMETERS = 20000  # Maximum total parameters allowed in the model
 
     @classmethod
     def update(cls, **kwargs):
@@ -100,8 +100,8 @@ class Config:
         cls.MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
         cls.TIME_EFFICIENCY_WEIGHT = 100.0
         cls.WEIGHT_COUNT_WEIGHT = 0.001
-        cls.RESHEPERS_CACHE_MAX_SIZE = 10
-        cls.RESHEPERS_CACHE_MAX_MEMORY_MB = 50
+        cls.RESHEPERS_CACHE_MAX_SIZE = 15
+        cls.RESHEPERS_CACHE_MAX_MEMORY_MB = 5
         cls.RESHEPERS_CACHE_ENABLE_MONITORING = True
         cls.MAX_MODEL_PARAMETERS = 7000
 

@@ -5,6 +5,7 @@ import numpy as np
 import gc
 from growingnn.utils import LearningRateScheduler
 from ..action import Action, Empty_action
+from ..quaziIdentity import clear_reshepers_cache
 #from ..structure import *
 
 UCB1_CONTS = 2
@@ -137,6 +138,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
         
     best_action = root.get_best_child().action
     root.kill()
+    clear_reshepers_cache()
     return best_action, deepth, rollouts
 
 def simulate(node, deepth = 0, rollouts = 0):
