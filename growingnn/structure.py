@@ -356,6 +356,7 @@ class Layer:
         """Safe cleanup after backward propagation is complete"""
         # Clear backward-specific variables
         self.b_input.clear()
+        self.b_input = []
         
         # Clear temporary arrays that are no longer needed
         for attr in ['E', 'dW', 'dB', 'Z', 'I']:
@@ -368,6 +369,7 @@ class Layer:
     def cleanup_after_forward(self):
         """Safe cleanup after forward propagation - keeps variables needed for backprop"""
         self.f_input.clear()
+        self.f_input = []
 
 
     @staticmethod
@@ -1048,10 +1050,10 @@ class Conv(Layer):
         # Process outputs more efficiently
         for layer_id in self.output_layers_ids:
             layer_type = type(self.model.get_layer(layer_id))
-            input_size = self.model.get_layer(layer_id).input_size
             if layer_type == Conv:
-                new_input = Resize(self.A.copy(), input_size)
+                new_input = Resize(self.A.copy(), self.model.get_layer(layer_id).input_shape)
             elif layer_type == Layer:
+                input_size = self.model.get_layer(layer_id).input_size
                 new_input = Reshape_forward_prop(self.A.copy(), input_size, get_reshsper(self.output_flatten, input_size))         
             else:
                 raise ValueError(f"Unsupported layer type: {layer_type}")
@@ -1072,6 +1074,7 @@ class Conv(Layer):
     def cleanup_after_forward(self):
         """Safe cleanup after forward propagation - keeps variables needed for backprop"""
         self.f_input.clear()
+        self.f_input = []
 
     
     def back_prop(self, E, m, alpha):
@@ -1112,7 +1115,7 @@ class Conv(Layer):
         """Safe cleanup after backward propagation is complete"""
         # Clear backward-specific variables
         self.b_input.clear()
-        
+        self.b_input = []
         # Clear temporary arrays that are no longer needed
         for attr in ['E', 'kernels_gradient', 'input_gradient', 'error', 'Z', 'I']:
             if hasattr(self, attr):
