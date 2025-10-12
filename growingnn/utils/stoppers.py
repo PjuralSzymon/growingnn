@@ -8,7 +8,7 @@ class BaseStopper(ABC):
     Abstract base class for all training stoppers.
     """
     def __init__(self):
-        self.should_stop = False
+        pass
     
     @abstractmethod
     def check(self, model, x_train, y_train, epoch=None):
@@ -28,7 +28,7 @@ class BaseStopper(ABC):
     
     def reset(self):
         """Reset the stopper state."""
-        self.should_stop = False
+        pass
 
 
 class EmptyStopper(BaseStopper):
@@ -53,14 +53,15 @@ class AccuracyStopper(BaseStopper):
     def check(self, model, x_train, y_train, epoch=None):
         if model is None or x_train is None or y_train is None:
             return False
+        should_stop = False
         current_accuracy = model.evaluate(x_train, y_train)
         if current_accuracy >= self.target_accuracy:
-            self.should_stop = True
+            should_stop = True
             msg = f"Stopping: {self.metric_name} reached {current_accuracy:.4f} (target: {self.target_accuracy:.4f})"
             if epoch is not None:
                 msg += f" at epoch {epoch}"
             print(msg)
-        return self.should_stop
+        return should_stop
 
 class ParameterCountStopper(BaseStopper):
     """
@@ -88,28 +89,32 @@ class ParameterCountStopper(BaseStopper):
         """
         if model is None:
             return False
-            
+        should_stop = False
         # Get current parameter count using model.get_parametr_count()
         current_param_count = model.get_parametr_count()
         
         # Initialize tracking variables
         if self.initial_parameter_count is None:
             self.initial_parameter_count = current_param_count
-            return False
+            return should_stop
         
         # Check if parameter count decreased significantly from initial count
         if self.initial_parameter_count > 0:
             decrease_ratio = (self.initial_parameter_count - current_param_count) / self.initial_parameter_count
             
             if decrease_ratio >= self.decrease_threshold:
-                self.should_stop = True
+                should_stop = True
                 msg = f"Stopping: {self.metric_name} decreased by {decrease_ratio:.2%} from initial "
                 msg += f"(from {self.initial_parameter_count} to {current_param_count})"
                 if epoch is not None:
                     msg += f" at epoch {epoch}"
                 print(msg)
         
-        return self.should_stop
+        return should_stop
+    
+    def reset(self):
+        """Reset the stopper state."""
+        self.initial_parameter_count = None
 
 class AccuracyAndReductionStopper(BaseStopper):
     """
@@ -138,25 +143,23 @@ class AccuracyAndReductionStopper(BaseStopper):
         """
         if model is None or x_train is None or y_train is None:
             return False
-        
+        should_stop = False
         # Check accuracy condition
-        if not self.accuracy_reached:
-            self.accuracy_reached = self.accuracy_stopper.check(model, x_train, y_train, epoch)
+        self.accuracy_reached = self.accuracy_stopper.check(model, x_train, y_train, epoch)
         
         # Check parameter reduction condition
-        if not self.parameter_reduced:
-            self.parameter_reduced = self.parameter_stopper.check(model, x_train, y_train, epoch)
+        self.parameter_reduced = self.parameter_stopper.check(model, x_train, y_train, epoch)
         
         # Stop if both conditions are met
         if self.accuracy_reached and self.parameter_reduced:
-            self.should_stop = True
-            msg = f"Stopping: Both conditions met - accuracy >= {self.accuracy_stopper.target_accuracy:.2f} "
-            msg += f"AND parameters reduced by >= {self.parameter_stopper.decrease_threshold:.1%}"
+            should_stop = True
+            msg = f"Stopping: Both conditions met - accuracy >= {self.accuracy_stopper.target_accuracy:.2f} , {self.accuracy_reached:.2f} "
+            msg += f"AND parameters reduced by >= {self.parameter_stopper.decrease_threshold:.1%}, {self.parameter_reduced:.2f}"
             if epoch is not None:
                 msg += f" at epoch {epoch}"
             print(msg)
         
-        return self.should_stop
+        return should_stop
     
     def reset(self):
         """Reset the stopper state."""

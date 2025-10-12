@@ -51,7 +51,8 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
     # Always create a new event loop to avoid issues with closed loops from previous tests
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    
+    force_stop = False
+
     # Main training loop
     for i in range(generations):
         # Draw model before generation
@@ -62,7 +63,8 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         
         # Update history
         hist_detail.merge(new_hist)
-        hist_detail.append('iteration_acc_train', new_acc)
+        train_acc = M.evaluate(x_train, y_train)
+        hist_detail.append('iteration_acc_train', train_acc)
         test_acc = M.evaluate(x_test, y_test)
         hist_detail.append('iteration_acc_test', test_acc)
         # Track parameter count
@@ -74,9 +76,9 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
 
         if stopper.check(M, x_train, y_train, i):
             hist_detail.description += f'[iteration: {i}] Stopper triggered\n'
-            break
+            force_stop = True
         # Check if simulation is needed
-        if i < generations - 1:
+        if i < generations - 1 and force_stop == False:
             if simulation_scheduler.can_simulate(i, hist_detail, epochs, quiet):
                 # Log simulation start
                 hist_detail.description += f"[iteration: {i}] No correction detected acc: {new_acc} starting simulation.\n"
@@ -119,6 +121,9 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
             current_param_count = M.get_parametr_count()
             hist_detail.description += f'[iteration: {i}] Rewriting best model for test acc prev: {hist_detail.best_test_acc} new: {hist_detail.get_last("iteration_acc_test")} param_count: {current_param_count}\n'
             hist_detail.best_test_acc = hist_detail.get_last('iteration_acc_test')
+
+        if force_stop:
+            break
     
     # Draw final model
     draw(M, model_path + "_graph.html")

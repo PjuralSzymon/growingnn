@@ -1,7 +1,9 @@
 from .structure import *
 import numpy as np
-from math import floor
+import math
+from math import floor, ceil
 from .config import config
+
 
 class Action:
     def __init__(self, _params):
@@ -46,15 +48,12 @@ class Action:
             delete_neurons_actions_09 = Del_neurons.generate_all_actions(model,0.9)
             result.extend(delete_neurons_actions_09)
 
-        if config.ACTIONS_ENABLE_ADD_NEURONS_01:
-            add_neurons_actions_01 = Add_neurons.generate_all_actions(model,1.25)
-            result.extend(add_neurons_actions_01)
-        if config.ACTIONS_ENABLE_ADD_NEURONS_05:
-            add_neurons_actions_05 = Add_neurons.generate_all_actions(model,1.5)
-            result.extend(add_neurons_actions_05)
-        if config.ACTIONS_ENABLE_ADD_NEURONS_09:
-            add_neurons_actions_09 = Add_neurons.generate_all_actions(model,1.9)
-            result.extend(add_neurons_actions_09)
+        if config.ACTIONS_ENABLE_ADD_NEURONS_15:
+            add_neurons_actions_15 = Add_neurons.generate_all_actions(model,1.5)
+            result.extend(add_neurons_actions_15)
+        if config.ACTIONS_ENABLE_ADD_NEURONS_20:
+            add_neurons_actions_20 = Add_neurons.generate_all_actions(model,2.0)
+            result.extend(add_neurons_actions_20)
 
         if len(result) == 0:
             result.append(Empty_action(None))
@@ -77,7 +76,11 @@ class Add_Seq_Layer(Action):
         actions = []
         for pair in pairs:
             if type(model.get_layer(pair[1])) != Conv:
-                actions.append(Add_Seq_Layer([pair[0], pair[1], Layer_Type.EYE]))
+                layer_from = model.get_layer(pair[0])
+                layer_to = model.get_layer(pair[1])
+                additional_params = _get_layer_params("Layer", layer_from.get_output_size(), layer_to.input_size)
+                if _check_parameter_limit(model, additional_params):
+                    actions.append(Add_Seq_Layer([pair[0], pair[1], Layer_Type.EYE]))
         return actions
     
     def __str__(self):
@@ -115,8 +118,12 @@ class Add_Res_Layer(Action):
         
         for pair in pairs:
             if type(model.get_layer(pair[1])) != Conv:
-                for layer_type in layer_types:
-                    actions.append(Add_Res_Layer([pair[0], pair[1], layer_type]))
+                layer_from = model.get_layer(pair[0])
+                layer_to = model.get_layer(pair[1])
+                additional_params = _get_layer_params("Layer", layer_from.get_output_size(), layer_to.input_size)
+                if _check_parameter_limit(model, additional_params):
+                    for layer_type in layer_types:
+                        actions.append(Add_Res_Layer([pair[0], pair[1], layer_type]))
         return actions
     
     def __str__(self):
@@ -143,9 +150,20 @@ class Add_Seq_Conv_Layer(Action):
             layer_to = model.get_layer(pair[1])
             if type(layer_from) == Conv:
                 if type(model.get_layer(pair[1])) == Conv:
-                    actions.append(Add_Seq_Conv_Layer(pair))                
+                    i = layer_from.output_shape[0]
+                    d = clip(layer_to.depth, 1, 3)
+                    k = clip(layer_to.kernel_size, 1, i)
+                    additional_params = _get_layer_params("Conv", i, i, d, k)
+                    if _check_parameter_limit(model, additional_params):
+                        actions.append(Add_Seq_Conv_Layer(pair))                
                 elif type(layer_to) == Layer:
-                    actions.append(Add_Seq_Conv_Layer(pair))
+                    o = layer_to.input_size
+                    i = layer_from.output_shape[0]
+                    d = clip(math.floor(o ** ( 1 / 3)), 1, 3)
+                    k = clip(i + 1 - math.ceil(o ** ( 1 / 3)), 1, i)
+                    additional_params = _get_layer_params("Conv", i, i, d, k)
+                    if _check_parameter_limit(model, additional_params):
+                        actions.append(Add_Seq_Conv_Layer(pair))
         return actions
     
     def __str__(self):
@@ -168,14 +186,24 @@ class Add_Res_Conv_Layer(Action):
         pairs = delete_repetitions(pairs)
         actions = []
         for pair in pairs:
-            # check if the new layer size is not reaching the limit
             layer_from = model.get_layer(pair[0])
             layer_to = model.get_layer(pair[1])
             if type(layer_from) == Conv:
                 if type(model.get_layer(pair[1])) == Conv:
-                    actions.append(Add_Res_Conv_Layer(pair))                
+                    d = layer_to.depth
+                    i = layer_from.output_shape[0]
+                    k = clip(layer_to.kernel_size, 1, i)
+                    additional_params = _get_layer_params("Conv", i, i, d, k)
+                    if _check_parameter_limit(model, additional_params):
+                        actions.append(Add_Res_Conv_Layer(pair))                
                 elif type(layer_to) == Layer:
-                    actions.append(Add_Res_Conv_Layer(pair))
+                    o = layer_to.input_size
+                    i = layer_from.output_shape[0]
+                    d = clip(math.floor(o ** ( 1 / 3)), 1, 3)
+                    k = clip(i + 1 - math.ceil(o ** ( 1 / 3)), 1, i)
+                    additional_params = _get_layer_params("Conv", i, i, d, k)
+                    if _check_parameter_limit(model, additional_params):
+                        actions.append(Add_Res_Conv_Layer(pair))
         return actions
     
     def __str__(self):
@@ -258,11 +286,13 @@ class Add_neurons(Action):
         actions = []
         for layer_hidden in model.hidden_layers + model.input_layers:
             if type(model.get_layer(layer_hidden.id)) != Conv:
-                # Check if the new layer size doesn't exceed maximum
                 new_neurons = floor(model.get_layer(layer_hidden.id).neurons * scale_neurons_ratio)
                 if new_neurons <= config.MAXIMUM_MATRIX_NEURONS_SIZE_FOR_NEURONS_ADDITION:
-                    params = [layer_hidden.id, scale_neurons_ratio]
-                    actions.append(Add_neurons(params))
+                    layer = model.get_layer(layer_hidden.id)
+                    additional_params = (new_neurons - layer.neurons) * layer.input_size
+                    if _check_parameter_limit(model, additional_params):
+                        params = [layer_hidden.id, scale_neurons_ratio]
+                        actions.append(Add_neurons(params))
         return actions
 
     def __str__(self):
@@ -282,3 +312,21 @@ class Empty_action(Action):
 
     def __str__(self):
         return " ( Empty action ) "
+
+
+
+def _check_parameter_limit(model, additional_params=0):
+    """Check if adding additional parameters would exceed the model parameter limit"""
+    current_params = model.get_parametr_count()
+    total_params = current_params + additional_params
+    return total_params <= config.MAX_MODEL_PARAMETERS
+
+def _get_layer_params(layer_type, input_size, output_size, depth=None, kernel_size=None):
+    """Calculate how many parameters would be added by a new layer"""
+    if layer_type == "Layer":
+        return input_size * output_size
+    elif layer_type == "Conv":
+        if depth is None or kernel_size is None:
+            return 0
+        return int(depth) * int(input_size) * int(kernel_size) * int(kernel_size)
+    return 0

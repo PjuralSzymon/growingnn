@@ -2,6 +2,7 @@ import time
 import random
 import math
 import numpy as np
+import gc
 from growingnn.utils import LearningRateScheduler
 from ..action import Action, Empty_action
 #from ..structure import *
@@ -28,6 +29,7 @@ class TreeNode:
         self.childNodes = []
         self.value = 0
         self.visit_counter = 0
+        self._cleaned = False
 
     def expand(self):
         all_action_seq = Action.generate_all_actions(self.M)
@@ -42,6 +44,7 @@ class TreeNode:
     def rollout(self): 
         M_copy = self.M.deepcopy()
         deepth = DEEPTH
+    
         while deepth > 0:
             all_action_seq = Action.generate_all_actions(M_copy)
             if not all_action_seq:
@@ -60,7 +63,10 @@ class TreeNode:
                             not action.can_be_infulenced(choosen_action)]
             deepth -= 1
 
-        return self.simulation_score.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
+        score = self.simulation_score.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
+        del M_copy
+        gc.collect()
+        return score
 
     def get_best_child(self):
         USB1 = lambda node : node.value + UCB1_CONTS*protected_divide(math.log(node.parent.visit_counter),node.visit_counter)
@@ -84,9 +90,28 @@ class TreeNode:
         return res + 1
 
     def kill(self):
+        """Memory-safe cleanup of tree node"""
+        if self._cleaned:
+            return
+        
+        # Clean up children first
         for child in self.childNodes:
             child.kill()
-        del self
+        
+        # Clear references to prevent memory leaks
+        self.childNodes.clear()
+        self.X_train = None
+        self.Y_train = None
+        self.M = None
+        self.parent = None
+        self._cleaned = True
+        
+        # Force garbage collection
+        gc.collect()
+    
+    def __del__(self):
+        """Ensure cleanup on deletion"""
+        self.kill()
 
     def __str__(self):
         result = f"node: value:{self.value} visit_counter: {self.visit_counter}\n"
