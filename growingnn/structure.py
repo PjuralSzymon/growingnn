@@ -139,43 +139,51 @@ class Layer:
         return self.neurons
     
     def scale_neurons(self, reduce_ratio):
+
         neurons_reduced_amount = max(1, int(self.neurons * reduce_ratio))
         
         # Store old neuron count for weight adjustment
         old_neurons = self.neurons
-        
-        self.W = np.dot(self.W.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
-        self.B = np.dot(self.B.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
+
+        # Apply neuron reduction
+        self.W = Reshape(self.W, self.neurons, get_reshsper(self.neurons, neurons_reduced_amount))
+        self.B = Reshape(self.B, self.neurons, get_reshsper(self.neurons, neurons_reduced_amount))
+
+        # Update neuron count
+        self.neurons = neurons_reduced_amount
         
         # Adjust weights in output layers that receive input from this layer
-        for output_layer_id in self.output_layers_ids:
+        for i, output_layer_id in enumerate(self.output_layers_ids):
             output_layer = self.model.get_layer(output_layer_id)
             if output_layer is not None:
-                if self.id in output_layer.input_layers_ids:
-                    start_pos, end_pos = output_layer.get_weight_matrix_indexes_for_layer_id(self.id)
-                    if start_pos == 0 and end_pos == 0:
-                        print("ERROR NOT WEIGHT ADJUSTMENT")
-                        continue
-                    # Adjust the weight matrix using the same scaling logic
-                    if hasattr(output_layer, 'W') and output_layer.W is not None:                       
-                        weights_before = output_layer.W[:, :start_pos] if start_pos > 0 else None
-                        weights_middle = output_layer.W[:, start_pos:end_pos]  # Part corresponding to current layer
-                        weights_after = output_layer.W[:, end_pos:] if end_pos < output_layer.W.shape[1] else None
+                if not self.id in output_layer.input_layers_ids:
+                    print(f"[ERROR] Layer {self.id} is listed as output to layer {output_layer_id}, but layer {output_layer_id} doesn't have layer {self.id} in its input_layers_ids")
+                start_pos, end_pos = output_layer.get_weight_matrix_indexes_for_layer_id(self.id)
+                if start_pos == 0 and end_pos == 0:
+                    print(f"[Layer {output_layer_id}] ERROR NOT WEIGHT ADJUSTMENT")
+                    continue
+                # Adjust the weight matrix using the same scaling logic
+                if hasattr(output_layer, 'W') and output_layer.W is not None:                       
+                    weights_before = output_layer.W[:, :start_pos] if start_pos > 0 else None
+                    weights_middle = output_layer.W[:, start_pos:end_pos]  # Part corresponding to current layer
+                    weights_after = output_layer.W[:, end_pos:] if end_pos < output_layer.W.shape[1] else None
 
-                        scaled_weights_middle = np.dot(weights_middle, get_reshsper(old_neurons, neurons_reduced_amount))
-                        
-                        # Combine the three parts
-                        new_W_parts = []
-                        if weights_before is not None:
-                            new_W_parts.append(weights_before)
-                        new_W_parts.append(scaled_weights_middle)
-                        if weights_after is not None:
-                            new_W_parts.append(weights_after)
-                        output_layer.W = np.hstack(new_W_parts)
-                        
-                        # Update the input_size of the output layer
-                        if hasattr(output_layer, 'input_size'):
-                            output_layer.input_size = output_layer.W.shape[1]
+                    old_input_size_sliced = weights_middle.shape[1]
+                    resheper = get_reshsper(old_input_size_sliced, neurons_reduced_amount)
+                    scaled_weights_middle = Reshape(np.ascontiguousarray(weights_middle.T, config.FLOAT_TYPE), old_input_size_sliced, resheper).T
+                    
+                    # Combine the three parts
+                    new_W_parts = []
+                    if weights_before is not None:
+                        new_W_parts.append(weights_before)
+                    new_W_parts.append(scaled_weights_middle)
+                    if weights_after is not None:
+                        new_W_parts.append(weights_after)
+                    output_layer.W = np.hstack(new_W_parts)
+                    
+                    # Update the input_size of the output layer
+                    if hasattr(output_layer, 'input_size'):
+                        output_layer.input_size = output_layer.W.shape[1]
         self.neurons = neurons_reduced_amount
 
     def connect_input(self, layer_id):
@@ -213,7 +221,7 @@ class Layer:
     @staticmethod
     @jit(nopython=True)
     def update_weights_shape(W, input_size):
-        current_weight_size = W.shape[1]
+        current_weight_size = W.shape[1]        
         if current_weight_size < input_size:
             # Dodawanie brakujących kolumn z zerami
             new_W = np.zeros((W.shape[0], input_size))
@@ -446,28 +454,17 @@ class Layer:
             tuple: (start_index, end_index) representing the column range in the weight matrix
         """
         if target_layer_id not in self.size_registry.keys():
+            print(f"ERROR: Target layer ID {target_layer_id} is not in the size_registry!")
+
             return 0, 0
-        #print(f"\n=== DEBUG: get_weight_matrix_indexes_for_layer_id ===")
-        #print(f"Current layer ID: {self.id}")
-        #print(f"Target layer ID: {target_layer_id}")
-        #print(f"Input layers IDs: {self.input_layers_ids}")
-        #print(f"W: {self.W.shape}")
-        #print(f"B: {self.B.shape}")
-        #print("Current type: ", type(self))
+
         for idin in self.input_layers_ids:
             if idin not in self.size_registry.keys(): 
                 continue
             inlayer = self.model.get_layer(idin)
-            #print("inlayer: ", idin, " size_registry: ", self.size_registry[idin])
-            if type(inlayer) == Conv:
-                #print("inlayer: ", idin, " output_flatten: ", inlayer.output_flatten, " input_flatten ", inlayer.input_flatten)
-                pass
-            else:
-                #print("inlayer: ", idin, " W: ", inlayer.W.shape, " B: ", inlayer.B.shape, " output: ", inlayer.get_output_size())
-                pass
+
         
         if target_layer_id not in self.input_layers_ids:
-            print(f"ERROR: Layer ID {target_layer_id} is not in the input layers IDs {self.input_layers_ids}")
             raise ValueError(f"Layer ID {target_layer_id} is not in the input layers IDs {self.input_layers_ids}")
         
         # Find the position of the target layer in input_layers_ids
@@ -482,9 +479,8 @@ class Layer:
             if prev_layer_id in self.size_registry.keys():
                 prev_output_size = self.size_registry[prev_layer_id]
                 start_pos += prev_output_size
-                #print(f"  Layer {prev_layer_id}: output_size = {prev_output_size}, start_pos = {start_pos}")
             else:
-                #print(f"  WARNING: Layer {prev_layer_id} is not in the size_registry!")
+                print(f"  WARNING: Layer {prev_layer_id} is not in the size_registry!")
                 pass
         
         # Calculate the end position
@@ -493,11 +489,16 @@ class Layer:
             print(f"ERROR: Target layer with ID {target_layer_id} does not exist")
             raise ValueError(f"Target layer with ID {target_layer_id} does not exist")
         
-        target_output_size = target_layer.get_output_size()
+        # Use size_registry as the authoritative source, fallback to get_output_size()
+        if target_layer_id in self.size_registry:
+            target_output_size = self.size_registry[target_layer_id]
+        else:
+            target_output_size = target_layer.get_output_size()
+            # Update size_registry for consistency
+            self.size_registry[target_layer_id] = target_output_size
+        
         end_pos = start_pos + target_output_size
-        #print(f"Target layer {target_layer_id}: output_size = {target_output_size}")
-        #print(f"Final indexes: start_pos = {start_pos}, end_pos = {end_pos}")
-        #print(f"=== END DEBUG ===\n")
+
         
         return start_pos, end_pos
 
