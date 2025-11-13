@@ -1,12 +1,13 @@
 """
 Training history tracking for neural networks.
 """
+import os
 import json
 import numpy as np
 from numba import jit
 from ..config import config
 from ..helpers import get_numpy_array, get_list_as_numpy_array, NumpyArrayEncoder
-
+import io
 
 class History:
     """Training history tracker."""
@@ -121,7 +122,16 @@ class History:
             plt.plot(xc, get_list_as_numpy_array(self.Y[key]), label=key)
             plt.legend()
             try:
-                plt.savefig(path + "/" + label + "_" + key + ".png")
+                # Save to buffer then write to file
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png')
+                buf.seek(0)
+                
+                # Write to file
+                full_path = os.path.join(path, label + "_" + key + ".png")
+                with open(full_path, 'wb') as f:
+                    f.write(buf.getvalue())
+                buf.close()
             except Exception as e:
                 print(f"Error saving plot: {e}")
             plt.close()

@@ -103,9 +103,11 @@ def delete_repetitions(array):
 
 
 def strech(x, shape):
-    result = np.zeros((shape[0], shape[1], x.shape[2]))
-    for i in range(0, x.shape[2]):
-        result[:,:,i] = np.array(cv.resize(get_numpy_array(x[:,:,i]), shape))
+    x_np = get_numpy_array(x) if not isinstance(x, np.ndarray) else x
+    result = np.empty((shape[0], shape[1], x_np.shape[2]))
+    # Process each channel
+    for i in range(0, x_np.shape[2]):
+        result[:,:,i] = cv.resize(x_np[:,:,i], shape)
     return result
 
 def draw_hist(hist, label, path):

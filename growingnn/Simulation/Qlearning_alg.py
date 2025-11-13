@@ -1,6 +1,7 @@
 import time
 import random
 from ..action import Action
+from ..quaziIdentity import clear_reshepers_cache
 #from ..structure import *
 
 class QLearningAgent:
@@ -70,7 +71,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
 
     # Ostateczne wybranie najlepszej akcji po zakończeniu symulacji
     best_action = global_agent.choose_action(actions, state)
-
+    clear_reshepers_cache()
     return best_action, deepth, rollouts
 
 # def scoreFun(M, epochs, X_train, Y_train, simulation_score):

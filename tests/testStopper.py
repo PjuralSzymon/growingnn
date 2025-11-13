@@ -41,13 +41,16 @@ class TestStoppers(unittest.TestCase):
     
     def test_empty_stopper_initialization(self):
         stopper = gnn.EmptyStopper()
-        self.assertFalse(stopper.should_stop)
+        # Test that check method returns False
+        result = stopper.check(self.test_model, self.x_train, self.y_train)
+        self.assertFalse(result)
     
     def test_empty_stopper_reset(self):
         stopper = gnn.EmptyStopper()
-        stopper.should_stop = True
         stopper.reset()
-        self.assertFalse(stopper.should_stop)
+        # Test that check method still returns False after reset
+        result = stopper.check(self.test_model, self.x_train, self.y_train)
+        self.assertFalse(result)
     
     # AccuracyStopper Tests
     def test_accuracy_stopper_initialization(self):
@@ -55,14 +58,12 @@ class TestStoppers(unittest.TestCase):
         stopper = gnn.AccuracyStopper()
         self.assertEqual(stopper.target_accuracy, 0.9)
         self.assertEqual(stopper.metric_name, "accuracy")
-        self.assertFalse(stopper.should_stop)
         
     def test_accuracy_stopper_custom_initialization(self):
         """Test AccuracyStopper initialization with custom parameters"""
         stopper = gnn.AccuracyStopper(target_accuracy=0.95, metric_name="f1_score")
         self.assertEqual(stopper.target_accuracy, 0.95)
         self.assertEqual(stopper.metric_name, "f1_score")
-        self.assertFalse(stopper.should_stop)
         
     def test_accuracy_stopper_check_below_target(self):
         """Test AccuracyStopper when accuracy is below target"""
@@ -74,7 +75,6 @@ class TestStoppers(unittest.TestCase):
         
         result = stopper.check(self.test_model, self.x_train, self.y_train)
         self.assertFalse(result)
-        self.assertFalse(stopper.should_stop)
         
         # Restore original method
         self.test_model.evaluate = original_evaluate
@@ -89,7 +89,6 @@ class TestStoppers(unittest.TestCase):
         
         result = stopper.check(self.test_model, self.x_train, self.y_train)
         self.assertTrue(result)
-        self.assertTrue(stopper.should_stop)
         
         # Restore original method
         self.test_model.evaluate = original_evaluate
@@ -104,7 +103,6 @@ class TestStoppers(unittest.TestCase):
         
         result = stopper.check(self.test_model, self.x_train, self.y_train)
         self.assertTrue(result)
-        self.assertTrue(stopper.should_stop)
         
         # Restore original method
         self.test_model.evaluate = original_evaluate
@@ -116,7 +114,6 @@ class TestStoppers(unittest.TestCase):
         self.assertEqual(stopper.decrease_threshold, 0.5)
         self.assertEqual(stopper.metric_name, "parameter_count")
         self.assertIsNone(stopper.initial_parameter_count)
-        self.assertFalse(stopper.should_stop)
         
     def test_parameter_count_stopper_custom_initialization(self):
         """Test ParameterCountStopper initialization with custom parameters"""
@@ -124,7 +121,6 @@ class TestStoppers(unittest.TestCase):
         self.assertEqual(stopper.decrease_threshold, 0.3)
         self.assertEqual(stopper.metric_name, "param_reduction")
         self.assertIsNone(stopper.initial_parameter_count)
-        self.assertFalse(stopper.should_stop)
         
     def test_parameter_count_stopper_initialization_phase(self):
         """Test ParameterCountStopper during initialization phase"""
@@ -136,7 +132,6 @@ class TestStoppers(unittest.TestCase):
         
         result = stopper.check(self.test_model, self.x_train, self.y_train)
         self.assertFalse(result)
-        self.assertFalse(stopper.should_stop)
         self.assertEqual(stopper.initial_parameter_count, 1000)
         
         # Restore original method
@@ -166,7 +161,6 @@ class TestStoppers(unittest.TestCase):
         # Second call - insufficient reduction
         result2 = stopper.check(self.test_model, self.x_train, self.y_train)
         self.assertFalse(result2)
-        self.assertFalse(stopper.should_stop)
         
         # Restore original method
         self.test_model.get_parametr_count = original_get_count
@@ -195,7 +189,6 @@ class TestStoppers(unittest.TestCase):
         # Second call - sufficient reduction
         result2 = stopper.check(self.test_model, self.x_train, self.y_train)
         self.assertTrue(result2)
-        self.assertTrue(stopper.should_stop)
         
         # Restore original method
         self.test_model.get_parametr_count = original_get_count
@@ -208,7 +201,6 @@ class TestStoppers(unittest.TestCase):
         self.assertEqual(stopper.parameter_stopper.decrease_threshold, 0.5)
         self.assertFalse(stopper.accuracy_reached)
         self.assertFalse(stopper.parameter_reduced)
-        self.assertFalse(stopper.should_stop)
         
     def test_accuracy_and_reduction_stopper_custom_initialization(self):
         """Test AccuracyAndReductionStopper initialization with custom parameters"""
@@ -217,7 +209,6 @@ class TestStoppers(unittest.TestCase):
         self.assertEqual(stopper.parameter_stopper.decrease_threshold, 0.3)
         self.assertFalse(stopper.accuracy_reached)
         self.assertFalse(stopper.parameter_reduced)
-        self.assertFalse(stopper.should_stop)
         
     def test_accuracy_and_reduction_stopper_only_accuracy_met(self):
         """Test AccuracyAndReductionStopper when only accuracy condition is met"""
@@ -251,7 +242,6 @@ class TestStoppers(unittest.TestCase):
         self.assertFalse(result2)
         self.assertTrue(stopper.accuracy_reached)
         self.assertFalse(stopper.parameter_reduced)
-        self.assertFalse(stopper.should_stop)
         
         # Restore original methods
         self.test_model.evaluate = original_evaluate
@@ -289,7 +279,6 @@ class TestStoppers(unittest.TestCase):
         self.assertFalse(result2)
         self.assertFalse(stopper.accuracy_reached)
         self.assertTrue(stopper.parameter_reduced)
-        self.assertFalse(stopper.should_stop)
         
         # Restore original methods
         self.test_model.evaluate = original_evaluate
@@ -327,7 +316,6 @@ class TestStoppers(unittest.TestCase):
         self.assertTrue(result2)
         self.assertTrue(stopper.accuracy_reached)
         self.assertTrue(stopper.parameter_reduced)
-        self.assertTrue(stopper.should_stop)
         
         # Restore original methods
         self.test_model.evaluate = original_evaluate
@@ -338,14 +326,10 @@ class TestStoppers(unittest.TestCase):
         stopper = gnn.AccuracyAndReductionStopper()
         stopper.accuracy_reached = True
         stopper.parameter_reduced = True
-        stopper.should_stop = True
         
         stopper.reset()
         self.assertFalse(stopper.accuracy_reached)
         self.assertFalse(stopper.parameter_reduced)
-        self.assertFalse(stopper.should_stop)
-        self.assertFalse(stopper.accuracy_stopper.should_stop)
-        self.assertFalse(stopper.parameter_stopper.should_stop)
     
     # Integration Tests
     def test_integration_with_trainer_accuracy_stopper(self):

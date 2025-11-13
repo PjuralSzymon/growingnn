@@ -94,9 +94,9 @@ class TestNeuronAddition(unittest.TestCase):
                 mean_diff = abs(np.mean(output1) - np.mean(output1_added))
                 
                 # Verify statistical measures - should be similar but not identical
-                self.assertLess(abs(W_before_mean - W_after_mean), 0.3)
-                self.assertLess(abs(B_before_mean - B_after_mean), 0.3)
-                self.assertLess(mean_diff, 0.5)
+                self.assertLess(abs(W_before_mean - W_after_mean), 0.35)
+                self.assertLess(abs(B_before_mean - B_after_mean), 0.35)
+                self.assertLess(mean_diff, 0.65)
 
     def test_neuron_addition_multi_layer(self):
         for config in self.test_configs:

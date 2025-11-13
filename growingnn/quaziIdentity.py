@@ -1,5 +1,8 @@
 import matplotlib
-
+import sys
+import time
+from collections import OrderedDict
+import gc
 from .config import config
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
@@ -8,7 +11,76 @@ import numpy as np
 import cv2 as cv
 from .helpers import *
 
-RESHEPERS = {}
+class LRUCache:
+    """LRU Cache implementation with memory monitoring for RESHEPERS"""
+    
+    def __init__(self, max_size=10, max_memory_mb=100, enable_monitoring=True):
+        self.max_size = max_size
+        self.max_memory_bytes = max_memory_mb * 1024 * 1024  # Convert MB to bytes
+        self.enable_monitoring = enable_monitoring
+        self.cache = OrderedDict()
+        self.current_memory_usage = 0
+        
+    def _get_memory_usage(self, array):
+        """Calculate memory usage of a numpy array in bytes"""
+        if array is None:
+            return 0
+        return array.nbytes
+    
+    def _should_evict(self):
+        """Check if we need to evict items based on size or memory limits"""
+        return (len(self.cache) >= self.max_size or 
+                (self.enable_monitoring and self.current_memory_usage >= self.max_memory_bytes))
+    
+    def _evict_lru(self):
+        """Remove the least recently used item"""
+        if not self.cache:
+            return
+            
+        # Remove the first (oldest) item
+        key, value = self.cache.popitem(last=False)
+        if self.enable_monitoring:
+            self.current_memory_usage -= self._get_memory_usage(value)
+    
+    def get(self, key):
+        """Get item from cache and update its position"""
+        if key in self.cache:
+            # Move to end (most recently used)
+            value = self.cache.pop(key)
+            self.cache[key] = value
+            return value
+        return None
+    
+    def put(self, key, value):
+        """Put item in cache with LRU eviction if needed"""
+        # Remove if already exists
+        if key in self.cache:
+            old_value = self.cache.pop(key)
+            if self.enable_monitoring:
+                self.current_memory_usage -= self._get_memory_usage(old_value)
+        
+        # Add new item
+        self.cache[key] = value
+        if self.enable_monitoring:
+            self.current_memory_usage += self._get_memory_usage(value)
+        
+        # Evict if necessary
+        while self._should_evict():
+            self._evict_lru()
+    
+    def clear(self):
+        """Clear the cache"""
+        self.cache.clear()
+        self.current_memory_usage = 0
+        
+        gc.collect()
+
+# Initialize the LRU cache with config settings
+RESHEPERS = LRUCache(
+    max_size=config.RESHEPERS_CACHE_MAX_SIZE,
+    max_memory_mb=config.RESHEPERS_CACHE_MAX_MEMORY_MB,
+    enable_monitoring=config.RESHEPERS_CACHE_ENABLE_MONITORING
+)
 
 def eye_stretch(a, b):
     if a == b:
@@ -16,37 +88,54 @@ def eye_stretch(a, b):
     A = np.eye(max(a, b))
     return cv.resize(A, (a, b)).T
 
+
 def get_reshsper(size_from, size_to):
     key = (size_from, size_to)
-    if key not in RESHEPERS:
-        RESHEPERS[key] = np.ascontiguousarray(eye_stretch(size_from, size_to), dtype=config.FLOAT_TYPE)
-    return RESHEPERS[key]
+    
+    # Try to get from cache first
+    cached_value = RESHEPERS.get(key)
+    if cached_value is not None:
+        return cached_value
+    
+    # Create new resheper if not in cache
+    new_resheper = np.ascontiguousarray(eye_stretch(size_from, size_to), dtype=config.FLOAT_TYPE)
+    RESHEPERS.put(key, new_resheper)
+    return new_resheper
 
+@jit(nopython=True, cache=True)
 def Reshape(x, output_size, QIdentity):
     if QIdentity is None:
         return x[:output_size, :]
-    x_reshaped = np.empty((output_size, x.shape[1]))
-    for i in range(x.shape[1]):
-        x_reshaped[:, i] = np.dot(x[:, i], QIdentity)
-    return x_reshaped
+    return QIdentity.T @ x
+#    x_reshaped = np.empty((output_size, x.shape[1]))
+#    for i in range(x.shape[1]):
+#        x_reshaped[:, i] = np.dot(x[:, i], QIdentity)
+#    return x_reshaped
 
+@jit(nopython=True, cache=True)
 def Reshape_forward_prop(x, output_size, QIdentity):
-    x_reshaped = np.zeros((output_size, x.shape[0]))
+    # Use np.empty() to avoid zero initialization - faster
+    x_reshaped = np.empty((output_size, x.shape[0]))
     for i in range(0, x.shape[0]):
-        flatten_size = x[i].shape[0] * x[i].shape[1] * x[i].shape[2]
-        flatten = np.reshape(x[i], flatten_size)
+        flatten = np.ascontiguousarray(x[i]).flatten()
         if QIdentity is None:
             x_reshaped[:, i] = flatten
         else:
             x_reshaped[:, i] = flatten.dot(QIdentity)
     return x_reshaped
-
+    
+@jit(nopython=True, cache=True)
 def Reshape_back_prop(E, input_shape, QIdentity):
-    E_reshaped = np.zeros((E.shape[1], input_shape[0], input_shape[1], input_shape[2]))
+    E_reshaped = np.empty((E.shape[1], input_shape[0], input_shape[1], input_shape[2]))
     for i in range(0, E.shape[1]):
         if QIdentity is None:
             x_reshaped = E[:, i]
         else:
-            x_reshaped = E[:, i].dot(QIdentity)
-        E_reshaped[i, :, :, :] = np.reshape(x_reshaped, input_shape)
+            x_reshaped = np.ascontiguousarray(E[:, i]).dot(QIdentity)
+        E_reshaped[i, :, :, :] = np.reshape(np.ascontiguousarray(x_reshaped), input_shape)
     return E_reshaped
+
+def clear_reshepers_cache():
+    """Clear the RESHEPERS cache to free memory"""
+    RESHEPERS.clear()
+    gc.collect()

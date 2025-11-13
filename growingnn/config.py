@@ -45,9 +45,8 @@ class Config:
     ACTIONS_ENABLE_DEL_NEURONS_01 = True
     ACTIONS_ENABLE_DEL_NEURONS_05 = True
     ACTIONS_ENABLE_DEL_NEURONS_09 = True
-    ACTIONS_ENABLE_ADD_NEURONS_01 = True
-    ACTIONS_ENABLE_ADD_NEURONS_05 = True
-    ACTIONS_ENABLE_ADD_NEURONS_09 = True
+    ACTIONS_ENABLE_ADD_NEURONS_15 = True
+    ACTIONS_ENABLE_ADD_NEURONS_20 = True
 
     # Simulation Scoring Configuration
     # Time efficiency scoring: Higher values make time efficiency more important
@@ -59,6 +58,14 @@ class Config:
     # Formula: grade = 1.0 / (WEIGHT_COUNT_WEIGHT * total_weights + 1.0)
     # If WEIGHT_COUNT_WEIGHT is larger, models with fewer weights get much higher scores
     WEIGHT_COUNT_WEIGHT = 0.001
+    
+    # RESHEPERS Cache Settings - Memory leak prevention
+    RESHEPERS_CACHE_MAX_SIZE = 15  # Maximum number of cached reshepers
+    RESHEPERS_CACHE_MAX_MEMORY_MB = 5  # Maximum memory usage in MB for reshepers cache
+    RESHEPERS_CACHE_ENABLE_MONITORING = True  # Enable memory monitoring
+    
+    # Model Parameter Limits
+    MAX_MODEL_PARAMETERS = 20000  # Maximum total parameters allowed in the model
 
     @classmethod
     def update(cls, **kwargs):
@@ -93,6 +100,10 @@ class Config:
         cls.MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
         cls.TIME_EFFICIENCY_WEIGHT = 100.0
         cls.WEIGHT_COUNT_WEIGHT = 0.001
+        cls.RESHEPERS_CACHE_MAX_SIZE = 15
+        cls.RESHEPERS_CACHE_MAX_MEMORY_MB = 5
+        cls.RESHEPERS_CACHE_ENABLE_MONITORING = True
+        cls.MAX_MODEL_PARAMETERS = 7000
 
 # Create a global instance for backward compatibility
 config = Config()

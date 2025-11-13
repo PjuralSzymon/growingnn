@@ -1,5 +1,6 @@
 import math
 import sys
+import gc
 from enum import Enum
 import json
 import threading
@@ -138,43 +139,51 @@ class Layer:
         return self.neurons
     
     def scale_neurons(self, reduce_ratio):
+
         neurons_reduced_amount = max(1, int(self.neurons * reduce_ratio))
         
         # Store old neuron count for weight adjustment
         old_neurons = self.neurons
-        
-        self.W = np.dot(self.W.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
-        self.B = np.dot(self.B.T, get_reshsper(self.neurons, neurons_reduced_amount)).T
+
+        # Apply neuron reduction
+        self.W = Reshape(self.W, self.neurons, get_reshsper(self.neurons, neurons_reduced_amount))
+        self.B = Reshape(self.B, self.neurons, get_reshsper(self.neurons, neurons_reduced_amount))
+
+        # Update neuron count
+        self.neurons = neurons_reduced_amount
         
         # Adjust weights in output layers that receive input from this layer
-        for output_layer_id in self.output_layers_ids:
+        for i, output_layer_id in enumerate(self.output_layers_ids):
             output_layer = self.model.get_layer(output_layer_id)
             if output_layer is not None:
-                if self.id in output_layer.input_layers_ids:
-                    start_pos, end_pos = output_layer.get_weight_matrix_indexes_for_layer_id(self.id)
-                    if start_pos == 0 and end_pos == 0:
-                        print("ERROR NOT WEIGHT ADJUSTMENT")
-                        continue
-                    # Adjust the weight matrix using the same scaling logic
-                    if hasattr(output_layer, 'W') and output_layer.W is not None:                       
-                        weights_before = output_layer.W[:, :start_pos] if start_pos > 0 else None
-                        weights_middle = output_layer.W[:, start_pos:end_pos]  # Part corresponding to current layer
-                        weights_after = output_layer.W[:, end_pos:] if end_pos < output_layer.W.shape[1] else None
+                if not self.id in output_layer.input_layers_ids:
+                    print(f"[ERROR] Layer {self.id} is listed as output to layer {output_layer_id}, but layer {output_layer_id} doesn't have layer {self.id} in its input_layers_ids")
+                start_pos, end_pos = output_layer.get_weight_matrix_indexes_for_layer_id(self.id)
+                if start_pos == 0 and end_pos == 0:
+                    print(f"[Layer {output_layer_id}] ERROR NOT WEIGHT ADJUSTMENT")
+                    continue
+                # Adjust the weight matrix using the same scaling logic
+                if hasattr(output_layer, 'W') and output_layer.W is not None:                       
+                    weights_before = output_layer.W[:, :start_pos] if start_pos > 0 else None
+                    weights_middle = output_layer.W[:, start_pos:end_pos]  # Part corresponding to current layer
+                    weights_after = output_layer.W[:, end_pos:] if end_pos < output_layer.W.shape[1] else None
 
-                        scaled_weights_middle = np.dot(weights_middle, get_reshsper(old_neurons, neurons_reduced_amount))
-                        
-                        # Combine the three parts
-                        new_W_parts = []
-                        if weights_before is not None:
-                            new_W_parts.append(weights_before)
-                        new_W_parts.append(scaled_weights_middle)
-                        if weights_after is not None:
-                            new_W_parts.append(weights_after)
-                        output_layer.W = np.hstack(new_W_parts)
-                        
-                        # Update the input_size of the output layer
-                        if hasattr(output_layer, 'input_size'):
-                            output_layer.input_size = output_layer.W.shape[1]
+                    old_input_size_sliced = weights_middle.shape[1]
+                    resheper = get_reshsper(old_input_size_sliced, neurons_reduced_amount)
+                    scaled_weights_middle = Reshape(np.ascontiguousarray(weights_middle.T, config.FLOAT_TYPE), old_input_size_sliced, resheper).T
+                    
+                    # Combine the three parts
+                    new_W_parts = []
+                    if weights_before is not None:
+                        new_W_parts.append(weights_before)
+                    new_W_parts.append(scaled_weights_middle)
+                    if weights_after is not None:
+                        new_W_parts.append(weights_after)
+                    output_layer.W = np.hstack(new_W_parts)
+                    
+                    # Update the input_size of the output layer
+                    if hasattr(output_layer, 'input_size'):
+                        output_layer.input_size = output_layer.W.shape[1]
         self.neurons = neurons_reduced_amount
 
     def connect_input(self, layer_id):
@@ -212,7 +221,7 @@ class Layer:
     @staticmethod
     @jit(nopython=True)
     def update_weights_shape(W, input_size):
-        current_weight_size = W.shape[1]
+        current_weight_size = W.shape[1]        
         if current_weight_size < input_size:
             # Dodawanie brakujących kolumn z zerami
             new_W = np.zeros((W.shape[0], input_size))
@@ -223,27 +232,28 @@ class Layer:
             return W[:, :input_size]
         return W
     
+    
     def should_thread_forward(self):
+        if config.MAX_THREADS <= 1: return False
         return (threading.active_count() < config.MAX_THREADS and 
                 len(self.f_input) + 1 >= len(self.input_layers_ids))
+    
     
     def append_to_f_input(self, X, sender_id):
         if sender_id == -1:
             self.f_input = [X]
-            return
-            
+            return 
         if sender_id not in self.input_layers_ids:
             raise ValueError(f"Sender ID {sender_id} is not in the input layers IDs {self.input_layers_ids}")
-            
-        #print(self.id, "---sender_id: ", sender_id, " X.shape: ", X.shape, " input_layers_ids: ", self.input_layers_ids)
         self.size_registry[sender_id] = X.shape[0]
         # Pre-allocate if needed
-        if len(self.f_input) < len(self.input_layers_ids):
-            self.f_input.extend([None] * (len(self.input_layers_ids) - len(self.f_input)))
-            
+        current_len = len(self.f_input)
+        needed_len = len(self.input_layers_ids)
+        if current_len < needed_len:
+            self.f_input.extend([None] * (needed_len - current_len)) 
         self.f_input[self.input_layers_ids.index(sender_id)] = X
         
-
+    
     def forward_prop(self, X, sender_id, deepth = 0):
         if X is None:
             raise ValueError("Layed Dense recived None input")
@@ -264,12 +274,12 @@ class Layer:
 
         for layer_id in self.output_layers_ids:
             #Reshape calucualted signal to the input size of the next layer
-            layer = self.model.get_layer(layer_id)
+            layer_type = type(self.model.get_layer(layer_id))
             new_input = None
-            if type(layer) == Layer:
+            if layer_type == Layer:
                 #new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
                 new_input = self.A.copy()
-            elif type(layer) == Conv:
+            elif layer_type == Conv:
                 new_input = Resize(self.A.copy(), layer.input_shape)
             else:
                 raise ValueError(f"Unsupported layer type: {type(layer)}")
@@ -278,19 +288,23 @@ class Layer:
                 raise ValueError("Failed to initialize new_input for layer")
 
             #Forward prop using threads approach
-            if layer.should_thread_forward():
+            if self.should_thread_forward():
                 input_copy = new_input.copy()
                 thread = threading.Thread(
-                    target=lambda input_copy=input_copy: layer.forward_prop(input_copy, self.id, deepth + 1),
+                    target=lambda input_copy=input_copy: self.model.get_layer(layer_id).forward_prop(input_copy, self.id, deepth + 1),
                 )
                 thread.start()
                 self.model.forward_threads.append(thread)
             #Forward prop using single thread approach
             else:
-                layer.forward_prop(new_input, self.id, deepth + 1)
-        self.f_input = []
+                self.model.get_layer(layer_id).forward_prop(new_input, self.id, deepth + 1)
+        
+        # Safe cleanup after forward pass
+        self.cleanup_after_forward()
 
+    
     def should_thread_backward(self):
+        if config.MAX_THREADS <= 1: return False
         if threading.active_count() >= config.MAX_THREADS:
             return False
         if len(self.b_input) + 1 < len(self.output_layers_ids): 
@@ -301,6 +315,7 @@ class Layer:
         if layer_id not in self.size_registry.keys():
             return self.model.get_layer(layer_id).get_output_size()
         return self.size_registry[layer_id]
+    
     
     def back_prop(self,E,m,alpha):
         if E.shape[0] <=0:
@@ -320,39 +335,57 @@ class Layer:
             neurons = self.get_size_registry(layer_id)
             E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
             before_iteration += neurons
-            layer = self.model.get_layer(layer_id)
-            if layer.should_thread_backward():
+            if self.should_thread_backward():
                 thread = threading.Thread(
-                    target=lambda: layer.back_prop(E_slice.copy(), m, alpha),
+                    target=lambda: self.model.get_layer(layer_id).back_prop(E_slice.copy(), m, alpha),
                 )
                 thread.start()
                 self.model.bacward_threads.append(thread)
             else:
-                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
-                layer.back_prop(E_slice, m, alpha)
+                self.model.get_layer(layer_id).back_prop(E_slice, m, alpha)
         self.update_params(alpha)
-        self.b_input = []
-        # if self.is_starting:
-        #     self.done_event.set()
+        # Safe cleanup after backward propagation
+        self.cleanup_after_backward()
+
 
     def update_params(self, alpha):
         self.W = self.optimizer_W.update(self.W, self.dW, alpha)
         self.B = self.optimizer_B.update(self.B, self.dB, alpha)
+    
+    def cleanup_after_backward(self):
+        """Safe cleanup after backward propagation is complete"""
+        # Clear backward-specific variables
+        self.b_input.clear()
+        self.b_input = []
+        
+        # Clear temporary arrays that are no longer needed
+        for attr in ['E', 'dW', 'dB', 'Z', 'I']:
+            if hasattr(self, attr):
+                delattr(self, attr)
+        
+        # Clear size registry to free memory
+        self.size_registry.clear()
+    
+    def cleanup_after_forward(self):
+        """Safe cleanup after forward propagation - keeps variables needed for backprop"""
+        self.f_input.clear()
+        self.f_input = []
+
 
     @staticmethod
-    @jit(nopython=True, cache=False)
+    @jit(nopython=True, cache=True)
     def compute_forward(I: config.FLOAT_TYPE, W: config.FLOAT_TYPE, B: config.FLOAT_TYPE):
         """Compute forward pass with optimized array contiguity"""
         Z = np.dot(W, I) + B
         return Z
     
     @staticmethod
-    @jit(nopython=True, cache=False)
+    @jit(nopython=True, cache=True)
     def calcuale_Z(W, I, B):
         return np.dot(W, I) + B
 
     @staticmethod
-    @jit(nopython=True, cache=False)
+    @jit(nopython=True, cache=True)
     def calcuale_dW(m, dZ, I):
         return 1 / m * dZ @ I.T
 
@@ -423,28 +456,17 @@ class Layer:
             tuple: (start_index, end_index) representing the column range in the weight matrix
         """
         if target_layer_id not in self.size_registry.keys():
+            print(f"ERROR: Target layer ID {target_layer_id} is not in the size_registry!")
+
             return 0, 0
-        #print(f"\n=== DEBUG: get_weight_matrix_indexes_for_layer_id ===")
-        #print(f"Current layer ID: {self.id}")
-        #print(f"Target layer ID: {target_layer_id}")
-        #print(f"Input layers IDs: {self.input_layers_ids}")
-        #print(f"W: {self.W.shape}")
-        #print(f"B: {self.B.shape}")
-        #print("Current type: ", type(self))
+
         for idin in self.input_layers_ids:
             if idin not in self.size_registry.keys(): 
                 continue
             inlayer = self.model.get_layer(idin)
-            #print("inlayer: ", idin, " size_registry: ", self.size_registry[idin])
-            if type(inlayer) == Conv:
-                #print("inlayer: ", idin, " output_flatten: ", inlayer.output_flatten, " input_flatten ", inlayer.input_flatten)
-                pass
-            else:
-                #print("inlayer: ", idin, " W: ", inlayer.W.shape, " B: ", inlayer.B.shape, " output: ", inlayer.get_output_size())
-                pass
+
         
         if target_layer_id not in self.input_layers_ids:
-            print(f"ERROR: Layer ID {target_layer_id} is not in the input layers IDs {self.input_layers_ids}")
             raise ValueError(f"Layer ID {target_layer_id} is not in the input layers IDs {self.input_layers_ids}")
         
         # Find the position of the target layer in input_layers_ids
@@ -459,9 +481,8 @@ class Layer:
             if prev_layer_id in self.size_registry.keys():
                 prev_output_size = self.size_registry[prev_layer_id]
                 start_pos += prev_output_size
-                #print(f"  Layer {prev_layer_id}: output_size = {prev_output_size}, start_pos = {start_pos}")
             else:
-                #print(f"  WARNING: Layer {prev_layer_id} is not in the size_registry!")
+                print(f"  WARNING: Layer {prev_layer_id} is not in the size_registry!")
                 pass
         
         # Calculate the end position
@@ -470,11 +491,16 @@ class Layer:
             print(f"ERROR: Target layer with ID {target_layer_id} does not exist")
             raise ValueError(f"Target layer with ID {target_layer_id} does not exist")
         
-        target_output_size = target_layer.get_output_size()
+        # Use size_registry as the authoritative source, fallback to get_output_size()
+        if target_layer_id in self.size_registry:
+            target_output_size = self.size_registry[target_layer_id]
+        else:
+            target_output_size = target_layer.get_output_size()
+            # Update size_registry for consistency
+            self.size_registry[target_layer_id] = target_output_size
+        
         end_pos = start_pos + target_output_size
-        #print(f"Target layer {target_layer_id}: output_size = {target_output_size}")
-        #print(f"Final indexes: start_pos = {start_pos}, end_pos = {end_pos}")
-        #print(f"=== END DEBUG ===\n")
+
         
         return start_pos, end_pos
 
@@ -679,6 +705,7 @@ class Model:
             sys.exit("ERROR, shape of predictions is diffrent than one_hot_Y: " + str(predictions.shape) + " != " + str(Y.shape))
         return np.sum(predictions == Y) / Y.size
 
+    
     def forward_prop(self, input):
         if input is None:
             raise ValueError("Input is None")
@@ -711,6 +738,7 @@ class Model:
             raise ValueError("After forward prop A on output layer is None")
         return self.output_layer.A
 
+    
     def back_prop(self,E,m,alpha):
         for i in range(0, len(self.input_layers)):
             self.input_layers[i].set_as_starting()
@@ -720,6 +748,7 @@ class Model:
         for thread in self.bacward_threads:
             thread.join()
         self.bacward_threads.clear()
+    
     
     def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, path="."):
         if X is None or Y is None:
@@ -789,14 +818,20 @@ class Model:
                 batch_loss = self.loss_function.exe(batch_Y, A)
                 total_loss += batch_loss
                 correct_predictions += np.sum(Model.get_predictions(A) == np.argmax(batch_Y, axis=0))
-            
+                gc.collect()
+                
             # Shuffle indexes for next iteration
             np.random.shuffle(indexes)
 
             history.update_training_progress(correct_predictions, total_samples, total_loss, i, current_alpha, quiet)
 
             if i % config.PROGRESS_PRINT_FREQUENCY == 0 and not quiet:
-                print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()}")
+                #print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()}")
+
+                from .quaziIdentity import RESHEPERS
+                reshepers_count = len(RESHEPERS.cache)
+                reshepers_memory_mb = RESHEPERS.current_memory_usage / (1024 * 1024)
+                print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()} reshepers: {reshepers_count} reshepers_memory: {round(reshepers_memory_mb, 2)}MB")
 
         if self.is_regression():
             return history.get_last('loss'), history
@@ -832,6 +867,44 @@ class Model:
         for input_layer in self.input_layers:
             pairs += input_layer.get_all_childrens_connections()
         return delete_repetitions(pairs)
+
+    def forward_blank(self, batch_size=1):
+        """
+        Performs a forward pass with a matrix of ones to test model shape handling.
+        Useful for debugging shape mismatches and connection issues.
+        
+        Args:
+            batch_size (int): Number of samples in the batch (default: 1)
+            
+        Returns:
+            np.ndarray: Output of the forward pass with ones input
+        """
+        if len(self.input_layers) == 0:
+            raise ValueError("Model has no input layers")
+        if len(self.input_layers) == 1:
+            input_layer = self.input_layers[0]
+            if isinstance(input_layer, Conv):
+                input_shape = (batch_size,) + input_layer.input_shape
+            else:
+                input_shape = (batch_size, self.input_size)
+        else:
+            # Multiple input paths
+            input_shapes = []
+            for input_layer in self.input_layers:
+                if isinstance(input_layer, Conv):
+                    input_shapes.append((batch_size,) + input_layer.input_shape)
+                else:
+                    input_shapes.append((batch_size, input_layer.input_size))
+        if len(self.input_layers) == 1:
+            input_ones = np.ones(input_shape, dtype=config.FLOAT_TYPE)
+        else:
+            input_ones = [np.ones(shape, dtype=config.FLOAT_TYPE) for shape in input_shapes]
+        try:
+            output = self.forward_prop(input_ones)
+            return output
+        except Exception as e:
+            print(f"ERROR: Failed to perform forward pass with ones input: {e}")
+            raise
 
     def deepcopy(self):
         copy = Model(self.input_size, self.output_size, self.hidden_size)
@@ -955,6 +1028,7 @@ class Conv(Layer):
             self.reshspers[(size_from, size_to)] = eye_stretch(size_from, size_to)
         return self.reshspers[(size_from, size_to)]
 
+    
     def forward_prop(self, X, sender_id, deepth = 0):
         if X is None:
             raise ValueError("Layed Conv recived None input")
@@ -975,26 +1049,34 @@ class Conv(Layer):
         
         # Process outputs more efficiently
         for layer_id in self.output_layers_ids:
-            layer = self.model.get_layer(layer_id)
-            if type(layer) == Conv:
-                new_input = Resize(self.A.copy(), layer.input_shape)
-            elif type(layer) == Layer:
-                new_input = Reshape_forward_prop(self.A.copy(), layer.input_size, get_reshsper(self.output_flatten, layer.input_size))         
+            layer_type = type(self.model.get_layer(layer_id))
+            if layer_type == Conv:
+                new_input = Resize(self.A.copy(), self.model.get_layer(layer_id).input_shape)
+            elif layer_type == Layer:
+                input_size = self.model.get_layer(layer_id).input_size
+                new_input = Reshape_forward_prop(self.A.copy(), input_size, get_reshsper(self.output_flatten, input_size))         
             else:
-                raise ValueError(f"Unsupported layer type: {type(layer)}")
+                raise ValueError(f"Unsupported layer type: {layer_type}")
             
-            if layer.should_thread_forward():
+            if self.model.get_layer(layer_id).should_thread_forward():
                 # Create a copy of new_input to avoid the closure issue
                 input_copy = new_input.copy()
                 thread = threading.Thread(
-                    target=lambda input_copy=input_copy: layer.forward_prop(input_copy, self.id, deepth + 1),
+                    target=lambda input_copy=input_copy: self.model.get_layer(layer_id).forward_prop(input_copy, self.id, deepth + 1),
                 )
                 thread.start()
                 self.model.forward_threads.append(thread)
             else:
-                layer.forward_prop(new_input.copy(), self.id, deepth + 1)
+                self.model.get_layer(layer_id).forward_prop(new_input, self.id, deepth + 1)
+        # Safe cleanup after forward pass
+        self.cleanup_after_forward()
+
+    def cleanup_after_forward(self):
+        """Safe cleanup after forward propagation - keeps variables needed for backprop"""
+        self.f_input.clear()
         self.f_input = []
 
+    
     def back_prop(self, E, m, alpha):
         if len(E.shape) <= 2:
             E = Reshape_back_prop(E, self.output_shape, get_reshsper(E[:, 0].shape[0], self.output_flatten))
@@ -1017,20 +1099,28 @@ class Conv(Layer):
         self.input_gradient[img_id,:,:,j] /= self.I.shape[0]
         self.error /= self.I.shape[0]
         for layer_id in self.input_layers_ids:
-            layer = self.model.get_layer(layer_id)
-            if layer.should_thread_backward():
+            if self.model.get_layer(layer_id).should_thread_backward():
                 thread = threading.Thread(
-                    target=lambda: layer.back_prop(self.input_gradient.copy(), m, alpha),
+                    target=lambda: self.model.get_layer(layer_id).back_prop(self.input_gradient.copy(), m, alpha),
                 )
                 thread.start()
                 self.model.bacward_threads.append(thread)
             else:
-                #print(f"No available threads, continuing in the current thread: {threading.current_thread().name} count: {threading.active_count()}")
-                layer.back_prop(self.input_gradient, m, alpha)
+                self.model.get_layer(layer_id).back_prop(self.input_gradient, m, alpha)
         self.update_params(alpha)
+        # Safe cleanup after backward propagation
+        self.cleanup_after_backward()
+
+    def cleanup_after_backward(self):
+        """Safe cleanup after backward propagation is complete"""
+        # Clear backward-specific variables
+        self.b_input.clear()
         self.b_input = []
-        #if self.is_starting:
-        #    self.done_event.set()
+        # Clear temporary arrays that are no longer needed
+        for attr in ['E', 'kernels_gradient', 'input_gradient', 'error', 'Z', 'I']:
+            if hasattr(self, attr):
+                delattr(self, attr)
+
             
     def update_params(self, alpha):
         self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)
@@ -1068,11 +1158,11 @@ class Conv(Layer):
 def Resize(x, shape):
     if x[0].shape == shape:
         return x
-    x_resized = np.zeros((x.shape[0], shape[0], shape[1], shape[2]))
+    x_resized = np.empty((x.shape[0], shape[0], shape[1], shape[2]))
     for i in range(0, x.shape[0]):
         x_resize_tmp = strech(x[i], (shape[0], shape[1]))
         index = min([x_resize_tmp.shape[2], shape[2]])
-        x_resized[i, :, :, 0:index] = strech(x[i], (shape[0], shape[1]))[:, :, 0:index]
+        x_resized[i, :, :, 0:index] = x_resize_tmp[:, :, 0:index]
     return x_resized
 
 
