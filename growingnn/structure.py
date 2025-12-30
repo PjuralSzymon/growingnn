@@ -12,7 +12,7 @@ from .painter import *
 from .config import config, DistributionMode
 from .optimizers import *
 from .quaziIdentity import *
-from .utils.stoppers import BaseStopper, AccuracyStopper, ParameterCountStopper, AccuracyAndReductionStopper
+from .utils.stoppers import BaseStopper, AccuracyStopper, ParameterCountStopper, AccuracyAndReductionStopper, EmptyStopper
 from .utils.loss import Loss
 from .utils.activations import Activations
 from .utils.lr_scheduler import LearningRateScheduler
@@ -750,7 +750,7 @@ class Model:
         self.bacward_threads.clear()
     
     
-    def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, path="."):
+    def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, path=".", stopper = EmptyStopper()):
         if X is None or Y is None:
             raise ValueError("Training data (X) or labels (Y) cannot be None")
         if not isinstance(X, np.ndarray): X = np.array(X)
@@ -831,8 +831,10 @@ class Model:
                 from .quaziIdentity import RESHEPERS
                 reshepers_count = len(RESHEPERS.cache)
                 reshepers_memory_mb = RESHEPERS.current_memory_usage / (1024 * 1024)
-                print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()} reshepers: {reshepers_count} reshepers_memory: {round(reshepers_memory_mb, 2)}MB")
-
+                params = {'accuracy': round(float(history.get_last('accuracy')), 3)}
+                print(f"Epoch: {i} Accuracy: {params['accuracy']} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()} reshepers: {reshepers_count} reshepers_memory: {round(reshepers_memory_mb, 2)}MB")
+                if stopper.check(self, X, Y, i, params):
+                    break
         if self.is_regression():
             return history.get_last('loss'), history
         else:   
