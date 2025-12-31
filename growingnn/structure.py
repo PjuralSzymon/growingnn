@@ -826,12 +826,7 @@ class Model:
             history.update_training_progress(correct_predictions, total_samples, total_loss, i, current_alpha, quiet)
 
             if i % config.PROGRESS_PRINT_FREQUENCY == 0 and not quiet:
-                #print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()}")
-
-                from .quaziIdentity import RESHEPERS
-                reshepers_count = len(RESHEPERS.cache)
-                reshepers_memory_mb = RESHEPERS.current_memory_usage / (1024 * 1024)
-                print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()} reshepers: {reshepers_count} reshepers_memory: {round(reshepers_memory_mb, 2)}MB")
+                print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()} param_count: {self.get_parametr_count()}")
 
         if self.is_regression():
             return history.get_last('loss'), history
