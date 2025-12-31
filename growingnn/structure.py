@@ -280,9 +280,9 @@ class Layer:
                 #new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
                 new_input = self.A.copy()
             elif layer_type == Conv:
-                new_input = Resize(self.A.copy(), layer.input_shape)
+                new_input = Resize(self.A.copy(), self.model.get_layer(layer_id).input_shape)
             else:
-                raise ValueError(f"Unsupported layer type: {type(layer)}")
+                raise ValueError(f"Unsupported layer type: {type(self.model.get_layer(layer_id))}")
 
             if new_input is None:
                 raise ValueError("Failed to initialize new_input for layer")
