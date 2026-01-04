@@ -72,26 +72,25 @@ def one_hot(Y, Y_max = 0):
     one_hot_Y = one_hot_Y.T
     return one_hot_Y
 
-#@jit(nopython=True)
 def add_n(array):
-    sum = array[0]
-    for i in range(1,len(array)): 
-        sum += array[i]
-    return sum
+    """Sum all arrays in a list element-wise. Optimized using np.stack."""
+    if len(array) == 1:
+        return array[0]
+    return np.sum(np.stack(array, axis=0), axis=0)
 
-#@jit(nopython=True)
 def mean_n(array):
-    sum = add_n(array)
-    div = float(len(array))
-    return sum / div
+    """Compute element-wise mean of arrays in a list. Optimized using np.stack + np.mean."""
+    if len(array) == 1:
+        return array[0]
+    # All arrays have same shape after Reshape() in back_prop, so np.stack works
+    return np.mean(np.stack(array, axis=0), axis=0)
 
-#@jit(nopython=True)
 def mean_n_conv(array, shape):
-    sum = array[0]
-    for i in range(1,len(array)): 
-        sum += array[i]
-    div = float(len(array))
-    return sum / div
+    """Compute element-wise mean of conv arrays. Optimized using np.stack + np.mean."""
+    if len(array) == 1:
+        return array[0]
+    # All arrays have same shape after Resize() in back_prop, so np.stack works
+    return np.mean(np.stack(array, axis=0), axis=0)
 
 def delete_repetitions(array):
     result = []
