@@ -37,13 +37,13 @@ def get_reverse_normal_distribution(clip_range, shape):
 
 # GPU/CuPy functionality removed - using CPU only
     
-def clip(X, min, max):
-    return np.array(fastclip(get_numpy_array(X), min, max))
-    return np.array(np.clip(get_numpy_array(X), min, max))
-
-@jit(nopython=True)
-def fastclip(X, min, max):
-    return np.clip(X, min, max)
+def clip(X, min_val, max_val):
+    """Clip array values to range. Optimized to avoid unnecessary array copies."""
+    if isinstance(X, np.ndarray):
+        # Already numpy - use in-place if possible, otherwise direct clip
+        return np.clip(X, min_val, max_val)
+    # Convert to numpy only if needed
+    return np.clip(np.asarray(X), min_val, max_val)
 
 def argmax(X, axis):
     return np.array(np.argmax(get_numpy_array(X), axis))
