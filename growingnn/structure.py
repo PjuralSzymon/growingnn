@@ -357,19 +357,17 @@ class Layer:
         # Clear backward-specific variables
         self.b_input.clear()
         self.b_input = []
-        
-        # Clear temporary arrays that are no longer needed
-        for attr in ['E', 'dW', 'dB', 'Z', 'I']:
-            if hasattr(self, attr):
-                delattr(self, attr)
-        
-        # Clear size registry to free memory
-        self.size_registry.clear()
     
     def cleanup_after_forward(self):
         """Safe cleanup after forward propagation - keeps variables needed for backprop"""
         self.f_input.clear()
         self.f_input = []
+
+    def cleanup_catche(self):
+        for attr in ['E', 'dW', 'dB', 'Z', 'I']:
+            if hasattr(self, attr):
+                delattr(self, attr)
+        self.size_registry.clear()
 
 
     @staticmethod
@@ -748,7 +746,10 @@ class Model:
         for thread in self.bacward_threads:
             thread.join()
         self.bacward_threads.clear()
-    
+
+    def cleanup_catche(self):
+        for layer in self.hidden_layers + self.input_layers + [self.output_layer]:
+            layer.cleanup_catche()
     
     def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, path=".", stopper = EmptyStopper()):
         if X is None or Y is None:
@@ -818,7 +819,6 @@ class Model:
                 batch_loss = self.loss_function.exe(batch_Y, A)
                 total_loss += batch_loss
                 correct_predictions += np.sum(Model.get_predictions(A) == np.argmax(batch_Y, axis=0))
-                gc.collect()
                 
             # Shuffle indexes for next iteration
             np.random.shuffle(indexes)
@@ -1110,14 +1110,13 @@ class Conv(Layer):
 
     def cleanup_after_backward(self):
         """Safe cleanup after backward propagation is complete"""
-        # Clear backward-specific variables
         self.b_input.clear()
         self.b_input = []
-        # Clear temporary arrays that are no longer needed
-        for attr in ['E', 'kernels_gradient', 'input_gradient', 'error', 'Z', 'I']:
-            if hasattr(self, attr):
-                delattr(self, attr)
 
+    def cleanup_catche(self):
+        for attr in ['E', 'kernels_gradient', 'input_gradient', 'error', 'Z', 'I']:
+             if hasattr(self, attr):
+                 delattr(self, attr)
             
     def update_params(self, alpha):
         self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)

@@ -72,8 +72,6 @@ class LRUCache:
         """Clear the cache"""
         self.cache.clear()
         self.current_memory_usage = 0
-        
-        gc.collect()
 
 # Initialize the LRU cache with config settings
 RESHEPERS = LRUCache(
@@ -138,4 +136,3 @@ def Reshape_back_prop(E, input_shape, QIdentity):
 def clear_reshepers_cache():
     """Clear the RESHEPERS cache to free memory"""
     RESHEPERS.clear()
-    gc.collect()
