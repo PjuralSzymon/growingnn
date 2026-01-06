@@ -6,7 +6,6 @@ import json
 import threading
 import os
 import time
-from numba import jit
 from scipy.signal import correlate2d, convolve2d
 from .painter import *
 from .config import config, DistributionMode
@@ -219,7 +218,6 @@ class Layer:
             self.output_layers_ids = []
 
     @staticmethod
-    @jit(nopython=True)
     def update_weights_shape(W, input_size):
         current_weight_size = W.shape[1]        
         if current_weight_size < input_size:
@@ -371,29 +369,24 @@ class Layer:
 
 
     @staticmethod
-    @jit(nopython=True, cache=True)
     def compute_forward(I: config.FLOAT_TYPE, W: config.FLOAT_TYPE, B: config.FLOAT_TYPE):
         """Compute forward pass with optimized array contiguity"""
         Z = np.dot(W, I) + B
         return Z
     
     @staticmethod
-    @jit(nopython=True, cache=True)
     def calcuale_Z(W, I, B):
         return np.dot(W, I) + B
 
     @staticmethod
-    @jit(nopython=True, cache=True)
     def calcuale_dW(m, dZ, I):
         return 1 / m * dZ @ I.T
 
     @staticmethod
-    @jit(nopython=True)
     def calcuale_dB(m, dZ, B):
         return 1 / m * np.reshape(np.sum(dZ, 1), B.shape)
     
     @staticmethod
-    @jit(nopython=True)
     def calcuale_updateW(W, alpha, dw):
         return W - alpha * dw
     

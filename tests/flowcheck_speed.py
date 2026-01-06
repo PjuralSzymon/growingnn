@@ -7,53 +7,57 @@ import growingnn as gnn
 from growingnn.structure import SimulationScheduler
 import time
 
-EXPERIMENT_REPETITIONS = 5
+EXPERIMENT_REPETITIONS = 3
 BASE_TIME_LINE = {
-    "easy": 1.26,
-    "mid":  1.58,
-    "hard": 9.17
+    "easy": 1.00,
+    "mid":  2.00,
+    "hard": 10.00
 }
 
+DATASETCASCHE = {}
+
 def get_dataset(datasize, datadimensionality, classes):
+    key = f"{datasize}_{datadimensionality}_{classes}"
+    if key in DATASETCASCHE:
+        print("[INFO] Dataset already in cache")
+        return DATASETCASCHE[key]
+    print("[INFO] Starting to generate the dataet")
     x_conv_train = np.random.random((datasize, datadimensionality, datadimensionality, 1))
     y_conv_train = np.random.randint(classes, size=(datasize, ))
     x_conv_test = np.random.random((int(datasize / 2), datadimensionality, datadimensionality, 1))
     y_conv_test = np.random.randint(classes, size=(int(datasize / 2), ))
     labels = range(0, classes)
 
-    return x_conv_train, y_conv_train, x_conv_test, y_conv_test, labels
+    DATASETCASCHE[key] = (x_conv_train, y_conv_train, x_conv_test, y_conv_test, labels)
+    print("[INFO] Dataset generated")
+    return DATASETCASCHE[key]
 
 def timer_train(datasize, datadimensionality, classes):
-    print("[INFO] Starting to generate the dataet")
     x_conv_train, y_conv_train, x_conv_test, y_conv_test, labels = get_dataset(datasize, datadimensionality, classes)
-    print("[INFO] Dataset generated")
-    times = []
-    for i in range(2):
-        start_time = time.time()
-        gnn.trainer.train(
-            x_train=x_conv_train,
-            y_train=y_conv_train,
-            x_test=x_conv_test,
-            y_test=y_conv_test,
-            labels=labels,
-            input_paths=1,
-            path="./result",
-            model_name="GNN_model",
-            epochs=1,
-            generations=1,
-            input_size=datadimensionality,
-            hidden_size=datadimensionality,
-            output_size=classes,
-            input_shape=(datadimensionality, datadimensionality, 1),
-            kernel_size=2,
-            batch_size=1,
-            simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 2, simulation_epochs = 2), 
-            deepth=2,
-            quiet=True
-            )
-        end_time = time.time()
-        times.append(end_time - start_time)
-    return float(round(np.mean(times), 2))
+    start_time = time.time()
+    gnn.trainer.train(
+        x_train=x_conv_train,
+        y_train=y_conv_train,
+        x_test=x_conv_test,
+        y_test=y_conv_test,
+        labels=labels,
+        input_paths=1,
+        path="./result",
+        model_name="GNN_model",
+        epochs=5,
+        generations=2,
+        input_size=datadimensionality,
+        hidden_size=datadimensionality,
+        output_size=classes,
+        input_shape=(datadimensionality, datadimensionality, 1),
+        kernel_size=2,
+        batch_size=5,
+        simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 2, simulation_epochs = 2), 
+        deepth=2,
+        quiet=True
+        )
+    end_time = time.time()
+    return end_time - start_time
 
 def calculate_performance_change(current_time, baseline_time):
     """Calculate percentage change in performance"""
@@ -100,16 +104,15 @@ if __name__ == '__main__':
         train_time = timer_train(50, 28, 10) # MNIST settings
         times_easy.append(train_time)
 
-        train_time = timer_train(100, 30, 10) # Something in beetween
+        train_time = timer_train(1150, 30, 10) # Something in beetween
         times_mid.append(train_time)
 
-        train_time = timer_train(200, 32, 10) # CIFAR like settings
+        train_time = timer_train(6200, 32, 10) # CIFAR like settings
         times_hard.append(train_time)
 
         TIMING_RESULTS["easy"] = float(round(np.mean(times_easy), 2))
         TIMING_RESULTS["mid"] = float(round(np.mean(times_mid), 2))
         TIMING_RESULTS["hard"] = float(round(np.mean(times_hard), 2))   
-        print("[INFO] Timing finished, result: ", TIMING_RESULTS)
     print("[INFO] =========================")
     print("[INFO]               Base Line: ", BASE_TIME_LINE)
     print("[INFO] Timing finished, result: ", TIMING_RESULTS)

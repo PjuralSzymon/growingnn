@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from numba import jit
 import numpy as np
 from .config import config
 
@@ -63,7 +62,6 @@ class SGDOptimizer(DenseOptimizer):
         self.updateType("SGD", "Dense")
         
     @staticmethod
-    @jit(nopython=True)
     def sgd_update(params, grads, alpha):
          return params.astype(np.float64) - alpha * grads
 
@@ -112,7 +110,6 @@ class AdamOptimizer(DenseOptimizer):
         return AdamOptimizer(dict["beta1"], dict["beta2"], dict["epsilon"], dict["weights_clip_range"])
     
     @staticmethod
-    @jit(nopython=True)
     def adam_update(params, grads, m, v, t, alpha, beta1, beta2, epsilon):
         # Pre-calculate common terms
         beta1_t = beta1 ** t
@@ -167,7 +164,6 @@ class ConvSGDOptimizer(ConvOptimizer):
         return ConvSGDOptimizer(dict["weights_clip_range"])
     
     @staticmethod
-    @jit(nopython=True)
     def conv_sgd_update(kernels, kernel_grads, biases, bias_grads, alpha):
         return kernels - alpha * kernel_grads, biases - alpha * bias_grads
 
@@ -210,7 +206,6 @@ class ConvAdamOptimizer(ConvOptimizer):
         return ConvAdamOptimizer(dict["beta1"], dict["beta2"], dict["epsilon"], dict["weights_clip_range"])
     
     @staticmethod
-    @jit(nopython=True)
     def conv_adam_update(kernels, kernel_grads, biases, bias_grads, m_kernels, v_kernels, m_biases, v_biases, t, alpha, beta1, beta2, epsilon):
         # Pre-calculate common terms
         beta1_t = beta1 ** t

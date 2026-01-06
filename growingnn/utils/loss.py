@@ -2,8 +2,6 @@
 Loss functions for neural networks.
 """
 import numpy as np
-from numba import jit
-
 
 class Loss:
     """Container class for loss functions."""

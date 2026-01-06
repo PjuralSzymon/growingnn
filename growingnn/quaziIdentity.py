@@ -6,7 +6,6 @@ import gc
 from .config import config
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
-from numba import jit
 import numpy as np
 import cv2 as cv
 from .helpers import *
@@ -86,17 +85,12 @@ def get_reshsper(size_from, size_to):
     RESHEPERS.put(key, new_resheper)
     return new_resheper
 
-@jit(nopython=True, cache=True)
 def Reshape(x, output_size, QIdentity):
     if QIdentity is None:
         return x[:output_size, :]
     return QIdentity.T @ x
-#    x_reshaped = np.empty((output_size, x.shape[1]))
-#    for i in range(x.shape[1]):
-#        x_reshaped[:, i] = np.dot(x[:, i], QIdentity)
-#    return x_reshaped
 
-@jit(nopython=True, cache=True)
+
 def Reshape_forward_prop(x, output_size, QIdentity):
     # Use np.empty() to avoid zero initialization - faster
     x_reshaped = np.empty((output_size, x.shape[0]))
@@ -108,7 +102,6 @@ def Reshape_forward_prop(x, output_size, QIdentity):
             x_reshaped[:, i] = flatten.dot(QIdentity)
     return x_reshaped
     
-@jit(nopython=True, cache=True)
 def Reshape_back_prop(E, input_shape, QIdentity):
     E_reshaped = np.empty((E.shape[1], input_shape[0], input_shape[1], input_shape[2]))
     for i in range(0, E.shape[1]):

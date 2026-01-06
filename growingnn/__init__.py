@@ -1,3 +1,8 @@
+# Configure NumPy/OpenBLAS to use all CPU cores (must be BEFORE numpy import)
+import os
+os.environ.setdefault("OPENBLAS_NUM_THREADS", str(os.cpu_count()))  # Use all cores
+os.environ.setdefault("OMP_NUM_THREADS", str(os.cpu_count()))       # OpenMP fallback
+
 from .action import *
 from .painter import *
 from .structure import *

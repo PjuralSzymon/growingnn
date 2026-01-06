@@ -89,7 +89,7 @@ class Config:
         cls.LARGE_MAX = 2**128
         cls.FLOAT_TYPE = np.float64
         cls.VERSION = 'R3'
-        cls.MAX_THREADS = 1 #max(1, int(os.cpu_count() * 0.5))
+        cls.MAX_THREADS = 2 #max(1, int(os.cpu_count() * 0.5))
         cls.ERROR_CLIP_RANGE = 600
         cls.PROGRESS_PRINT_FREQUENCY = 7
         cls.THROW_EXCEPTION = True

@@ -4,7 +4,6 @@ Training history tracking for neural networks.
 import os
 import json
 import numpy as np
-from numba import jit
 from ..config import config
 from ..helpers import get_numpy_array, get_list_as_numpy_array, NumpyArrayEncoder
 import io
@@ -28,9 +27,8 @@ class History:
             self.Y[key] = []
 
     @staticmethod
-    @jit(nopython=True)
     def _calculate_accuracy(correct_predictions, total_samples):
-        """Calculate accuracy using Numba JIT."""
+        """Calculate accuracy."""
         return correct_predictions / total_samples
 
     def update_training_progress(self, correct_predictions, total_samples, total_loss, epoch, current_alpha, quiet):

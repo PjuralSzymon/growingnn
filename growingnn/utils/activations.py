@@ -2,7 +2,6 @@
 Activation functions for neural networks.
 """
 import numpy as np
-from numba import jit
 from ..config import config
 
 
@@ -30,13 +29,11 @@ class Activations:
         __name__ = 'ReLu'
 
         @staticmethod
-        @jit(nopython=True)
         def exe(X):
             """Execute ReLU activation."""
             return np.maximum(X, 0)
         
         @staticmethod
-        @jit(nopython=True)
         def der(X):
             """Calculate ReLU derivative."""
             return np.where(X > 0, 1, 0)
@@ -46,13 +43,11 @@ class Activations:
         __name__ = 'leaky_ReLu'
 
         @staticmethod
-        @jit(nopython=True)
         def exe(X):
             """Execute Leaky ReLU activation."""
             return np.where(X > 0, X, X * 0.001)
         
         @staticmethod
-        @jit(nopython=True)
         def der(X):
             """Calculate Leaky ReLU derivative."""
             return np.where(X > 0, 1, 0.001)
@@ -74,7 +69,6 @@ class Activations:
                 return result
         
         @staticmethod
-        @jit(nopython=True)
         def der(X):
             """Calculate SoftMax derivative."""
             return 1.0
@@ -84,13 +78,11 @@ class Activations:
         __name__ = 'Sigmoid'
 
         @staticmethod
-        @jit(nopython=True)
         def exe(X):
             """Execute Sigmoid activation."""
             return 1/(1 + np.exp(-X))
         
         @staticmethod
-        @jit(nopython=True)
         def der(X):
             """Calculate Sigmoid derivative."""
             sigm = 1/(1 + np.exp(-X))
@@ -101,13 +93,11 @@ class Activations:
         __name__ = 'Tanh'
 
         @staticmethod
-        @jit(nopython=True)
         def exe(X):
             """Execute Tanh activation."""
             return np.tanh(X)
         
         @staticmethod
-        @jit(nopython=True)
         def der(X):
             """Calculate Tanh derivative."""
             return 1 - np.tanh(X)**2
@@ -117,13 +107,11 @@ class Activations:
         __name__ = 'Linear'
         
         @staticmethod
-        @jit(nopython=True)
         def exe(X):
             """Execute Linear activation."""
             return X
         
         @staticmethod
-        @jit(nopython=True)
         def der(X):
             """Calculate Linear derivative."""
             return np.ones_like(X)
