@@ -30,6 +30,7 @@ class QLearningAgent:
 global_agent = QLearningAgent()
 
 async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_score):
+    M.disable_threading = True
     size_of_changes = len(Action.generate_all_actions(M))
     if size_of_changes == 0:
         print("Error")

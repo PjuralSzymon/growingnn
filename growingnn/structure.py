@@ -232,6 +232,7 @@ class Layer:
     
     
     def should_thread_forward(self):
+        if self.model.disable_threading: return False
         if config.MAX_THREADS <= 1: return False
         return (threading.active_count() < config.MAX_THREADS and 
                 len(self.f_input) + 1 >= len(self.input_layers_ids))
@@ -496,7 +497,7 @@ class Layer:
         return start_pos, end_pos
 
 class Model:
-    def __init__(self, input_size, hidden_size, output_size, loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, _optimizer = SGDOptimizer(), output_activation_fun = Activations.SoftMax):
+    def __init__(self, input_size, hidden_size, output_size, loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, _optimizer = SGDOptimizer(), output_activation_fun = Activations.SoftMax, disable_threading = False):
         if input_size <= 0:
             raise ValueError("Input size must be positive")
         if hidden_size <= 0:
@@ -540,6 +541,7 @@ class Model:
         self.depth = None
         self.forward_threads = []
         self.bacward_threads = []
+        self.disable_threading = disable_threading
         
     @property
     def layers(self):
@@ -917,6 +919,7 @@ class Model:
         copy.loss_function = self.loss_function
         copy.activation_fun = self.activation_fun
         copy.output_activation_fun = self.output_activation_fun
+        copy.disable_threading = self.disable_threading
         return copy
     
     def is_cyclic(self, additional_pair):

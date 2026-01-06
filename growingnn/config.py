@@ -16,8 +16,8 @@ class Config:
     
     # Neural Network Settings
     FLOAT_TYPE = np.float64
-    VERSION = 'R3.3'
-    MAX_THREADS = 1#max(1, int(os.cpu_count() * 0.5))
+    VERSION = 'R4'
+    MAX_THREADS = 3#max(1, int(os.cpu_count() * 0.5))
     
     # Training Settings
     ERROR_CLIP_RANGE = 600
@@ -88,8 +88,8 @@ class Config:
         cls.WEIGHTS_CLIP_RANGE = 3
         cls.LARGE_MAX = 2**128
         cls.FLOAT_TYPE = np.float64
-        cls.VERSION = 'R3'
-        cls.MAX_THREADS = 2 #max(1, int(os.cpu_count() * 0.5))
+        cls.VERSION = 'R4'
+        cls.MAX_THREADS = 3 #max(1, int(os.cpu_count() * 0.5))
         cls.ERROR_CLIP_RANGE = 600
         cls.PROGRESS_PRINT_FREQUENCY = 7
         cls.THROW_EXCEPTION = True

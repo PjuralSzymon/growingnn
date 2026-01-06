@@ -17,6 +17,7 @@ LOG_DIRECTORY = "./logs"
 global_action_index = 0
 
 async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_score):
+    M.disable_threading = True
     global global_action_index
     global_action_index += 1
     
