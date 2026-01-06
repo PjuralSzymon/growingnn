@@ -18,7 +18,7 @@ class LRUCache:
         self.max_size = max_size
         self.max_memory_bytes = max_memory_mb * 1024 * 1024  # Convert MB to bytes
         self.enable_monitoring = enable_monitoring
-        self.cache = OrderedDict()
+        self.cache = {}
         self.current_memory_usage = 0
         
     def _get_memory_usage(self, array):
@@ -27,46 +27,32 @@ class LRUCache:
             return 0
         return array.nbytes
     
-    def _should_evict(self):
+    def is_memory_limit_reached(self, memory_usage):
         """Check if we need to evict items based on size or memory limits"""
-        return (len(self.cache) >= self.max_size or 
-                (self.enable_monitoring and self.current_memory_usage >= self.max_memory_bytes))
-    
-    def _evict_lru(self):
-        """Remove the least recently used item"""
-        if not self.cache:
-            return
-            
-        # Remove the first (oldest) item
-        key, value = self.cache.popitem(last=False)
-        if self.enable_monitoring:
-            self.current_memory_usage -= self._get_memory_usage(value)
+        if len(self.cache) < 0.2 * self.max_size:
+            return False
+        return (len(self.cache) + 1 >= self.max_size or 
+                (self.enable_monitoring and self.current_memory_usage + memory_usage >= self.max_memory_bytes))
     
     def get(self, key):
         """Get item from cache and update its position"""
         if key in self.cache:
-            # Move to end (most recently used)
-            value = self.cache.pop(key)
-            self.cache[key] = value
-            return value
+            return self.cache[key]
         return None
     
     def put(self, key, value):
         """Put item in cache with LRU eviction if needed"""
         # Remove if already exists
         if key in self.cache:
-            old_value = self.cache.pop(key)
-            if self.enable_monitoring:
-                self.current_memory_usage -= self._get_memory_usage(old_value)
-        
+            return
+
+        if self.is_memory_limit_reached(self._get_memory_usage(value)):
+            self.clear()
+
         # Add new item
         self.cache[key] = value
         if self.enable_monitoring:
             self.current_memory_usage += self._get_memory_usage(value)
-        
-        # Evict if necessary
-        while self._should_evict():
-            self._evict_lru()
     
     def clear(self):
         """Clear the cache"""
