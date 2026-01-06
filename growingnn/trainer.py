@@ -59,7 +59,7 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         draw(M, model_path + '_graph_' + str(hist_detail.last_img_id) + "bef.html")
         
         # Run gradient descent
-        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, quiet, True, model_path + "_gen_" + str(i))
+        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, quiet, True, model_path + "_gen_" + str(i), stopper)
         
         # Update history
         hist_detail.merge(new_hist)
@@ -106,6 +106,7 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
                 
                 # Execute the action
                 action.execute(M)
+                M.cleanup_catche()
 
         # Draw model after generation
         draw(M, model_path + '_graph_' + str(hist_detail.last_img_id) + ".html")

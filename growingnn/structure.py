@@ -12,7 +12,7 @@ from .painter import *
 from .config import config, DistributionMode
 from .optimizers import *
 from .quaziIdentity import *
-from .utils.stoppers import BaseStopper, AccuracyStopper, ParameterCountStopper, AccuracyAndReductionStopper
+from .utils.stoppers import BaseStopper, AccuracyStopper, ParameterCountStopper, AccuracyAndReductionStopper, EmptyStopper
 from .utils.loss import Loss
 from .utils.activations import Activations
 from .utils.lr_scheduler import LearningRateScheduler
@@ -280,9 +280,9 @@ class Layer:
                 #new_input = Reshape(self.A.copy(), layer.input_size, get_reshsper(self.A.shape[0], layer.input_size))
                 new_input = self.A.copy()
             elif layer_type == Conv:
-                new_input = Resize(self.A.copy(), layer.input_shape)
+                new_input = Resize(self.A.copy(), self.model.get_layer(layer_id).input_shape)
             else:
-                raise ValueError(f"Unsupported layer type: {type(layer)}")
+                raise ValueError(f"Unsupported layer type: {type(self.model.get_layer(layer_id))}")
 
             if new_input is None:
                 raise ValueError("Failed to initialize new_input for layer")
@@ -357,19 +357,17 @@ class Layer:
         # Clear backward-specific variables
         self.b_input.clear()
         self.b_input = []
-        
-        # Clear temporary arrays that are no longer needed
-        for attr in ['E', 'dW', 'dB', 'Z', 'I']:
-            if hasattr(self, attr):
-                delattr(self, attr)
-        
-        # Clear size registry to free memory
-        self.size_registry.clear()
     
     def cleanup_after_forward(self):
         """Safe cleanup after forward propagation - keeps variables needed for backprop"""
         self.f_input.clear()
         self.f_input = []
+
+    def cleanup_catche(self):
+        for attr in ['E', 'dW', 'dB', 'Z', 'I']:
+            if hasattr(self, attr):
+                delattr(self, attr)
+        self.size_registry.clear()
 
 
     @staticmethod
@@ -748,9 +746,12 @@ class Model:
         for thread in self.bacward_threads:
             thread.join()
         self.bacward_threads.clear()
+
+    def cleanup_catche(self):
+        for layer in self.hidden_layers + self.input_layers + [self.output_layer]:
+            layer.cleanup_catche()
     
-    
-    def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, path="."):
+    def gradient_descent(self, X, Y, iterations, lr_scheduler, quiet = False, one_hot_needed = True, path=".", stopper = EmptyStopper()):
         if X is None or Y is None:
             raise ValueError("Training data (X) or labels (Y) cannot be None")
         if not isinstance(X, np.ndarray): X = np.array(X)
@@ -818,7 +819,6 @@ class Model:
                 batch_loss = self.loss_function.exe(batch_Y, A)
                 total_loss += batch_loss
                 correct_predictions += np.sum(Model.get_predictions(A) == np.argmax(batch_Y, axis=0))
-                gc.collect()
                 
             # Shuffle indexes for next iteration
             np.random.shuffle(indexes)
@@ -826,8 +826,10 @@ class Model:
             history.update_training_progress(correct_predictions, total_samples, total_loss, i, current_alpha, quiet)
 
             if i % config.PROGRESS_PRINT_FREQUENCY == 0 and not quiet:
+                params = {'accuracy': round(float(history.get_last('accuracy')), 3)}
                 print(f"Epoch: {i} Accuracy: {round(float(history.get_last('accuracy')), 3)} loss: {round(float(history.get_last('loss')), 3)} lr: {round(float(current_alpha), 3)} threads: {threading.active_count()} param_count: {self.get_parametr_count()}")
-
+                if stopper.check(self, X, Y, i, params):
+                    break
         if self.is_regression():
             return history.get_last('loss'), history
         else:   
@@ -1108,14 +1110,13 @@ class Conv(Layer):
 
     def cleanup_after_backward(self):
         """Safe cleanup after backward propagation is complete"""
-        # Clear backward-specific variables
         self.b_input.clear()
         self.b_input = []
-        # Clear temporary arrays that are no longer needed
-        for attr in ['E', 'kernels_gradient', 'input_gradient', 'error', 'Z', 'I']:
-            if hasattr(self, attr):
-                delattr(self, attr)
 
+    def cleanup_catche(self):
+        for attr in ['E', 'kernels_gradient', 'input_gradient', 'error', 'Z', 'I']:
+             if hasattr(self, attr):
+                 delattr(self, attr)
             
     def update_params(self, alpha):
         self.kernels, self.biases = self.optimizer.update(self.kernels, self.kernels_gradient, self.biases, self.error, alpha)

@@ -38,7 +38,7 @@ class EmptyStopper(BaseStopper):
     def __init__(self):
         super().__init__()
     
-    def check(self, model, x_train, y_train, epoch=None):
+    def check(self, model, x_train, y_train, epoch=None, params=None):
         return False
 
 class AccuracyStopper(BaseStopper):
@@ -50,11 +50,16 @@ class AccuracyStopper(BaseStopper):
         self.target_accuracy = target_accuracy
         self.metric_name = metric_name
     
-    def check(self, model, x_train, y_train, epoch=None):
+    def check(self, model, x_train, y_train, epoch=None, params=None):
+        should_stop = False
+        current_accuracy = None
+        if params is not None:
+            if 'accuracy' in params:
+                current_accuracy = params['accuracy']
         if model is None or x_train is None or y_train is None:
             return False
-        should_stop = False
-        current_accuracy = model.evaluate(x_train, y_train)
+        if current_accuracy is None:
+            current_accuracy = model.evaluate(x_train, y_train)
         if current_accuracy >= self.target_accuracy:
             should_stop = True
             msg = f"Stopping: {self.metric_name} reached {current_accuracy:.4f} (target: {self.target_accuracy:.4f})"
@@ -74,7 +79,7 @@ class ParameterCountStopper(BaseStopper):
         self.initial_parameter_count = None
         self.previous_parameter_count = None
     
-    def check(self, model, x_train, y_train, epoch=None):
+    def check(self, model, x_train, y_train, epoch=None, params=None):
         """
         Check if parameter count has decreased by the threshold percentage from initial count.
         
@@ -128,7 +133,7 @@ class AccuracyAndReductionStopper(BaseStopper):
         self.accuracy_reached = False
         self.parameter_reduced = False
     
-    def check(self, model, x_train, y_train, epoch=None):
+    def check(self, model, x_train, y_train, epoch=None, params=None):
         """
         Check if both accuracy target is reached AND parameter count decreased by threshold.
         
@@ -145,10 +150,10 @@ class AccuracyAndReductionStopper(BaseStopper):
             return False
         should_stop = False
         # Check accuracy condition
-        self.accuracy_reached = self.accuracy_stopper.check(model, x_train, y_train, epoch)
+        self.accuracy_reached = self.accuracy_stopper.check(model, x_train, y_train, epoch, params)
         
         # Check parameter reduction condition
-        self.parameter_reduced = self.parameter_stopper.check(model, x_train, y_train, epoch)
+        self.parameter_reduced = self.parameter_stopper.check(model, x_train, y_train, epoch, params)
         
         # Stop if both conditions are met
         if self.accuracy_reached and self.parameter_reduced:

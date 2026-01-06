@@ -47,23 +47,27 @@ class Loss:
             return np.sign(Y_pred - Y_true)
     
     class multiclass_cross_entropy:
-        """Multiclass Cross Entropy loss function."""
+        """Multiclass Cross Entropy loss function.
+        
+        Note: When used with softmax activation, the combined gradient
+        of softmax + cross-entropy simplifies to (Y_pred - Y_true).
+        This avoids computing the expensive softmax Jacobian.
+        """
         __name__ = 'multiclass_cross_entropy'
         
         @staticmethod
         def exe(Y_true, Y_pred):
             """Execute multiclass cross entropy loss calculation."""
-            error = 0.0
-            for i in range(0, Y_true.shape[1]):
-                error -= np.dot(Y_true[:,i].T, np.log(Y_pred[:,i]))
-            return error / Y_true.shape[1]
+            # Vectorized: sum of -Y_true * log(Y_pred) over all elements
+            # Add small epsilon to prevent log(0)
+            return -np.sum(Y_true * np.log(Y_pred + 1e-15)) / Y_true.shape[1]
         
         @staticmethod
         def der(Y_true, Y_pred):
-            """Calculate multiclass cross entropy derivative."""
-            grad = np.zeros(Y_true.shape)
-            for i in range(0, Y_true.shape[1]):
-                partial_grad = -Y_true[:, i] / Y_pred[:, i]
-                A = np.tile(np.reshape(Y_pred[:, i], (Y_pred.shape[0], 1)), (1, Y_pred.shape[0]))
-                grad[:, i] = (A * (np.identity(Y_pred.shape[0]) - A.T)) @ partial_grad
-            return grad
+            """Calculate multiclass cross entropy derivative.
+            
+            For softmax + cross-entropy, the gradient simplifies to (Y_pred - Y_true).
+            This is a well-known result that avoids computing the Jacobian matrix.
+            """
+            # Simplified gradient for softmax + cross-entropy combination
+            return Y_pred - Y_true

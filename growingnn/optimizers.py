@@ -17,7 +17,9 @@ class Optimizer:
     def clip_and_fix(params, clip_range):
         if config.ENABLE_CLIP_ON_OPTIMIZERS:
             params = np.clip(params, -clip_range, clip_range)
-            params = np.nan_to_num(params, nan=np.nanmean(params))
+            # Only check for NaNs if they actually exist (expensive nanmean otherwise)
+            if np.any(np.isnan(params)):
+                params = np.nan_to_num(params, nan=0.0)
             return params
         else:
             return params

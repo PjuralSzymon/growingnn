@@ -66,7 +66,6 @@ class TreeNode:
 
         score = self.simulation_score.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
         del M_copy
-        gc.collect()
         return score
 
     def get_best_child(self):
@@ -106,9 +105,6 @@ class TreeNode:
         self.M = None
         self.parent = None
         self._cleaned = True
-        
-        # Force garbage collection
-        gc.collect()
     
     def __del__(self):
         """Ensure cleanup on deletion"""
