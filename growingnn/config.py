@@ -17,8 +17,10 @@ class Config:
     # Neural Network Settings
     FLOAT_TYPE = np.float64
     VERSION = 'R4'
-    MAX_THREADS = 3#max(1, int(os.cpu_count() * 0.5))
-    
+    THREADING_MAX_THREADS = 3#max(1, int(os.cpu_count() * 0.5))
+    THREADING_MIN_SIZE_BYTES = 0.2 * 1024 * 1024  # Minimum input size (1MB) to justify threading overhead
+    THREADING_MIN_CONNECTIONS_COUNT = 2
+
     # Training Settings
     ERROR_CLIP_RANGE = 600
     PROGRESS_PRINT_FREQUENCY = 7
@@ -89,7 +91,9 @@ class Config:
         cls.LARGE_MAX = 2**128
         cls.FLOAT_TYPE = np.float64
         cls.VERSION = 'R4'
-        cls.MAX_THREADS = 3 #max(1, int(os.cpu_count() * 0.5))
+        cls.THREADING_MAX_THREADS = 3 #max(1, int(os.cpu_count() * 0.5))
+        cls.THREADING_MIN_SIZE_BYTES = 0.2 * 1024 * 1024  # Minimum input size (1MB) to justify threading overhead
+        cls.THREADING_MIN_CONNECTIONS_COUNT = 2
         cls.ERROR_CLIP_RANGE = 600
         cls.PROGRESS_PRINT_FREQUENCY = 7
         cls.THROW_EXCEPTION = True

@@ -228,15 +228,7 @@ class Layer:
         elif current_weight_size > input_size:
             # Usuwanie niepotrzebnych kolumn
             return W[:, :input_size]
-        return W
-    
-    
-    def should_thread_forward(self):
-        if self.model.disable_threading: return False
-        if config.MAX_THREADS <= 1: return False
-        return (threading.active_count() < config.MAX_THREADS and 
-                len(self.f_input) + 1 >= len(self.input_layers_ids))
-    
+        return W   
     
     def append_to_f_input(self, X, sender_id):
         if sender_id == -1:
@@ -271,6 +263,7 @@ class Layer:
         self.Z = Layer.compute_forward(self.I, self.W, self.B)
         self.A = self.act_fun.exe(self.Z)
 
+        first_iteration = True
         for layer_id in self.output_layers_ids:
             #Reshape calucualted signal to the input size of the next layer
             layer_type = type(self.model.get_layer(layer_id))
@@ -286,8 +279,8 @@ class Layer:
             if new_input is None:
                 raise ValueError("Failed to initialize new_input for layer")
 
-            #Forward prop using threads approach
-            if self.should_thread_forward():
+            if self.should_thread_forward(new_input.nbytes, first_iteration):
+                print(self.id, " -- should_thread_forward --")
                 input_copy = new_input.copy()
                 thread = threading.Thread(
                     target=lambda input_copy=input_copy: self.model.get_layer(layer_id).forward_prop(input_copy, self.id, deepth + 1),
@@ -297,17 +290,25 @@ class Layer:
             #Forward prop using single thread approach
             else:
                 self.model.get_layer(layer_id).forward_prop(new_input, self.id, deepth + 1)
-        
+            first_iteration = False
         # Safe cleanup after forward pass
         self.cleanup_after_forward()
 
     
-    def should_thread_backward(self):
-        if config.MAX_THREADS <= 1: return False
-        if threading.active_count() >= config.MAX_THREADS:
-            return False
-        if len(self.b_input) + 1 < len(self.output_layers_ids): 
-            return False
+    def should_thread_forward(self, size_bytes, first_iteration):
+        if len(self.output_layers_ids) < config.THREADING_MIN_CONNECTIONS_COUNT: return False
+        return self.should_thread(size_bytes, first_iteration)
+
+    def should_thread_backward(self, size_bytes, first_iteration):
+        if len(self.input_layers_ids) < config.THREADING_MIN_CONNECTIONS_COUNT: return False
+        return self.should_thread(size_bytes, first_iteration)
+
+    def should_thread(self, size_bytes, first_iteration):
+        if first_iteration: return False
+        if self.model.disable_threading: return False
+        if config.THREADING_MAX_THREADS <= 1: return False
+        if size_bytes < config.THREADING_MIN_SIZE_BYTES: return False
+        if threading.active_count() > config.THREADING_MAX_THREADS: return False
         return True
     
     def get_size_registry(self, layer_id):
@@ -329,12 +330,14 @@ class Layer:
         self.dB = Layer.calcuale_dB(m, dZ, self.B)
         self.E = self.W.T @ dZ
         before_iteration = 0
+        error_size_bytes = E.nbytes
+        first_iteration = True
         for layer_id in self.input_layers_ids:
             #neurons = self.input_size
             neurons = self.get_size_registry(layer_id)
             E_slice = self.W[:, before_iteration:before_iteration + neurons].T @ dZ
             before_iteration += neurons
-            if self.should_thread_backward():
+            if self.should_thread_backward(error_size_bytes, first_iteration):
                 thread = threading.Thread(
                     target=lambda: self.model.get_layer(layer_id).back_prop(E_slice.copy(), m, alpha),
                 )
@@ -342,6 +345,7 @@ class Layer:
                 self.model.bacward_threads.append(thread)
             else:
                 self.model.get_layer(layer_id).back_prop(E_slice, m, alpha)
+            first_iteration = False
         self.update_params(alpha)
         # Safe cleanup after backward propagation
         self.cleanup_after_backward()
@@ -1040,7 +1044,7 @@ class Conv(Layer):
         
         self.A = self.act_fun.exe(self.Z)
         
-        # Process outputs more efficiently
+        first_iteration = True
         for layer_id in self.output_layers_ids:
             layer_type = type(self.model.get_layer(layer_id))
             if layer_type == Conv:
@@ -1051,8 +1055,7 @@ class Conv(Layer):
             else:
                 raise ValueError(f"Unsupported layer type: {layer_type}")
             
-            if self.model.get_layer(layer_id).should_thread_forward():
-                # Create a copy of new_input to avoid the closure issue
+            if self.should_thread_forward(new_input.nbytes, first_iteration):
                 input_copy = new_input.copy()
                 thread = threading.Thread(
                     target=lambda input_copy=input_copy: self.model.get_layer(layer_id).forward_prop(input_copy, self.id, deepth + 1),
@@ -1061,6 +1064,7 @@ class Conv(Layer):
                 self.model.forward_threads.append(thread)
             else:
                 self.model.get_layer(layer_id).forward_prop(new_input, self.id, deepth + 1)
+            first_iteration = False
         # Safe cleanup after forward pass
         self.cleanup_after_forward()
 
@@ -1091,8 +1095,10 @@ class Conv(Layer):
         self.kernels_gradient[i,j] /= self.I.shape[0]
         self.input_gradient[img_id,:,:,j] /= self.I.shape[0]
         self.error /= self.I.shape[0]
+        error_size_bytes = self.input_gradient.nbytes
+        first_iteration = True
         for layer_id in self.input_layers_ids:
-            if self.model.get_layer(layer_id).should_thread_backward():
+            if self.should_thread_backward(error_size_bytes, first_iteration):
                 thread = threading.Thread(
                     target=lambda: self.model.get_layer(layer_id).back_prop(self.input_gradient.copy(), m, alpha),
                 )
@@ -1100,6 +1106,7 @@ class Conv(Layer):
                 self.model.bacward_threads.append(thread)
             else:
                 self.model.get_layer(layer_id).back_prop(self.input_gradient, m, alpha)
+            first_iteration = False
         self.update_params(alpha)
         # Safe cleanup after backward propagation
         self.cleanup_after_backward()
