@@ -65,7 +65,7 @@ class Config:
     RESHEPERS_CACHE_ENABLE_MONITORING = True  # Enable memory monitoring
     
     # Model Parameter Limits
-    MAX_MODEL_PARAMETERS = 20000  # Maximum total parameters allowed in the model
+    MAX_MODEL_PARAMETERS = 1000000  # Maximum total parameters allowed in the model
 
     @classmethod
     def update(cls, **kwargs):
@@ -100,10 +100,10 @@ class Config:
         cls.MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
         cls.TIME_EFFICIENCY_WEIGHT = 100.0
         cls.WEIGHT_COUNT_WEIGHT = 0.001
-        cls.RESHEPERS_CACHE_MAX_SIZE = 15
-        cls.RESHEPERS_CACHE_MAX_MEMORY_MB = 5
+        cls.RESHEPERS_CACHE_MAX_SIZE = 10000
+        cls.RESHEPERS_CACHE_MAX_MEMORY_MB = 16000
         cls.RESHEPERS_CACHE_ENABLE_MONITORING = True
-        cls.MAX_MODEL_PARAMETERS = 7000
+        cls.MAX_MODEL_PARAMETERS = 1000000
 
 # Create a global instance for backward compatibility
 config = Config()

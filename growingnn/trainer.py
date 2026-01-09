@@ -7,7 +7,7 @@ from .Simulation.ScoreFunctions import *
 import os
 from .helpers import convert_to_desired_type
 from .utils import EmptyStopper
-
+from .quaziIdentity import clear_reshepers_cache, RESHEPERS
 
 def train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size = 128, simulation_set_size = 20, simulation_alg = montecarlo_alg, sim_set_generator = create_simulation_set_SAMLE, simulation_scheduler = SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time = 60, simulation_epochs = 20), lr_scheduler = LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function = Loss.multiclass_cross_entropy, activation_fun = Activations.Sigmoid, input_paths = 1, simulation_score = Simulation_score(), optimizer = SGDOptimizer(), quiet = False, output_activation_fun = Activations.SoftMax, stopper = EmptyStopper()):
     return train_continue(None, x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size, simulation_set_size, simulation_alg, sim_set_generator, simulation_scheduler, lr_scheduler, loss_function, activation_fun, input_paths, simulation_score, optimizer, quiet, output_activation_fun, stopper)
@@ -59,7 +59,7 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
         draw(M, model_path + '_graph_' + str(hist_detail.last_img_id) + "bef.html")
         
         # Run gradient descent
-        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, quiet, True, model_path + "_gen_" + str(i))
+        new_acc, new_hist = M.gradient_descent(x_train, y_train, epochs, lr_scheduler, quiet, True, model_path + "_gen_" + str(i), stopper)
         
         # Update history
         hist_detail.merge(new_hist)
@@ -95,13 +95,18 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
                     )
                 )
                 
+                reshepers_count = len(RESHEPERS.cache)
+                reshepers_memory_mb = RESHEPERS.current_memory_usage / (1024 * 1024)
+                clear_reshepers_cache()
+                
                 # Log simulation results
                 size_of_changes = len(Action.generate_all_actions(M))
                 current_param_count = M.get_parametr_count()
-                hist_detail.description += f"[iteration: {i}] Best action found after simulation: {action} deepth of tree searched: {deepth} number of rollouts: {rollouts} size_of_changes: {size_of_changes} param_count: {current_param_count}\n"
+                hist_detail.description += f"[iteration: {i}] Best action found after simulation: {action} deepth of tree searched: {deepth} number of rollouts: {rollouts} size_of_changes: {size_of_changes} param_count: {current_param_count} reshepers: {reshepers_count} reshepers_memory: {round(reshepers_memory_mb, 2)}MB\n"
                 
                 # Execute the action
                 action.execute(M)
+                M.cleanup_catche()
 
         # Draw model after generation
         draw(M, model_path + '_graph_' + str(hist_detail.last_img_id) + ".html")

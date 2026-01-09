@@ -37,13 +37,13 @@ def get_reverse_normal_distribution(clip_range, shape):
 
 # GPU/CuPy functionality removed - using CPU only
     
-def clip(X, min, max):
-    return np.array(fastclip(get_numpy_array(X), min, max))
-    return np.array(np.clip(get_numpy_array(X), min, max))
-
-@jit(nopython=True)
-def fastclip(X, min, max):
-    return np.clip(X, min, max)
+def clip(X, min_val, max_val):
+    """Clip array values to range. Optimized to avoid unnecessary array copies."""
+    if isinstance(X, np.ndarray):
+        # Already numpy - use in-place if possible, otherwise direct clip
+        return np.clip(X, min_val, max_val)
+    # Convert to numpy only if needed
+    return np.clip(np.asarray(X), min_val, max_val)
 
 def argmax(X, axis):
     return np.array(np.argmax(get_numpy_array(X), axis))
@@ -72,26 +72,25 @@ def one_hot(Y, Y_max = 0):
     one_hot_Y = one_hot_Y.T
     return one_hot_Y
 
-#@jit(nopython=True)
 def add_n(array):
-    sum = array[0]
-    for i in range(1,len(array)): 
-        sum += array[i]
-    return sum
+    """Sum all arrays in a list element-wise. Optimized using np.stack."""
+    if len(array) == 1:
+        return array[0]
+    return np.sum(np.stack(array, axis=0), axis=0)
 
-#@jit(nopython=True)
 def mean_n(array):
-    sum = add_n(array)
-    div = float(len(array))
-    return sum / div
+    """Compute element-wise mean of arrays in a list. Optimized using np.stack + np.mean."""
+    if len(array) == 1:
+        return array[0]
+    # All arrays have same shape after Reshape() in back_prop, so np.stack works
+    return np.mean(np.stack(array, axis=0), axis=0)
 
-#@jit(nopython=True)
 def mean_n_conv(array, shape):
-    sum = array[0]
-    for i in range(1,len(array)): 
-        sum += array[i]
-    div = float(len(array))
-    return sum / div
+    """Compute element-wise mean of conv arrays. Optimized using np.stack + np.mean."""
+    if len(array) == 1:
+        return array[0]
+    # All arrays have same shape after Resize() in back_prop, so np.stack works
+    return np.mean(np.stack(array, axis=0), axis=0)
 
 def delete_repetitions(array):
     result = []
