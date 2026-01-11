@@ -4,7 +4,7 @@ Activation functions for neural networks.
 import numpy as np
 from numba import jit
 from ..config import config
-
+from ..helpers import clip
 
 class Activations:
     """Container class for activation functions."""
@@ -67,12 +67,21 @@ class Activations:
             # Vectorized implementation instead of loop
             exp_X = np.exp(X - np.max(X, axis=0))
             result = exp_X / np.sum(exp_X, axis=0)
+            if np.isnan(result).any():
+                return Activations.exe_nan_safe(X)
             if config.ENABLE_CLIP_ON_ACTIVATIONS:
-                from ..helpers import clip
-                return clip(result, 0.0001, 0.999)
+                return clip(result, 0.00001, 0.9999)
             else:
                 return result
         
+        @staticmethod
+        def exe_nan_safe(X):
+            result = np.zeros(X.shape)
+            for i in range(0, X.shape[1]):
+                exp = np.exp(X[:, i] - np.nanmax(X[:, i]))
+                result[:, i] = np.nan_to_num(exp / np.sum(exp))
+            return clip(result, 0.0001, 0.999)
+
         @staticmethod
         @jit(nopython=True)
         def der(X):
