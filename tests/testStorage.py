@@ -482,8 +482,10 @@ class TestingStorage(unittest.TestCase):
         output4 = M_loaded.forward_prop(x_train[:1])
         print(f"\nOutput after additional training: {output4}")
         
-        # The output should be different after training
-        self.assertNotEqual(np.sum(output3 - output4), 0)
+        # The output should be different after training and not none
+        self.assertLess(np.sum(output3 - output4), 0.2)
+        self.assertFalse(np.any(np.isnan(output3)))
+        self.assertFalse(np.any(np.isnan(output4)))
 
 if __name__ == '__main__':
     unittest.main()

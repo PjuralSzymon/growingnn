@@ -26,8 +26,8 @@ class Config:
     # Feature Flags
     THROW_EXCEPTION = True
     SAVE_PLOTS = True
-    ENABLE_CLIP_ON_OPTIMIZERS = False
-    ENABLE_CLIP_ON_ACTIVATIONS = False
+    ENABLE_CLIP_ON_OPTIMIZERS = True
+    ENABLE_CLIP_ON_ACTIVATIONS = True
     
     # Neural Network Structure Settings
     MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
@@ -65,7 +65,7 @@ class Config:
     RESHEPERS_CACHE_ENABLE_MONITORING = True  # Enable memory monitoring
     
     # Model Parameter Limits
-    MAX_MODEL_PARAMETERS = 1000000  # Maximum total parameters allowed in the model
+    MAX_MODEL_PARAMETERS = 500000  # Maximum total parameters allowed in the model
 
     @classmethod
     def update(cls, **kwargs):
@@ -94,8 +94,8 @@ class Config:
         cls.PROGRESS_PRINT_FREQUENCY = 7
         cls.THROW_EXCEPTION = True
         cls.SAVE_PLOTS = True
-        cls.ENABLE_CLIP_ON_OPTIMIZERS = False
-        cls.ENABLE_CLIP_ON_ACTIVATIONS = False
+        cls.ENABLE_CLIP_ON_OPTIMIZERS = True
+        cls.ENABLE_CLIP_ON_ACTIVATIONS = True
         cls.MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
         cls.MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
         cls.TIME_EFFICIENCY_WEIGHT = 100.0
@@ -103,7 +103,7 @@ class Config:
         cls.RESHEPERS_CACHE_MAX_SIZE = 10000
         cls.RESHEPERS_CACHE_MAX_MEMORY_MB = 16000
         cls.RESHEPERS_CACHE_ENABLE_MONITORING = True
-        cls.MAX_MODEL_PARAMETERS = 1000000
+        cls.MAX_MODEL_PARAMETERS = 500000
 
 # Create a global instance for backward compatibility
 config = Config()

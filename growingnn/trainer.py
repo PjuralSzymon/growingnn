@@ -107,6 +107,7 @@ def train_continue(M, x_train, x_test, y_train, y_test, labels, path, model_name
                 # Execute the action
                 action.execute(M)
                 M.cleanup_catche()
+                gc.collect()
 
         # Draw model after generation
         draw(M, model_path + '_graph_' + str(hist_detail.last_img_id) + ".html")
