@@ -26,8 +26,8 @@ class Config:
     # Feature Flags
     THROW_EXCEPTION = True
     SAVE_PLOTS = True
-    ENABLE_CLIP_ON_OPTIMIZERS = False
-    ENABLE_CLIP_ON_ACTIVATIONS = False
+    ENABLE_CLIP_ON_OPTIMIZERS = True
+    ENABLE_CLIP_ON_ACTIVATIONS = True
     
     # Neural Network Structure Settings
     MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
@@ -94,8 +94,8 @@ class Config:
         cls.PROGRESS_PRINT_FREQUENCY = 7
         cls.THROW_EXCEPTION = True
         cls.SAVE_PLOTS = True
-        cls.ENABLE_CLIP_ON_OPTIMIZERS = False
-        cls.ENABLE_CLIP_ON_ACTIVATIONS = False
+        cls.ENABLE_CLIP_ON_OPTIMIZERS = True
+        cls.ENABLE_CLIP_ON_ACTIVATIONS = True
         cls.MINIMUM_MATRIX_SIZE_FOR_NEURONS_REMOVAL = 3
         cls.MINIMUM_MATRIX_SIZE_FOR_CONNECTIONS_REMOVAL = 3
         cls.TIME_EFFICIENCY_WEIGHT = 100.0
