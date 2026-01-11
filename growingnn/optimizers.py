@@ -13,13 +13,10 @@ class Optimizer:
         self.layerType = _layerType
         pass
 
-    @staticmethod
     def clip_and_fix(params, clip_range):
         if config.ENABLE_CLIP_ON_OPTIMIZERS:
             params = np.clip(params, -clip_range, clip_range)
-            # Only check for NaNs if they actually exist (expensive nanmean otherwise)
-            if np.any(np.isnan(params)):
-                params = np.nan_to_num(params, nan=0.0)
+            params = np.nan_to_num(params, nan=np.nanmean(params))
             return params
         else:
             return params
