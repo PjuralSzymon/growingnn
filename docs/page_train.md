@@ -1,8 +1,45 @@
-# Training Function
+# Training Functions
 
 ## Overview
 
-The `train` function is responsible for training a neural network model using gradient descent while incorporating simulation-based optimizations. The function handles data preprocessing, model initialization, training, and simulation-driven improvements.
+The `train` function implements the core GrowingNN algorithm for data-driven neural network model construction. It trains a neural network using gradient descent (SGD or Adam) while dynamically modifying the network architecture based on learning progress.
+
+### Core Algorithm
+
+The training process follows this algorithm:
+
+```
+For each generation:
+    1. GradientDescent(Model, Dataset, epochs)
+       - Train current structure
+       - Use progressive learning rate
+       
+    2. If canSimulate():
+       - Check if learning improved
+       - If no improvement: run MCTS simulation
+       - Select and execute best action
+       - Modify network structure
+```
+
+### Simulation Orchestrator
+
+The simulation orchestrator determines **when** to run simulations. By default, it uses the **Progress Check** method:
+
+- After each generation, checks if there was improvement in the model's learning
+- If **no improvement** detected → simulation is run
+- If improvement detected → training continues without structural changes
+
+This ensures that if a given structure is capable of learning the dataset, training continues without unnecessary changes to the structure.
+
+### Progressive Learning Rate
+
+The algorithm uses a custom progressive learning rate schedule that:
+
+1. **After structure change**: Learning rate starts very close to zero in the first epoch
+2. **Growth phase**: Learning rate grows to a constant maximum value
+3. **Decay phase**: Learning rate slowly decreases before the next potential action
+
+This pattern occurs **within a single generation** and minimizes the negative impact of structural changes on already learned information.
 
 ## Function Signature
 

@@ -1,76 +1,89 @@
-# Home Page
+<div style="text-align: center; margin: 3rem 0 2rem 0;">
+  <img src="growingNNIcon.png" alt="GrowingNN Logo" style="max-width: 300px; height: auto; display: block; margin: 0 auto;">
+</div>
 
-The growingnn project introduces an innovative algorithm for data-driven neural network model construction. This algorithm comprises two fundamental components: the first component focuses on weight adjustment, while the second component acts as an orchestrator, launching a guided procedure to dynamically change the network architecture. This architectural modification occurs at regular intervals, specifically every $K$ epochs, and is driven by the outcome of a Monte Carlo tree search. The algorithm's core, outlined in the accompanying research paper, leverages the principles of Stochastic Gradient Descent (SGD) without relying on advanced tools commonly used in neural network training.
+<h1 style="text-align: center; margin-bottom: 1.5rem;">GrowingNN</h1>
 
-## Algorithm Overview
+<p style="max-width: 800px; margin: 0 auto 2rem auto; line-height: 1.6;">
+  Welcome to the GrowingNN documentation. GrowingNN is an innovative algorithm for data-driven neural network model construction that dynamically evolves network architectures during training.
+</p>
 
-### Weight Adjustment Component
+<h2 style="text-align: center; margin: 2.5rem 0 1.5rem 0;">About GrowingNN</h2>
 
-The first component of the algorithm is dedicated to weight adjustment. It operates within the framework of Stochastic Gradient Descent (SGD), a foundational optimization algorithm for training neural networks. The simplicity of this approach makes it suitable for educational settings, emphasizing fundamental machine learning principles.
+<p style="max-width: 800px; margin: 0 auto 1rem auto; line-height: 1.6;">
+  GrowingNN introduces a novel approach to neural network training where the architecture evolves automatically based on learning progress. Built on fundamental machine learning principles using Stochastic Gradient Descent (SGD), it's ideal for both educational purposes and practical applications.
+</p>
 
-### Orchestrator and Network Architecture Modification
+<p style="max-width: 800px; margin: 0 auto 1rem auto; line-height: 1.6;">
+  The algorithm combines two key components:
+</p>
 
-The second component, the orchestrator, plays a crucial role in initiating a procedure to dynamically change the network architecture. This change occurs systematically at predefined intervals, specifically every $K$ epochs. The decision-making process for architectural changes is facilitated by a guided Monte Carlo tree search. This sophisticated mechanism ensures that architectural modifications are well-informed and contribute to the overall improvement of the neural network model.
+<ul style="max-width: 800px; margin: 0 auto 2rem auto; line-height: 1.8;">
+  <li><strong>Weight Adjustment</strong>: Operates within the framework of SGD</li>
+  <li><strong>Architecture Orchestrator</strong>: Dynamically modifies the network structure using Monte Carlo Tree Search</li>
+</ul>
 
-## Implementation Details
+<h2 style="text-align: center; margin: 2.5rem 0 1.5rem 0;">Documentation Sections</h2>
 
-### Model Structure
-The model is the main structure that stores layers as nodes in a directed graph. It operates based on layer identifiers, treating each layer as an independent structure that contains information about incoming and outgoing connections. The default starting structure is a simple graph with an input and output layer connected by a single connection. In each generation, the algorithm has the flexibility to add new layers or remove existing ones. As the structure grows, each layer gains more incoming and outgoing connections.
+<p style="text-align: center; margin-bottom: 2rem;">
+  Explore the documentation using the sections below:
+</p>
 
-### Propagation Phase
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 3rem 0;">
+  <a href="method_overview/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Method Overview</strong>
+  </a>
+  
+  <a href="page_actions/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Actions</strong>
+  </a>
+  
+  <a href="page_examples/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Examples</strong>
+  </a>
+  
+  <a href="page_github/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Versions and GitHub</strong>
+  </a>
+  
+  <a href="page_layer/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Layers</strong>
+  </a>
+  
+  <a href="page_layerconv/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Convolutional Layers</strong>
+  </a>
+  
+  <a href="page_model/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Model</strong>
+  </a>
+  
+  <a href="page_train/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Training Functions</strong>
+  </a>
+  
+  <a href="page_residual_connections/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Matrix-Extended Residual Connections</strong>
+  </a>
+  
+  <a href="page_neuron_optimization/" style="display: block; padding: 2.5rem 2rem; background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%); border: 2px solid #d0d7de; border-radius: 12px; text-decoration: none; color: #24292f; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+    <strong style="font-size: 1.3rem; color: #0969da; display: block; font-weight: 600; text-align: center;">Simulation-based Structural Optimization</strong>
+  </a>
+</div>
 
-During the propagation phase, each layer waits until it receives signals from all input layers. Once these signals are received, they are averaged, processed, and propagated through all outgoing connections. This iterative process allows the neural network to dynamically adapt its architecture based on the evolving data and training requirements.
-
-## Results and Testing
-
-The proposed algorithm has undergone rigorous testing, particularly in visual pattern classification problems. The results have consistently demonstrated high levels of satisfaction, showcasing the efficacy of the dynamic architecture learning approach in enhancing model performance.
-
-
-```python
-x_train, x_test, y_train, y_test, labels = data_reader.read_mnist_data(mnist_path, 0.9)
-gnn.trainer.train(
-    x_train = x_train, 
-    y_train = y_train, 
-    x_test = x_test,
-    y_test = y_test,
-    labels = labels,
-    input_paths = 1,
-    path = "./result", 
-    model_name = "GNN_model",
-    epochs = 10, 
-    generations = 10,
-    input_size = 28 * 28, 
-    hidden_size = 28 * 28, 
-    output_size = 10, 
-    input_shape = (28, 28, 1), 
-    kernel_size = 3, 
-    depth = 2
-)
-```
-This code trains a simple network on the MNIST dataset
-
-## Structure
-History of resulting optimal structure created for MNIST dataset:
-
-1. ![Screenshot](model_arch_1.png)
-
-2. ![Screenshot](model_arch_2.png)
-
-3. ![Screenshot](model_arch_3.png)
-
-4. ![Screenshot](model_arch_4.png)
-
-History of training for mnist and fmnist dataset:
-![Screenshot](montecarlo_alg.png)
-
-
-# Credits
-
-Szymon Swiderski
-Agnieszka Jastrzebska
-
-# Disclosure
-
-This is the first beta version of the growingnn package. We are not liable for the accuracy of the program’s output nor actions performed based upon it.
-
-For more in-depth information on the algorithm, its implementation, and testing results, refer to the accompanying research paper. The provided Python source code is a valuable resource for understanding and implementing the presented method. Feel free to explore, contribute, and adapt it for your specific needs.
+<style>
+  a[href$="/"]:hover {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%) !important;
+    border-color: #0969da !important;
+    box-shadow: 0 8px 24px rgba(9, 105, 218, 0.2) !important;
+    transform: translateY(-4px);
+  }
+  
+  a[href$="/"] strong {
+    transition: color 0.3s;
+  }
+  
+  a[href$="/"]:hover strong {
+    color: #0550ae !important;
+  }
+</style>
