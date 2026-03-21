@@ -1,0 +1,1196 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../page_model/">
+      
+      
+        <link rel="next" href="../page_residual_connections/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Simulation-based Structural Optimization - growingnn</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#simulation-based-structural-optimization" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="growingnn" class="md-header__button md-logo" aria-label="growingnn" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            growingnn
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Simulation-based Structural Optimization
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../method_overview/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Method Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_actions/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Actions
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_examples/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_github/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Versions and GitHub
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_layer/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Layers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_layerconv/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Convolutional Layers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_model/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Model
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Simulation-based Structural Optimization
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_residual_connections/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Matrix-Extended Residual Connections
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../page_train/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Training Functions
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="growingnn" class="md-nav__button md-logo" aria-label="growingnn" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    growingnn
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../method_overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Method Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_actions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_github/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Versions and GitHub
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Layers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_layerconv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Convolutional Layers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simulation-based Structural Optimization
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simulation-based Structural Optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simulation-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simulation Description
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Simulation Description">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simulation-score-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simulation Score Function
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structural-modifications-neuron-removal-and-addition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structural Modifications: Neuron Removal and Addition
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Structural Modifications: Neuron Removal and Addition">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mathematical-formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mathematical Formulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reduction-ratios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reduction Ratios
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#propagation-to-connected-layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Propagation to Connected Layers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#two-phase-optimization-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two-Phase Optimization Approach
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Two-Phase Optimization Approach">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-two-phase-training" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Two-Phase Training
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-benefits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Benefits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_residual_connections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Matrix-Extended Residual Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../page_train/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="simulation-based-structural-optimization">Simulation-based Structural Optimization</h1>
+<h2 id="overview">Overview</h2>
+<p>Optimizing already trained neural networks is one of the core problems in the domain of Artificial Intelligence. In this paper, we present a new approach capable of optimizing the structure of an already trained neural network. We present a new way of removing neurons from layers that is based on matrix scaling, which truly decreases the number of parameters in a model rather than zeroing weights. We present a simulation-based approach for optimizing the structure of a neural network that can select the best change to the network without causing data loss. In experiment section we demonstrate that GrowingNN can optimize already trained neural networks, achieving up to 85% parameter reduction while maintaining approximately 95% training accuracy.</p>
+<p>From a high-level point of view, the proposed method aims to modify the structure of the neural network to improve the accuracy that takes place while the network is training. Another viable scenario for the proposed method is to take an already-trained neural network or a pre-trained neural network and use our method as a fine-tuning tool.</p>
+<h2 id="simulation-description">Simulation Description</h2>
+<p>The decision-making process for choosing the best action uses a variant of Monte Carlo Tree Search (MCTS), adapted for neural network structure optimization.</p>
+<p>Training is divided into generations. In each generation, the simulation starts from the current model <strong>M</strong> and expands it by considering all possible actions <strong>a ∈ A(M)</strong>. Each action produces a new candidate model <strong>M_a</strong>.</p>
+<p>We then evaluate <strong>M_a</strong> using a short training step and assign it a score <strong>S(M_a)</strong> based on the weighted sum described earlier. In the expansion phase, every action <strong>a</strong> is applied to the current model <strong>M</strong>, producing a new child node with model <strong>M_a = a(M)</strong>.</p>
+<p>From each expanded model <strong>M_a</strong>, we simulate a random sequence of further actions until a maximum depth <strong>d</strong> is reached. During the rollout phase, each intermediate model is briefly trained and its performance is graded. The final score from the rollout is used to estimate the long-term value of action <strong>a</strong>. To balance exploration and exploitation, we use the UCB1 criterion:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>UCB1(n) = v(n) + c · √(ln(N) / n)
+</code></pre></div>
+<h3 id="simulation-score-function">Simulation Score Function</h3>
+<p>The score of <strong>M_a</strong> is defined as a weighted combination of accuracy and parameter count:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>S(M_a) = (w_acc · S_acc(M_a) + w_params · (1 / (1 + β · p_a))) / (w_acc + w_params)
+</code></pre></div>
+<p>where:</p>
+<ul>
+<li><strong>S_acc(M_a)</strong> denotes the short-run training accuracy of the model</li>
+<li><strong>w_acc</strong> is fixed at 1.0 in all experiments, serving as a reference since accuracy is the main optimization objective</li>
+<li><strong>p_a</strong> represents the total number of parameters in M_a, including weights, biases, and filter parameters across all layers</li>
+<li><strong>β</strong> (currently set to 0.001) adjusts how the grade for the number of parameters is computed</li>
+<li><strong>w_params</strong> controls how strongly parameter count affects the simulation score and is a key focus of our experiments</li>
+</ul>
+<p>Since models are compared from the same initial structure, those with similar accuracy are preferred when they have fewer parameters.</p>
+<h2 id="structural-modifications-neuron-removal-and-addition">Structural Modifications: Neuron Removal and Addition</h2>
+<p>The simulation process selects the best action in each generation. Each action can modify the structure of the neural network in a predefined way. In our previous papers, we introduced actions that could add or remove layers.</p>
+<p>The contribution presented in this work concerns a much more difficult optimization task, which requires a wider set of possibilities for the simulation to choose from. We introduce new actions that can <strong>add or remove neurons</strong>. The removal of neurons from a layer works differently than in currently available approaches. This entails that we introduce a <strong>novel mathematical representation for the removal action</strong>. Instead of setting the weights to zero, we fully remove neurons and reduce the size of the corresponding weight matrices, which truly decreases the number of parameters in a model.</p>
+<p>A key objective of this process is to <strong>preserve previously learned information</strong>. From an algebraic point of view, a dense layer can be seen as a linear transformation followed by an activation function. Therefore, we reduce the layer size by applying a scaling operation to the weight and bias matrix that allows us to control how much information is lost. Larger scaling factors, which correspond to the removal of more neurons, may result in greater loss of information.</p>
+<h3 id="mathematical-formulation">Mathematical Formulation</h3>
+<p>The neuron removal action in some layer <strong>ℓ</strong> reduces the number of neurons from <strong>n</strong> to <strong>n'</strong> by scaling the weight matrix <strong>W_ℓ</strong> (size: n × d) and bias vector <strong>b_ℓ</strong> (size: n) using a quasi-identity matrix <strong>Q</strong> (size: n' × n):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>W&#39;_ℓ = Q_I · W_ℓ
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>b&#39;_ℓ = Q_I · b_ℓ
+</code></pre></div>
+<p>A quasi-identity matrix <strong>Q</strong> is constructed by resizing an identity matrix, preserving information through optimal linear projection rather than truncation or averaging. This approach is very beneficial because if the reduction ratio is small, for example <strong>r = 0.1</strong>, the matrix <strong>Q</strong> is almost identical to the identity matrix. From the formulas above, we can then assume that <strong>W'_ℓ ≈ W_ℓ</strong>.</p>
+<p>It is important to note that <strong>Q_I</strong> can be used to remove neurons or connections to neurons.</p>
+<h3 id="reduction-ratios">Reduction Ratios</h3>
+<p>Using this neuron removal procedure has limitations. The simulation mechanism cannot generate all possible ways to reduce neurons. When generating neuron reduction actions, the simulation iterates over each hidden layer and creates an action that reduces that layer by a fixed percentage. Due to the large number of possible actions, generating too many of them would make the simulation inefficient and difficult to evaluate. Therefore, the number of generated actions must be limited.</p>
+<p>After extensive experimentation, we chose to allow the simulation to generate three types of neuron reduction: <strong>10%</strong>, <strong>50%</strong>, and <strong>90%</strong>.</p>
+<p>Similarly, to generate new neurons, we use the same approach and allow neuron expansion by <strong>150%</strong> and <strong>200%</strong>. This means that if a model has <strong>n</strong> hidden layers, at each simulation step we add an additional <strong>5n</strong> possible actions. Due to this increase in action space, a time limit on the simulation was extended to 12 minutes in our experiments.</p>
+<h3 id="propagation-to-connected-layers">Propagation to Connected Layers</h3>
+<p>Removing neurons in one layer also affects the next connected layers by rescaling all connections related to the removed neurons. In those structures, it is possible to have many residual connections. In the original ResNet paper, residual connections are merged using summation points. In contrast, our method uses our custom <strong>matrix-extended residual connections</strong>, where residual connections are formed through direct connections between neurons rather than summation points.</p>
+<p>This design makes neuron removal more effective, as removing neurons directly affects all connected layers. To apply this correctly, the algorithm must identify which connections should be removed in all layers connected to the layer from which neurons were removed.</p>
+<p>For each layer <strong>ℓ'</strong> receiving input from layer <strong>ℓ</strong>, the algorithm identifies the column range <strong>[s, e]</strong> in <strong>W_ℓ'</strong> that corresponds to the output of layer <strong>ℓ</strong>.</p>
+<p>The weight matrix is partitioned as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>W_ℓ&#39; = [W_before | W_middle | W_after]
+</code></pre></div>
+<p>where <strong>W_middle</strong> (size: n_ℓ' × n) corresponds to layer <strong>ℓ</strong>'s contribution. Only <strong>W_middle</strong> is rescaled:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>W&#39;_ℓ&#39; = [W_before | W_middle · Q_I | W_after]
+</code></pre></div>
+<p>In layer <span class="arithmatex">\(\ell\)</span>, the weight matrix rescaling was performed to reduce the number of neurons in a given layer. But in layer <span class="arithmatex">\(\ell'\)</span> rescaling aims to reduce the number of connections, effectively reducing the total number of parameters in the network. The matrices <span class="arithmatex">\(W_{\text{before}}\)</span> or <span class="arithmatex">\(W_{\text{after}}\)</span> may be empty.</p>
+<h2 id="two-phase-optimization-approach">Two-Phase Optimization Approach</h2>
+<p>The method can be used in two phases:</p>
+<ol>
+<li><strong>Phase 1: Accuracy Optimization</strong>: Focus on achieving high accuracy with <code>weight_countW</code> set to a low value (e.g., 0.1)</li>
+<li><strong>Phase 2: Parameter Reduction</strong>: Optimize for parameter reduction while maintaining accuracy with <code>weight_countW</code> set to a higher value (e.g., 4.0)</li>
+</ol>
+<h3 id="example-two-phase-training">Example: Two-Phase Training</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">growingnn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gnn</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Load your dataset</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">x_train</span><span class="p">,</span> <span class="n">x_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">load_and_preprocess_dataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Phase 1: Train for accuracy</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">M</span> <span class="o">=</span> <span class="n">gnn</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">x_train</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">y_train</span><span class="o">=</span><span class="n">y_train</span><span class="p">,</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="n">x_test</span><span class="o">=</span><span class="n">x_test</span><span class="p">,</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">y_test</span><span class="o">=</span><span class="n">y_test</span><span class="p">,</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="n">labels</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">output_size</span><span class="p">)),</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="n">input_paths</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="n">path</span><span class="o">=</span><span class="s2">&quot;./results/&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;GNN_model_phase1&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="n">epochs</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="n">generations</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>    <span class="n">hidden_size</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>    <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">,</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">,</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>    <span class="n">deepth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>    <span class="n">lr_scheduler</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">LearningRateScheduler</span><span class="p">(</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>        <span class="n">gnn</span><span class="o">.</span><span class="n">LearningRateScheduler</span><span class="o">.</span><span class="n">PROGRESIVE</span><span class="p">,</span> <span class="mf">0.005</span><span class="p">,</span> <span class="mf">0.8</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>    <span class="p">),</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>    <span class="n">simulation_scheduler</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">SimulationScheduler</span><span class="p">(</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>        <span class="n">gnn</span><span class="o">.</span><span class="n">SimulationScheduler</span><span class="o">.</span><span class="n">CONSTANT</span><span class="p">,</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>        <span class="n">simulation_time</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>        <span class="n">simulation_epochs</span><span class="o">=</span><span class="mi">20</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>    <span class="p">),</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>    <span class="n">optimizer</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">AdamOptimizer</span><span class="p">(),</span>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>    <span class="n">simulation_score</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">Simulation_score</span><span class="p">(</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>        <span class="n">weight_acc</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a>        <span class="n">weight_countW</span><span class="o">=</span><span class="mf">0.1</span>  <span class="c1"># Low weight: focus on accuracy</span>
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>    <span class="p">),</span>
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>    <span class="n">simulation_alg</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">montecarlo_alg</span><span class="p">,</span>
+<a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a>    <span class="n">stopper</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">AccuracyStopper</span><span class="p">(</span><span class="mf">0.9</span><span class="p">)</span>
+<a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a><span class="p">)</span>
+<a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a>
+<a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a><span class="c1"># Evaluate Phase 1</span>
+<a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a><span class="n">accuracy_before</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+<a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a><span class="n">param_count_before</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">get_parametr_count</span><span class="p">()</span>
+<a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a>
+<a id="__codelineno-5-46" name="__codelineno-5-46" href="#__codelineno-5-46"></a><span class="c1"># Phase 2: Optimize for parameter reduction</span>
+<a id="__codelineno-5-47" name="__codelineno-5-47" href="#__codelineno-5-47"></a><span class="n">M</span> <span class="o">=</span> <span class="n">gnn</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">train_continue</span><span class="p">(</span>
+<a id="__codelineno-5-48" name="__codelineno-5-48" href="#__codelineno-5-48"></a>    <span class="n">M</span><span class="o">=</span><span class="n">M</span><span class="p">,</span>  <span class="c1"># Continue from Phase 1 model</span>
+<a id="__codelineno-5-49" name="__codelineno-5-49" href="#__codelineno-5-49"></a>    <span class="n">x_train</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span>
+<a id="__codelineno-5-50" name="__codelineno-5-50" href="#__codelineno-5-50"></a>    <span class="n">y_train</span><span class="o">=</span><span class="n">y_train</span><span class="p">,</span>
+<a id="__codelineno-5-51" name="__codelineno-5-51" href="#__codelineno-5-51"></a>    <span class="n">x_test</span><span class="o">=</span><span class="n">x_test</span><span class="p">,</span>
+<a id="__codelineno-5-52" name="__codelineno-5-52" href="#__codelineno-5-52"></a>    <span class="n">y_test</span><span class="o">=</span><span class="n">y_test</span><span class="p">,</span>
+<a id="__codelineno-5-53" name="__codelineno-5-53" href="#__codelineno-5-53"></a>    <span class="n">labels</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">output_size</span><span class="p">)),</span>
+<a id="__codelineno-5-54" name="__codelineno-5-54" href="#__codelineno-5-54"></a>    <span class="n">input_paths</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-5-55" name="__codelineno-5-55" href="#__codelineno-5-55"></a>    <span class="n">path</span><span class="o">=</span><span class="s2">&quot;./results/&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-56" name="__codelineno-5-56" href="#__codelineno-5-56"></a>    <span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;GNN_model_phase2&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-57" name="__codelineno-5-57" href="#__codelineno-5-57"></a>    <span class="n">epochs</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+<a id="__codelineno-5-58" name="__codelineno-5-58" href="#__codelineno-5-58"></a>    <span class="n">generations</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+<a id="__codelineno-5-59" name="__codelineno-5-59" href="#__codelineno-5-59"></a>    <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
+<a id="__codelineno-5-60" name="__codelineno-5-60" href="#__codelineno-5-60"></a>    <span class="n">hidden_size</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+<a id="__codelineno-5-61" name="__codelineno-5-61" href="#__codelineno-5-61"></a>    <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">,</span>
+<a id="__codelineno-5-62" name="__codelineno-5-62" href="#__codelineno-5-62"></a>    <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">,</span>
+<a id="__codelineno-5-63" name="__codelineno-5-63" href="#__codelineno-5-63"></a>    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<a id="__codelineno-5-64" name="__codelineno-5-64" href="#__codelineno-5-64"></a>    <span class="n">deepth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-5-65" name="__codelineno-5-65" href="#__codelineno-5-65"></a>    <span class="n">lr_scheduler</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">LearningRateScheduler</span><span class="p">(</span>
+<a id="__codelineno-5-66" name="__codelineno-5-66" href="#__codelineno-5-66"></a>        <span class="n">gnn</span><span class="o">.</span><span class="n">LearningRateScheduler</span><span class="o">.</span><span class="n">PROGRESIVE</span><span class="p">,</span> <span class="mf">0.005</span><span class="p">,</span> <span class="mf">0.8</span>
+<a id="__codelineno-5-67" name="__codelineno-5-67" href="#__codelineno-5-67"></a>    <span class="p">),</span>
+<a id="__codelineno-5-68" name="__codelineno-5-68" href="#__codelineno-5-68"></a>    <span class="n">simulation_scheduler</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">SimulationScheduler</span><span class="p">(</span>
+<a id="__codelineno-5-69" name="__codelineno-5-69" href="#__codelineno-5-69"></a>        <span class="n">gnn</span><span class="o">.</span><span class="n">SimulationScheduler</span><span class="o">.</span><span class="n">CONSTANT</span><span class="p">,</span>
+<a id="__codelineno-5-70" name="__codelineno-5-70" href="#__codelineno-5-70"></a>        <span class="n">simulation_time</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+<a id="__codelineno-5-71" name="__codelineno-5-71" href="#__codelineno-5-71"></a>        <span class="n">simulation_epochs</span><span class="o">=</span><span class="mi">20</span>
+<a id="__codelineno-5-72" name="__codelineno-5-72" href="#__codelineno-5-72"></a>    <span class="p">),</span>
+<a id="__codelineno-5-73" name="__codelineno-5-73" href="#__codelineno-5-73"></a>    <span class="n">optimizer</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">AdamOptimizer</span><span class="p">(),</span>
+<a id="__codelineno-5-74" name="__codelineno-5-74" href="#__codelineno-5-74"></a>    <span class="n">simulation_score</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">Simulation_score</span><span class="p">(</span>
+<a id="__codelineno-5-75" name="__codelineno-5-75" href="#__codelineno-5-75"></a>        <span class="n">weight_acc</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-5-76" name="__codelineno-5-76" href="#__codelineno-5-76"></a>        <span class="n">weight_countW</span><span class="o">=</span><span class="mf">4.0</span>  <span class="c1"># High weight: focus on parameter reduction</span>
+<a id="__codelineno-5-77" name="__codelineno-5-77" href="#__codelineno-5-77"></a>    <span class="p">),</span>
+<a id="__codelineno-5-78" name="__codelineno-5-78" href="#__codelineno-5-78"></a>    <span class="n">simulation_alg</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">montecarlo_alg</span><span class="p">,</span>
+<a id="__codelineno-5-79" name="__codelineno-5-79" href="#__codelineno-5-79"></a>    <span class="n">stopper</span><span class="o">=</span><span class="n">gnn</span><span class="o">.</span><span class="n">AccuracyAndReductionStopper</span><span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+<a id="__codelineno-5-80" name="__codelineno-5-80" href="#__codelineno-5-80"></a><span class="p">)</span>
+<a id="__codelineno-5-81" name="__codelineno-5-81" href="#__codelineno-5-81"></a>
+<a id="__codelineno-5-82" name="__codelineno-5-82" href="#__codelineno-5-82"></a><span class="c1"># Evaluate Phase 2</span>
+<a id="__codelineno-5-83" name="__codelineno-5-83" href="#__codelineno-5-83"></a><span class="n">accuracy_after</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+<a id="__codelineno-5-84" name="__codelineno-5-84" href="#__codelineno-5-84"></a><span class="n">param_count_after</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">get_parametr_count</span><span class="p">()</span>
+<a id="__codelineno-5-85" name="__codelineno-5-85" href="#__codelineno-5-85"></a>
+<a id="__codelineno-5-86" name="__codelineno-5-86" href="#__codelineno-5-86"></a><span class="c1"># Calculate improvements</span>
+<a id="__codelineno-5-87" name="__codelineno-5-87" href="#__codelineno-5-87"></a><span class="n">param_reduction</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">param_count_after</span> <span class="o">/</span> <span class="n">param_count_before</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+<a id="__codelineno-5-88" name="__codelineno-5-88" href="#__codelineno-5-88"></a><span class="n">acc_change</span> <span class="o">=</span> <span class="p">(</span><span class="n">accuracy_after</span> <span class="o">-</span> <span class="n">accuracy_before</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+<a id="__codelineno-5-89" name="__codelineno-5-89" href="#__codelineno-5-89"></a>
+<a id="__codelineno-5-90" name="__codelineno-5-90" href="#__codelineno-5-90"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Phase 1 - Accuracy: </span><span class="si">{</span><span class="n">accuracy_before</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, Parameters: </span><span class="si">{</span><span class="n">param_count_before</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-91" name="__codelineno-5-91" href="#__codelineno-5-91"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Phase 2 - Accuracy: </span><span class="si">{</span><span class="n">accuracy_after</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, Parameters: </span><span class="si">{</span><span class="n">param_count_after</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-92" name="__codelineno-5-92" href="#__codelineno-5-92"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parameter reduction: </span><span class="si">{</span><span class="n">param_reduction</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-93" name="__codelineno-5-93" href="#__codelineno-5-93"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Accuracy change: </span><span class="si">{</span><span class="n">acc_change</span><span class="si">:</span><span class="s2">+.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="key-benefits">Key Benefits</h2>
+<ul>
+<li><strong>Information Preservation</strong>: Quasi-identity matrices preserve learned information during neuron removal</li>
+<li><strong>Parameter Reduction</strong>: Can achieve significant parameter reduction (up to 85%) while maintaining accuracy</li>
+<li><strong>Flexible Optimization</strong>: Two-phase approach allows balancing accuracy and efficiency</li>
+<li><strong>Effective with Residual Connections</strong>: Works particularly well with matrix-extended residual connections</li>
+</ul>
+<h2 id="summary">Summary</h2>
+<p>The simulation-based structural optimization approach provides a powerful method for optimizing already trained neural networks. By using Monte Carlo Tree Search to select optimal structural changes and quasi-identity matrices for neuron removal, the method can effectively reduce parameters in trained networks (up to 85% reduction) while maintaining high accuracy (approximately 95% training accuracy). This makes it an effective tool for fine-tuning and optimizing pre-trained neural networks without causing data loss.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      &copy; 2024 <a href="https://github.com/PjuralSzymon/growingnn"  target="_blank" rel="noopener">Szymon Swiderski</a>
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/growingnn/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
