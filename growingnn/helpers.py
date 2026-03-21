@@ -5,7 +5,7 @@ from numba import jit
 import cv2 as cv
 import json
 import random
-import numpy
+import numpy as np
 
 class NumpyArrayEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -35,31 +35,21 @@ def get_reverse_normal_distribution(clip_range, shape):
     
     return result
 
-def switch_to_gpu():
-    #print(" helper: switch_to_gpu")
-    global np, IS_CUPY
-    import cupy as np
-    IS_CUPY = True
-
-def switch_to_cpu():
-    #print(" helper: switch_to_cpu")
-    global np, IS_CUPY
-    import numpy as np
-    IS_CUPY = False
+# GPU/CuPy functionality removed - using CPU only
     
-def clip(X, min, max):
-    return np.array(fastclip(get_numpy_array(X), min, max))
-    return np.array(np.clip(get_numpy_array(X), min, max))
-
-@jit(nopython=True)
-def fastclip(X : numpy, min : int, max : int):
-    return np.clip(X, min, max)
+def clip(X, min_val, max_val):
+    """Clip array values to range. Optimized to avoid unnecessary array copies."""
+    if isinstance(X, np.ndarray):
+        # Already numpy - use in-place if possible, otherwise direct clip
+        return np.clip(X, min_val, max_val)
+    # Convert to numpy only if needed
+    return np.clip(np.asarray(X), min_val, max_val)
 
 def argmax(X, axis):
-    return np.array(numpy.argmax(get_numpy_array(X), axis))
+    return np.array(np.argmax(get_numpy_array(X), axis))
 
 def randn(shape):
-        return np.array(numpy.random.randn(shape))
+        return np.array(np.random.randn(shape))
 
 def get_list_as_numpy_array(X):
     for i in range(0, len(X)):
@@ -67,14 +57,8 @@ def get_list_as_numpy_array(X):
     return X
     
 def get_numpy_array(X):
-    if IS_CUPY == True:
-        import cupy
-        if isinstance(X, cupy.ndarray):
-            return X.get()
-        else:
-            return numpy.array(X)
-    else:
-        return numpy.array(X)
+    # CPU only - no GPU conversion needed
+    return np.array(X)
     
 def convert_to_desired_type(X):
     if not isinstance(X, np.ndarray):
@@ -88,26 +72,25 @@ def one_hot(Y, Y_max = 0):
     one_hot_Y = one_hot_Y.T
     return one_hot_Y
 
-#@jit(nopython=True)
 def add_n(array):
-    sum = array[0]
-    for i in range(1,len(array)): 
-        sum += array[i]
-    return sum
+    """Sum all arrays in a list element-wise. Optimized using np.stack."""
+    if len(array) == 1:
+        return array[0]
+    return np.sum(np.stack(array, axis=0), axis=0)
 
-#@jit(nopython=True)
 def mean_n(array):
-    sum = add_n(array)
-    div = float(len(array))
-    return sum / div
+    """Compute element-wise mean of arrays in a list. Optimized using np.stack + np.mean."""
+    if len(array) == 1:
+        return array[0]
+    # All arrays have same shape after Reshape() in back_prop, so np.stack works
+    return np.mean(np.stack(array, axis=0), axis=0)
 
-#@jit(nopython=True)
 def mean_n_conv(array, shape):
-    sum = array[0]
-    for i in range(1,len(array)): 
-        sum += array[i]
-    div = float(len(array))
-    return sum / div
+    """Compute element-wise mean of conv arrays. Optimized using np.stack + np.mean."""
+    if len(array) == 1:
+        return array[0]
+    # All arrays have same shape after Resize() in back_prop, so np.stack works
+    return np.mean(np.stack(array, axis=0), axis=0)
 
 def delete_repetitions(array):
     result = []
@@ -119,9 +102,11 @@ def delete_repetitions(array):
 
 
 def strech(x, shape):
-    result = np.zeros((shape[0], shape[1], x.shape[2]))
-    for i in range(0, x.shape[2]):
-        result[:,:,i] = np.array(cv.resize(get_numpy_array(x[:,:,i]), shape))
+    x_np = get_numpy_array(x) if not isinstance(x, np.ndarray) else x
+    result = np.empty((shape[0], shape[1], x_np.shape[2]))
+    # Process each channel
+    for i in range(0, x_np.shape[2]):
+        result[:,:,i] = cv.resize(x_np[:,:,i], shape)
     return result
 
 def draw_hist(hist, label, path):

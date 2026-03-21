@@ -40,7 +40,7 @@ class TestConvLayer(unittest.TestCase):
         X = np.random.randn(batch_size, *self.input_shape)
         
         # Forward pass
-        output = conv_layer.forward_prop(X, None)
+        output = conv_layer.forward_prop(X, -1)
         
         # Check output shape
         expected_shape = (batch_size, *conv_layer.output_shape)
@@ -59,7 +59,7 @@ class TestConvLayer(unittest.TestCase):
         E = np.random.randn(batch_size, *conv_layer.output_shape)
         
         # Forward pass
-        _ = conv_layer.forward_prop(X, None)
+        _ = conv_layer.forward_prop(X, -1)
         
         # Backward pass
         conv_layer.back_prop(E, batch_size, 0.01)
@@ -85,7 +85,7 @@ class TestConvLayer(unittest.TestCase):
         E = np.random.randn(batch_size, *conv_layer.output_shape)
         
         # Forward and backward pass
-        _ = conv_layer.forward_prop(X, None)
+        _ = conv_layer.forward_prop(X, -1)
         conv_layer.back_prop(E, batch_size, 0.01)
         
         # Update weights
@@ -130,7 +130,7 @@ class TestConvLayer(unittest.TestCase):
             X = np.random.randn(batch_size, *self.input_shape)
             
             # Forward pass
-            output = conv_layer.forward_prop(X, None)
+            output = conv_layer.forward_prop(X, -1)
             
             # Check if activation was applied
             if activation == gnn.structure.Activations.ReLu:
@@ -152,7 +152,7 @@ class TestConvLayer(unittest.TestCase):
             E = np.random.randn(batch_size, *conv_layer.output_shape)
             
             # Forward and backward pass
-            _ = conv_layer.forward_prop(X, None)
+            _ = conv_layer.forward_prop(X, -1)
             conv_layer.back_prop(E, batch_size, 0.01)
             
             # Store initial weights
@@ -175,7 +175,7 @@ class TestConvLayer(unittest.TestCase):
         E = np.random.randn(batch_size, *conv_layer.output_shape) * 1000  # Large error to test clipping
         
         # Forward and backward pass
-        _ = conv_layer.forward_prop(X, None)
+        _ = conv_layer.forward_prop(X, -1)
         conv_layer.back_prop(E, batch_size, 0.01)
         conv_layer.update_params(0.01)
         

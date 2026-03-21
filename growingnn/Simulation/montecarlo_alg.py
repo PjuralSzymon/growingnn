@@ -2,7 +2,10 @@ import time
 import random
 import math
 import numpy as np
-from ..action import Action
+import gc
+from growingnn.utils import LearningRateScheduler
+from ..action import Action, Empty_action
+from ..quaziIdentity import clear_reshepers_cache
 #from ..structure import *
 
 UCB1_CONTS = 2
@@ -27,13 +30,14 @@ class TreeNode:
         self.childNodes = []
         self.value = 0
         self.visit_counter = 0
+        self._cleaned = False
 
     def expand(self):
-#        all_action_seq = self.M.generate_all_possible_new_layers()
         all_action_seq = Action.generate_all_actions(self.M)
         for action in all_action_seq:
             M_copy = self.M.deepcopy()
             action.execute(M_copy)
+            M_copy.gradient_descent(self.X_train, self.Y_train, 1, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.0001, 0.8) , True)
             #M_copy.add_layer(action[0], action[1])
             new_node = TreeNode(self, action, M_copy, self.epochs, self.X_train, self.Y_train, self.simulation_score)
             self.childNodes.append(new_node)
@@ -41,14 +45,18 @@ class TreeNode:
     def rollout(self): 
         M_copy = self.M.deepcopy()
         deepth = DEEPTH
+    
         while deepth > 0:
             all_action_seq = Action.generate_all_actions(M_copy)
             if not all_action_seq:
                 break
-                
+            # If there is no other action to do stop
+            if len(all_action_seq) == 1 and isinstance(all_action_seq[0], Empty_action):    
+                break
             # Choose action and execute it
             choosen_action = random.choice(all_action_seq)
             choosen_action.execute(M_copy)
+            M_copy.gradient_descent(self.X_train, self.Y_train, 1, LearningRateScheduler(LearningRateScheduler.CONSTANT, 0.0001, 0.8) , True)
             
             # Filter actions more efficiently using list comprehension
             all_action_seq = [action for action in all_action_seq 
@@ -56,7 +64,9 @@ class TreeNode:
                             not action.can_be_infulenced(choosen_action)]
             deepth -= 1
 
-        return self.simulation_score.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
+        score = self.simulation_score.scoreFun(M_copy, self.epochs, self.X_train, self.Y_train)
+        del M_copy
+        return score
 
     def get_best_child(self):
         USB1 = lambda node : node.value + UCB1_CONTS*protected_divide(math.log(node.parent.visit_counter),node.visit_counter)
@@ -80,9 +90,25 @@ class TreeNode:
         return res + 1
 
     def kill(self):
+        """Memory-safe cleanup of tree node"""
+        if self._cleaned:
+            return
+        
+        # Clean up children first
         for child in self.childNodes:
             child.kill()
-        del self
+        
+        # Clear references to prevent memory leaks
+        self.childNodes.clear()
+        self.X_train = None
+        self.Y_train = None
+        self.M = None
+        self.parent = None
+        self._cleaned = True
+    
+    def __del__(self):
+        """Ensure cleanup on deletion"""
+        self.kill()
 
     def __str__(self):
         result = f"node: value:{self.value} visit_counter: {self.visit_counter}\n"
@@ -94,7 +120,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
     size_of_changes = len(Action.generate_all_actions(M))
     if size_of_changes == 0: 
         print("Error")
-        return None, 0
+        return None, 0, 0
         
     root = TreeNode(None, None, M, epochs, X_train, Y_train, simulation_score)
     deadline = time.time() + max_time_for_dec
@@ -108,6 +134,7 @@ async def get_action(M, max_time_for_dec, epochs, X_train, Y_train, simulation_s
         
     best_action = root.get_best_child().action
     root.kill()
+    clear_reshepers_cache()
     return best_action, deepth, rollouts
 
 def simulate(node, deepth = 0, rollouts = 0):

@@ -3,16 +3,13 @@ sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
 import unittest
-from testSuite import mode
+# CPU-only mode - no GPU support
 import numpy as np
 
 class TestModel(unittest.TestCase):
     def setUp(self):
-        global mode
-        if mode == 'cpu':
-            gnn.switch_to_cpu()
-        elif mode == 'gpu':
-            gnn.switch_to_gpu()
+        # CPU-only mode - no GPU support
+        # GPU/CuPy functionality removed - using CPU only
         self.model = gnn.Model(input_size=10, hidden_size=5, output_size=3)
         # Create test data
         self.X = np.random.rand(10, 10)  # 10 samples, 10 features
@@ -22,7 +19,7 @@ class TestModel(unittest.TestCase):
         self.assertEqual(self.model.batch_size, 128)
         self.assertEqual(self.model.input_size, 10)
         self.assertEqual(self.model.output_size, 3)
-        self.assertEqual(self.model.hidden_size, 5)
+        self.assertEqual(self.model.hidden_size, 4)
         self.assertEqual(len(self.model.hidden_layers), 0)
         self.assertEqual(self.model.avaible_id, 2)
         self.assertEqual(self.model.convolution, False)

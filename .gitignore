@@ -15,6 +15,10 @@ test.py
 *png
 *description.txt
 *.pyc
+__pycache__/
+*.nbc
+*.zip
+*.json
 *.vscode
 deploy.sh
 *here.json

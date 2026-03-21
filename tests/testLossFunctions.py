@@ -4,7 +4,7 @@ import sys
 sys.path.append('.')
 sys.path.append('../')
 import growingnn as gnn
-from growingnn.structure import Loss
+from growingnn.utils import Loss
 
 class TestLossFunctions(unittest.TestCase):
     def setUp(self):

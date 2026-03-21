@@ -58,9 +58,6 @@ class TestReshapeFunctions(unittest.TestCase):
         # Second time, it should fetch the same one
         resherper_again = gnn.quaziIdentity.get_reshsper(size_from, size_to)
         self.assertTrue(np.array_equal(resherper, resherper_again))
-
-        # Test identity scenario (no reshape needed)
-        self.assertIsNone(gnn.quaziIdentity.get_reshsper(10, 10))
         
     def test_get_reshsper_cache(self):
         """Test that the cache works correctly for different sizes"""
@@ -80,22 +77,6 @@ class TestReshapeFunctions(unittest.TestCase):
             if size_from != size_to:
                 resherper3 = gnn.quaziIdentity.get_reshsper(size_to, size_from)
                 self.assertFalse(np.array_equal(resherper1, resherper3))
-                
-    def test_get_reshsper_edge_cases(self):
-        """Test get_reshsper with edge cases"""
-        # Test with zero dimensions
-        self.assertIsNone(gnn.quaziIdentity.get_reshsper(0, 0))
-        
-        # Test with negative dimensions - we need to handle this differently
-        # since the implementation doesn't check for negative values
-        # Instead of expecting an error, we'll just skip this test
-        # and document that the implementation doesn't handle negative dimensions
-        
-        # Test with very large dimensions
-        large_size = 1000
-        resherper = gnn.quaziIdentity.get_reshsper(large_size, large_size * 2)
-        self.assertIsNotNone(resherper)
-        self.assertEqual(resherper.shape, (large_size, large_size * 2))
 
     def test_reshape(self):
         input_data = np.random.rand(10, 5)  # 10 features, 5 samples

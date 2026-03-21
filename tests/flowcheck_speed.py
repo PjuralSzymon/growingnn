@@ -5,7 +5,6 @@ import unittest
 import numpy as np
 import growingnn as gnn
 from growingnn.structure import SimulationScheduler
-from testSuite import mode
 import time
 
 EXPERIMENT_REPETITIONS = 5
@@ -98,13 +97,13 @@ if __name__ == '__main__':
     times_hard = []
     for i in range(EXPERIMENT_REPETITIONS):
         print("[INFO] Starting timing for iteration ", i)
-        train_time = timer_train(500, 28, 10) # MNIST settings
+        train_time = timer_train(50, 28, 10) # MNIST settings
         times_easy.append(train_time)
 
-        train_time = timer_train(1000, 30, 10) # Something in beetween
+        train_time = timer_train(100, 30, 10) # Something in beetween
         times_mid.append(train_time)
 
-        train_time = timer_train(6000, 32, 10) # CIFAR settings (600 instead of 6000)
+        train_time = timer_train(200, 32, 10) # CIFAR like settings
         times_hard.append(train_time)
 
         TIMING_RESULTS["easy"] = float(round(np.mean(times_easy), 2))

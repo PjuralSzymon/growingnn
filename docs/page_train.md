@@ -1,13 +1,50 @@
-# Training Function
+# Training Functions
 
 ## Overview
 
-The `train` function is responsible for training a neural network model using gradient descent while incorporating simulation-based optimizations. The function handles data preprocessing, model initialization, training, and simulation-driven improvements.
+The `train` function implements the core GrowingNN algorithm for data-driven neural network model construction. It trains a neural network using gradient descent (SGD or Adam) while dynamically modifying the network architecture based on learning progress.
+
+### Core Algorithm
+
+The training process follows this algorithm:
+
+```
+For each generation:
+    1. GradientDescent(Model, Dataset, epochs)
+       - Train current structure
+       - Use progressive learning rate
+       
+    2. If canSimulate():
+       - Check if learning improved
+       - If no improvement: run MCTS simulation
+       - Select and execute best action
+       - Modify network structure
+```
+
+### Simulation Orchestrator
+
+The simulation orchestrator determines **when** to run simulations. By default, it uses the **Progress Check** method:
+
+- After each generation, checks if there was improvement in the model's learning
+- If **no improvement** detected → simulation is run
+- If improvement detected → training continues without structural changes
+
+This ensures that if a given structure is capable of learning the dataset, training continues without unnecessary changes to the structure.
+
+### Progressive Learning Rate
+
+The algorithm uses a custom progressive learning rate schedule that:
+
+1. **After structure change**: Learning rate starts very close to zero in the first epoch
+2. **Growth phase**: Learning rate grows to a constant maximum value
+3. **Decay phase**: Learning rate slowly decreases before the next potential action
+
+This pattern occurs **within a single generation** and minimizes the negative impact of structural changes on already learned information.
 
 ## Function Signature
 
 ```python
-train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size=128, simulation_set_size=20, simulation_alg=montecarlo_alg, sim_set_generator=create_simulation_set_SAMLE, simulation_scheduler=SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time=60, simulation_epochs=20), lr_scheduler=LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function=Loss.multiclass_cross_entropy, activation_fun=Activations.Sigmoid, input_paths=1, sample_sub_generator=None, simulation_score=Simulation_score(), optimizer=SGDOptimizer())
+train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, generations, input_size, hidden_size, output_size, input_shape, kernel_size, deepth, batch_size=128, simulation_set_size=20, simulation_alg=montecarlo_alg, sim_set_generator=create_simulation_set_SAMLE, simulation_scheduler=SimulationScheduler(SimulationScheduler.PROGRESS_CHECK, simulation_time=60, simulation_epochs=20), lr_scheduler=LearningRateScheduler(LearningRateScheduler.PROGRESIVE, 0.03, 0.8), loss_function=Loss.multiclass_cross_entropy, activation_fun=Activations.Sigmoid, input_paths=1,simulation_score=Simulation_score(), optimizer=SGDOptimizer())
 ```
 
 ## Parameters
@@ -38,7 +75,6 @@ train(x_train, x_test, y_train, y_test, labels, path, model_name, epochs, genera
 | `loss_function` | function | Loss function used during training |
 | `activation_fun` | function | Activation function used in the model |
 | `input_paths` | int | Number of input paths for model |
-| `sample_sub_generator` | function or None | Function for generating sample subsets (default: None) |
 | `simulation_score` | object | Scoring function for simulations |
 | `optimizer` | object | Optimizer used for gradient descent (default: `SGDOptimizer`) |
 
