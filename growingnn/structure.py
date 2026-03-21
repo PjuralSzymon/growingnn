@@ -260,7 +260,6 @@ class Layer:
         self.append_to_f_input(X, sender_id)
         if any(x is None for x in self.f_input):
                 return None
-        
         #Preparing data
         self.I = np.vstack(self.f_input)
         self.W = Layer.update_weights_shape(self.W, self.I.shape[0])
