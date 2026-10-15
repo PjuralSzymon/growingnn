@@ -2,11 +2,16 @@
 
 The growingnn project introduces an innovative algorithm for data-driven neural network model construction. This algorithm comprises two fundamental components: the first component focuses on weight adjustment, while the second component acts as an orchestrator, launching a guided procedure to dynamically change the network architecture. This architectural modification occurs at regular intervals, specifically every $K$ epochs, and is driven by the outcome of a Monte Carlo tree search. The algorithm's core, outlined in the accompanying research paper, leverages the principles of Stochastic Gradient Descent (SGD) without relying on advanced tools commonly used in neural network training.
 
+This repository is the **basic version** of growingnn, implemented with **NumPy only**. A newer PyTorch-based version is available at [growingNN_pytorch](https://github.com/PjuralSzymon/growingNN_pytorch).
+
 ### [Repozytorium GitHub](https://github.com/PjuralSzymon/growingnn)
 Click the link above to navigate to the GitHub repository, where you can find the source code, issues, and other project details.
 
 ### [Dokumentacja](https://pjuralszymon.github.io/growingnn)
 This link will take you to the project documentation. Here you'll find instructions, usage information, and other resources helpful for using the project.
+
+### [PyTorch version](https://github.com/PjuralSzymon/growingNN_pytorch)
+Newer implementation of growingnn built with PyTorch.
 
 
 ## Algorithm Overview
@@ -61,6 +66,10 @@ This code trains a simple network on the MNIST dataset
 
 Szymon Swiderski
 Agnieszka Jastrzebska
+
+# Acknowledgments
+
+The contribution was supported by the National Science Center, grant No. 2024/53/B/ST6/00021.
 
 # Disclosure
 
